@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "better-auth"
+import { requireAuth } from "@/lib/auth-middleware"
 import { authConfig } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { timesheets } from "@/lib/db/schema"

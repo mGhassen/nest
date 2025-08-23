@@ -1,81 +1,65 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "better-auth"
-import { authConfig } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { employees } from "@/lib/db/schema"
-import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and } from "drizzle-orm"
+import { can } from "@/lib/rbac"
+import { eq } from "drizzle-orm"
 import { z } from "zod"
+import { requireAuth } from "@/lib/auth-middleware"
 
 const createEmployeeSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   email: z.string().email(),
-  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACTOR"]),
-  hireDate: z.string().transform((str) => new Date(str)),
-  positionTitle: z.string().optional(),
-  baseSalary: z.number().optional(),
-  salaryPeriod: z.enum(["MONTHLY", "YEARLY"]).optional(),
-  hourlyRate: z.number().optional(),
+  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN"]),
+  managerId: z.string().optional(),
+  positionTitle: z.string().min(1),
+  locationId: z.string().optional(),
+  costCenterId: z.string().optional(),
+  baseSalary: z.number().positive().optional(),
+  salaryPeriod: z.enum(["HOURLY", "WEEKLY", "BIWEEKLY", "MONTHLY", "YEARLY"]).optional(),
+  hourlyRate: z.number().positive().optional(),
+  workScheduleId: z.string().optional(),
 })
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    const user = await requireAuth(request)
+    if (user instanceof NextResponse) return user
 
     // Check permissions
     if (!can(user.role, "read", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    let employeeQuery = db.query.employees.findMany({
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get("status")
+    const locationId = searchParams.get("locationId")
+    const costCenterId = searchParams.get("costCenterId")
+
+    let query = db.query.employees.findMany({
       where: eq(employees.companyId, user.companyId),
       with: {
         location: true,
         costCenter: true,
+        manager: true,
         workSchedule: true,
       },
     })
 
-    // Filter based on role
-    if (user.role === "EMPLOYEE") {
-      // Employee can only see themselves
-      employeeQuery = db.query.employees.findMany({
-        where: and(
-          eq(employees.companyId, user.companyId),
-          eq(employees.userId, user.id)
-        ),
+    // Apply filters if provided
+    if (status) {
+      query = db.query.employees.findMany({
+        where: eq(employees.status, status),
         with: {
           location: true,
           costCenter: true,
-          workSchedule: true,
-        },
-      })
-    } else if (user.role === "MANAGER") {
-      // Manager can see direct reports
-      employeeQuery = db.query.employees.findMany({
-        where: and(
-          eq(employees.companyId, user.companyId),
-          eq(employees.managerId, user.id)
-        ),
-        with: {
-          location: true,
-          costCenter: true,
+          manager: true,
           workSchedule: true,
         },
       })
     }
 
-    const employeesList = await employeeQuery
-
+    const employeesList = await query
     return NextResponse.json(employeesList)
   } catch (error) {
     console.error("Error fetching employees:", error)
@@ -88,15 +72,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    const user = await requireAuth(request)
+    if (user instanceof NextResponse) return user
 
     // Check permissions
     if (!can(user.role, "write", "employee")) {
@@ -109,6 +86,7 @@ export async function POST(request: NextRequest) {
     const newEmployee = await db.insert(employees).values({
       ...validatedData,
       companyId: user.companyId,
+      status: "ACTIVE",
     }).returning()
 
     return NextResponse.json(newEmployee[0], { status: 201 })

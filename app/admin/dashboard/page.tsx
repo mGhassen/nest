@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "better-auth/react"
+import { useAuth } from "@/lib/auth-context"
 import { useEffect, useState } from "react"
 import { redirect } from "next/navigation"
 import MainLayout from "@/components/layout/main-layout"
@@ -11,22 +11,19 @@ import RecentActivity from "@/components/dashboard/recent-activity"
 import PendingActions from "@/components/dashboard/pending-actions"
 
 export default function AdminDashboardPage() {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const [userRole, setUserRole] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (session?.user?.id) {
-      getUserWithRole(session.user.id).then((user) => {
-        if (user) {
-          setUserRole(user.role)
-        }
-        setLoading(false)
-      })
-    } else if (status === "unauthenticated") {
+    if (!loading && !user) {
       redirect("/auth/signin")
+      return
     }
-  }, [session, status])
+
+    if (user) {
+      setUserRole(user.role)
+    }
+  }, [user, loading])
 
   if (loading) {
     return (

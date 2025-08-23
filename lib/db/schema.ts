@@ -109,15 +109,16 @@ export const employees = pgTable("employees", {
   password: varchar("password"), // Hashed password for employee portal access
   hireDate: date("hire_date").notNull(),
   terminationDate: date("termination_date"),
-  employmentType: varchar("employment_type").notNull(), // FULL_TIME, PART_TIME, CONTRACTOR
+  employmentType: varchar("employment_type").notNull(), // FULL_TIME, PART_TIME, CONTRACTOR, INTERN
   managerId: varchar("manager_id"),
-  positionTitle: varchar("position_title"),
+  positionTitle: varchar("position_title").notNull(),
   locationId: varchar("location_id"),
   costCenterId: varchar("cost_center_id"),
   baseSalary: decimal("base_salary", { precision: 10, scale: 2 }),
-  salaryPeriod: varchar("salary_period"), // MONTHLY, YEARLY
+  salaryPeriod: varchar("salary_period"), // HOURLY, WEEKLY, BIWEEKLY, MONTHLY, YEARLY
   hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
   workScheduleId: varchar("work_schedule_id"),
+  status: varchar("status").notNull().default("ACTIVE"), // ACTIVE, INACTIVE, TERMINATED
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

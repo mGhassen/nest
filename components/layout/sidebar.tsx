@@ -13,8 +13,7 @@ import {
   Building,
   X
 } from "lucide-react";
-import { useSession } from "better-auth/react";
-import { getUserWithRole } from "@/lib/rbac";
+import { useAuth } from "@/lib/auth-context";
 
 const menuItems = [
   {
@@ -93,19 +92,14 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      getUserWithRole(session.user.id).then((user) => {
-        if (user) {
-          setUserRole(user.role);
-        }
-      });
+    if (user) {
+      setUserRole(user.role);
     }
-    }
-  }, [session?.user?.id]);
+  }, [user]);
 
   const getInitials = (name: string) => {
     return name
@@ -177,12 +171,12 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm" data-testid="text-user-initials">
-                {session?.user?.name ? getInitials(session.user.name) : 'JD'}
+                {user?.firstName && user?.lastName ? getInitials(`${user.firstName} ${user.lastName}`) : 'JD'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate" data-testid="text-user-name">
-                {session?.user?.name || session?.user?.email || 'John Doe'}
+                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || 'John Doe'}
               </p>
               <p className="text-xs text-gray-500" data-testid="text-user-role">
                 {userRole === 'ADMIN' ? 'Administrator' : userRole}

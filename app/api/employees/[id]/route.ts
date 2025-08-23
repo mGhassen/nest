@@ -1,27 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "better-auth"
-import { authConfig } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { employees } from "@/lib/db/schema"
-import { getUserWithRole, can, canAccessEmployee } from "@/lib/rbac"
+import { can } from "@/lib/rbac"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
+import { requireAuth } from "@/lib/auth-middleware"
 
 const updateEmployeeSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACTOR"]).optional(),
-  hireDate: z.string().transform((str) => new Date(str)).optional(),
-  terminationDate: z.string().transform((str) => new Date(str)).optional(),
-  positionTitle: z.string().optional(),
-  baseSalary: z.number().optional(),
-  salaryPeriod: z.enum(["MONTHLY", "YEARLY"]).optional(),
-  hourlyRate: z.number().optional(),
+  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN"]).optional(),
   managerId: z.string().optional(),
+  positionTitle: z.string().min(1).optional(),
   locationId: z.string().optional(),
   costCenterId: z.string().optional(),
+  baseSalary: z.number().positive().optional(),
+  salaryPeriod: z.enum(["HOURLY", "WEEKLY", "BIWEEKLY", "MONTHLY", "YEARLY"]).optional(),
+  hourlyRate: z.number().positive().optional(),
   workScheduleId: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "TERMINATED"]).optional(),
 })
 
 export async function GET(
@@ -29,19 +27,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) return authResult
 
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    // Check if user can access this employee
-    const canAccess = await canAccessEmployee(session.user.id, params.id)
-    if (!canAccess) {
+    // Check permissions
+    if (!can(authResult.role, "read", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -50,11 +40,10 @@ export async function GET(
       with: {
         location: true,
         costCenter: true,
-        workSchedule: true,
         manager: true,
+        workSchedule: true,
         timesheets: true,
         leaveRequests: true,
-        payrollRuns: true,
       },
     })
 
@@ -77,18 +66,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) return authResult
 
     // Check permissions
-    if (!can(user.role, "write", "employee")) {
+    if (!can(authResult.role, "write", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -130,18 +112,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) return authResult
 
     // Check permissions
-    if (!can(user.role, "delete", "employee")) {
+    if (!can(authResult.role, "delete", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

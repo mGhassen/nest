@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "better-auth/react"
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
 import { useEffect, useState } from "react"
 import { redirect } from "next/navigation"
 import MainLayout from "@/components/layout/main-layout"
