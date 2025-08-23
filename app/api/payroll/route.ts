@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "better-auth"
 import { authConfig } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { payrollCycles, payrollRuns } from "@/lib/db/schema"
+import { payrollCycles } from "@/lib/db/schema"
 import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and } from "drizzle-orm"
+import { eq, and, desc } from "drizzle-orm"
 import { z } from "zod"
 
 const createPayrollCycleSchema = z.object({
-  periodStart: z.string().transform((str) => new Date(str)),
-  periodEnd: z.string().transform((str) => new Date(str)),
+  month: z.number().min(1).max(12),
+  year: z.number().min(2020).max(2030),
+  documentUrl: z.string().url().optional(),
+  notes: z.string().optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -30,33 +32,23 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get("status")
+    const month = searchParams.get("month")
+    const year = searchParams.get("year")
 
     let query = db.query.payrollCycles.findMany({
       where: eq(payrollCycles.companyId, user.companyId),
-      with: {
-        runs: {
-          with: {
-            employee: true,
-          },
-        },
-      },
+      orderBy: [desc(payrollCycles.year), desc(payrollCycles.month)],
     })
 
-    // Filter by status if provided
-    if (status) {
+    // Filter by month and year if provided
+    if (month && year) {
       query = db.query.payrollCycles.findMany({
         where: and(
           eq(payrollCycles.companyId, user.companyId),
-          eq(payrollCycles.status, status)
+          eq(payrollCycles.month, parseInt(month)),
+          eq(payrollCycles.year, parseInt(year))
         ),
-        with: {
-          runs: {
-            with: {
-              employee: true,
-            },
-          },
-        },
+        orderBy: [desc(payrollCycles.year), desc(payrollCycles.month)],
       })
     }
 
@@ -91,10 +83,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createPayrollCycleSchema.parse(body)
 
+    // Check if payroll cycle already exists for this month/year
+    const existingCycle = await db.query.payrollCycles.findFirst({
+      where: and(
+        eq(payrollCycles.companyId, user.companyId),
+        eq(payrollCycles.month, validatedData.month),
+        eq(payrollCycles.year, validatedData.year)
+      ),
+    })
+
+    if (existingCycle) {
+      return NextResponse.json(
+        { error: "Payroll cycle already exists for this month/year" },
+        { status: 400 }
+      )
+    }
+
     const newPayrollCycle = await db.insert(payrollCycles).values({
-      ...validatedData,
       companyId: user.companyId,
-      status: "DRAFT",
+      month: validatedData.month,
+      year: validatedData.year,
+      documentUrl: validatedData.documentUrl,
+      notes: validatedData.notes,
+      status: "UPLOADED",
     }).returning()
 
     return NextResponse.json(newPayrollCycle[0], { status: 201 })

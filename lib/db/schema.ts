@@ -186,94 +186,30 @@ export const leaveRequests = pgTable("leave_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Pay Items
-export const payItems = pgTable("pay_items", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  companyId: varchar("company_id").notNull(),
-  code: varchar("code").notNull(),
-  name: varchar("name").notNull(),
-  type: varchar("type").notNull(), // EARNING, DEDUCTION, CONTRIBUTION
-  formula: text("formula"), // JS expression or template
-  taxable: boolean("taxable").default(true),
-  recurring: boolean("recurring").default(false),
-});
+
 
 // Payroll Cycles
 export const payrollCycles = pgTable("payroll_cycles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("company_id").notNull(),
-  periodStart: date("period_start").notNull(),
-  periodEnd: date("period_end").notNull(),
-  status: varchar("status").notNull(), // DRAFT, CALCULATED, APPROVED, PAID
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(), // YYYY
+  documentUrl: varchar("document_url"), // URL to uploaded payroll document
+  notes: text("notes"), // Optional notes about the payroll
+  status: varchar("status").notNull().default("UPLOADED"), // UPLOADED, APPROVED, ARCHIVED
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Payroll Runs
-export const payrollRuns = pgTable("payroll_runs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  cycleId: varchar("cycle_id").notNull(),
-  employeeId: varchar("employee_id").notNull(),
-  gross: decimal("gross", { precision: 10, scale: 2 }).default('0'),
-  net: decimal("net", { precision: 10, scale: 2 }).default('0'),
-  currency: varchar("currency", { length: 3 }).notNull(),
-  payslipUrl: varchar("payslip_url"),
-  generatedAt: timestamp("generated_at"),
-});
 
-// Payroll Items
-export const payrollItems = pgTable("payroll_items", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  runId: varchar("run_id").notNull(),
-  payItemId: varchar("pay_item_id").notNull(),
-  label: varchar("label").notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-});
 
-// Bank Accounts
-export const bankAccounts = pgTable("bank_accounts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  employeeId: varchar("employee_id").notNull(),
-  iban: varchar("iban").notNull(),
-  bic: varchar("bic"),
-  holderName: varchar("holder_name").notNull(),
-  primary: boolean("primary").default(true),
-});
 
-// Contracts
-export const contracts = pgTable("contracts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  employeeId: varchar("employee_id").notNull(),
-  title: varchar("title").notNull(),
-  version: integer("version").default(1),
-  templateId: varchar("template_id"),
-  signedAt: timestamp("signed_at"),
-  fileUrl: varchar("file_url"),
-  variables: text("variables"), // JSON key:value for template merge
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
-// Pay Schedules
-export const paySchedules = pgTable("pay_schedules", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  companyId: varchar("company_id").notNull(),
-  cadence: varchar("cadence").notNull(), // MONTHLY, BIWEEKLY, WEEKLY
-  anchorDay: integer("anchor_day"), // for monthly, e.g. 25
-});
 
-// Employee Payroll Documents
-export const employeePayrollDocuments = pgTable("employee_payroll_documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  employeeId: varchar("employee_id").notNull(),
-  fileName: varchar("file_name").notNull(),
-  documentUrl: varchar("document_url").notNull(),
-  payrollMonth: varchar("payroll_month").notNull(), // Format: YYYY-MM
-  payrollYear: integer("payroll_year").notNull(),
-  uploadedAt: timestamp("uploaded_at").defaultNow(),
-  uploadedBy: varchar("uploaded_by").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+
+
+
+
 
 // Audit Logs
 export const auditLogs = pgTable("audit_logs", {
@@ -317,9 +253,7 @@ export const companyRelations = relations(companies, ({ many }) => ({
   costCenters: many(costCenters),
   workSchedules: many(workSchedules),
   leavePolicies: many(leavePolicies),
-  payItems: many(payItems),
   payrollCycles: many(payrollCycles),
-  paySchedules: many(paySchedules),
   auditLogs: many(auditLogs),
 }));
 
@@ -362,10 +296,10 @@ export const employeeRelations = relations(employees, ({ one, many }) => ({
   timesheets: many(timesheets),
   leaveBalances: many(leaveBalances),
   leaveRequests: many(leaveRequests),
-  payrollRuns: many(payrollRuns),
-  bankAccounts: many(bankAccounts),
-  contracts: many(contracts),
-  payrollDocuments: many(employeePayrollDocuments),
+
+
+
+
 }));
 
 export const timesheetRelations = relations(timesheets, ({ one, many }) => ({
@@ -398,17 +332,8 @@ export const leaveRequestRelations = relations(leaveRequests, ({ one }) => ({
   }),
 }));
 
-export const payrollRunRelations = relations(payrollRuns, ({ one, many }) => ({
-  cycle: one(payrollCycles, {
-    fields: [payrollRuns.cycleId],
-    references: [payrollCycles.id],
-  }),
-  employee: one(employees, {
-    fields: [payrollRuns.employeeId],
-    references: [employees.id],
-  }),
-  items: many(payrollItems),
-}));
+
+
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -445,10 +370,7 @@ export const insertLeavePolicySchema = createInsertSchema(leavePolicies).omit({
   id: true,
 });
 
-export const insertEmployeePayrollDocumentSchema = createInsertSchema(employeePayrollDocuments).omit({
-  id: true,
-  createdAt: true,
-});
+
 
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
@@ -468,9 +390,8 @@ export type InsertLeaveRequest = z.infer<typeof insertLeaveRequestSchema>;
 export type LeavePolicy = typeof leavePolicies.$inferSelect;
 export type LeaveBalance = typeof leaveBalances.$inferSelect;
 export type PayrollCycle = typeof payrollCycles.$inferSelect;
-export type PayrollRun = typeof payrollRuns.$inferSelect;
+
 export type Location = typeof locations.$inferSelect;
 export type CostCenter = typeof costCenters.$inferSelect;
 export type WorkSchedule = typeof workSchedules.$inferSelect;
-export type EmployeePayrollDocument = typeof employeePayrollDocuments.$inferSelect;
-export type InsertEmployeePayrollDocument = z.infer<typeof insertEmployeePayrollDocumentSchema>;
+

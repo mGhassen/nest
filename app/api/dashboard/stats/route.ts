@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(payrollCycles.companyId, user.companyId),
-          eq(payrollCycles.status, "DRAFT")
+          eq(payrollCycles.status, "UPLOADED")
         )
       )
 
