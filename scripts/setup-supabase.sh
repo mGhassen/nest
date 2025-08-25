@@ -72,7 +72,7 @@ generate_types() {
 # Function to seed database
 seed_database() {
     echo "🔄 Seeding database..."
-    supabase db reset --db-url postgresql://postgres:postgres@localhost:54322/postgres
+    supabase db reset --db-url postgresql://postgres:postgres@localhost:54422/postgres
     echo "✅ Database seeded"
 }
 

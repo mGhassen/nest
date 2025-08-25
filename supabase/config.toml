@@ -312,3 +312,7 @@ url = ""
 
 [edge_runtime]
 # Edge Runtime configuration
+
+[analytics]
+# Port to use for the Analytics service.
+port = 54427
