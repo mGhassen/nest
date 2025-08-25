@@ -185,6 +185,22 @@ CREATE TABLE profiles (
     email VARCHAR(255)
 );
 
+-- Create audit_logs table for system auditing
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id UUID,
+    action VARCHAR(50) NOT NULL,
+    actor_id UUID REFERENCES users(id),
+    actor_email VARCHAR(255),
+    old_values JSONB,
+    new_values JSONB,
+    metadata JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_employees_company_id ON employees(company_id);
 CREATE INDEX idx_employees_user_id ON employees(user_id);
@@ -195,6 +211,10 @@ CREATE INDEX idx_leave_requests_employee_id ON leave_requests(employee_id);
 CREATE INDEX idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX idx_memberships_user_id ON memberships(user_id);
 CREATE INDEX idx_memberships_company_id ON memberships(company_id);
+CREATE INDEX idx_audit_logs_entity_type ON audit_logs(entity_type);
+CREATE INDEX idx_audit_logs_entity_id ON audit_logs(entity_id);
+CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_id);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -234,3 +254,4 @@ ALTER TABLE timesheets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE timesheet_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;

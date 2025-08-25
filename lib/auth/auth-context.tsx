@@ -6,6 +6,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
 import type { Role } from '@/types/database.types';
 import { useRouter } from 'next/navigation';
+import { signInWithEmail, signUp, signOut } from '../auth';
 
 interface UserProfile {
   id: string
@@ -75,13 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
-  const signIn = async (email: string, password: string) => {
+  const handleSignIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await signInWithEmail(email, password);
       if (error) throw error;
       router.refresh();
     } catch (error) {
@@ -92,16 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const handleSignUp = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+      const { error } = await signUp(email, password);
       if (error) throw error;
     } catch (error) {
       console.error('Error signing up:', error);
@@ -111,11 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const handleSignOut = async () => {
     setIsLoading(true);
     try {
-      await supabase.auth.signOut();
-      router.push('/signin');
+      await signOut();
+      setUser(null);
+      router.push('/auth/signin');
       router.refresh();
     } catch (error) {
       console.error('Error signing out:', error);
@@ -130,9 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        signIn,
-        signOut,
-        signUp,
+        signIn: handleSignIn,
+        signOut: handleSignOut,
+        signUp: handleSignUp,
       }}
     >
       {children}

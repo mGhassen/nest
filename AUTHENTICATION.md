@@ -1,16 +1,15 @@
 # Authentication Flow
 
-This application uses Supabase Auth for authentication and authorization. The authentication flow is handled through middleware and API routes.
+This application uses Supabase Auth for authentication and authorization. The authentication flow is handled through middleware and consolidated auth utilities.
 
 ## Key Files
 
 1. **Middleware**
-   - `middleware.auth.ts`: Handles route protection and authentication state
-   - `middleware.ts`: General middleware (currently minimal)
+   - `middleware.ts`: Handles route protection, authentication state, and role-based access control
 
 2. **Auth Utilities**
-   - `lib/auth-utils.ts`: Client-side auth utilities
-   - `lib/server/auth-utils.ts`: Server-side auth utilities
+   - `lib/auth.ts`: Consolidated auth utilities for both client and server-side use
+   - `lib/auth-context.tsx`: React context for client-side auth state management
    - `app/api/auth/[...nextauth]/route.ts`: Auth callback handler
 
 3. **Components**
@@ -32,6 +31,7 @@ This application uses Supabase Auth for authentication and authorization. The au
 3. **Role-Based Access Control (RBAC)**
    - User roles are stored in the `profiles` table
    - The `requireAuth` function can check for specific roles
+   - Admin-only routes (`/admin/*`, `/api/admin/*`) are automatically protected
    - Unauthorized access results in a redirect to `/unauthorized`
 
 ## Environment Variables
@@ -48,13 +48,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 API routes can use the server-side auth utilities to protect endpoints:
 
 ```typescript
-import { requireServerAuth } from '@/lib/server/auth-utils';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: Request) {
-  const { user, error } = await requireServerAuth('admin');
+  const { user, redirect } = await requireAuth('admin');
   
-  if (error) {
-    return new Response(error, { status: error === 'Unauthorized' ? 401 : 403 });
+  if (redirect) {
+    return new Response('Unauthorized', { status: 401 });
   }
   
   // Handle authenticated request
@@ -70,7 +70,7 @@ Use the auth utilities in your components:
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSession } from '@/lib/auth-utils';
+import { getSession } from '@/lib/auth';
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -87,5 +87,38 @@ export default function ProtectedPage() {
   }, [router]);
 
   return <div>Protected Content</div>;
+}
+```
+
+## Route Protection
+
+The middleware automatically protects routes based on the following rules:
+
+- **Public routes**: `/auth/*`, `/api/auth/*`, static files
+- **Admin-only routes**: `/admin/*`, `/api/admin/*` (requires admin role)
+- **Protected routes**: All other routes require authentication
+- **API routes**: `/api/*` routes are handled separately and should implement their own auth checks
+
+## Auth Context Usage
+
+For components that need access to auth state:
+
+```typescript
+'use client';
+
+import { useAuth } from '@/lib/auth/auth-context';
+
+export default function UserProfile() {
+  const { user, isLoading, signOut } = useAuth();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (!user) return <div>Not authenticated</div>;
+  
+  return (
+    <div>
+      <p>Welcome, {user.email}</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
 }
 ```

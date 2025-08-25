@@ -3,10 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/auth-utils";
+import { isUnauthorizedError } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -32,10 +34,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { insertEmployeeSchema, type InsertEmployee } from "@/lib/db/schema";
 import { z } from "zod";
+import type { InsertEmployee } from "@/types/schema";
 
-const employeeFormSchema = insertEmployeeSchema.extend({
+// Create a Zod schema for the employee form
+const employeeFormSchema = z.object({
+  company_id: z.string().min(1, "Company is required"),
+  user_id: z.string().min(1, "User ID is required"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  hire_date: z.string().min(1, "Hire date is required"),
+  employment_type: z.enum(["FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN"]),
+  position_title: z.string().min(1, "Position title is required"),
+  location_id: z.string().optional(),
+  cost_center_id: z.string().optional(),
+  work_schedule_id: z.string().optional(),
+  manager_id: z.string().optional(),
+  base_salary: z.number().min(0, "Base salary must be positive"),
+  salary_period: z.enum(["HOURLY", "WEEKLY", "BIWEEKLY", "MONTHLY", "YEARLY"]),
+  status: z.enum(["ACTIVE", "INACTIVE", "TERMINATED", "ON_LEAVE"]).default("ACTIVE"),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
 });
 
@@ -52,11 +70,11 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       email: "",
-      employmentType: "FULL_TIME",
-      hireDate: new Date().toISOString().split('T')[0],
+      employment_type: "FULL_TIME",
+      hire_date: new Date().toISOString().split('T')[0],
     },
   });
 
@@ -121,7 +139,7 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="firstName"
+                name="first_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
@@ -135,7 +153,7 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
               
               <FormField
                 control={form.control}
-                name="lastName"
+                name="last_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
@@ -170,7 +188,7 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="employmentType"
+                name="employment_type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Employment Type</FormLabel>
@@ -193,7 +211,7 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
               
               <FormField
                 control={form.control}
-                name="hireDate"
+                name="hire_date"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Hire Date</FormLabel>
@@ -212,7 +230,7 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
 
             <FormField
               control={form.control}
-              name="positionTitle"
+              name="position_title"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Position Title</FormLabel>

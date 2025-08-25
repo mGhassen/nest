@@ -6,10 +6,10 @@ INSERT INTO companies (name, country_code, currency) VALUES
 ('TechCorp Solutions', 'TN', 'TND');
 
 -- 2. Create Locations
-INSERT INTO locations (company_id, name, country_code, timezone) 
-SELECT id, 'Tunis', 'TN', 'Africa/Tunis' FROM companies WHERE name = 'TechCorp Solutions'
+INSERT INTO locations (company_id, name, country, timezone) 
+SELECT id, 'Tunis', 'Tunisia', 'Africa/Tunis' FROM companies WHERE name = 'TechCorp Solutions'
 UNION ALL
-SELECT id, 'Sfax', 'TN', 'Africa/Tunis' FROM companies WHERE name = 'TechCorp Solutions';
+SELECT id, 'Sfax', 'Tunisia', 'Africa/Tunis' FROM companies WHERE name = 'TechCorp Solutions';
 
 -- 3. Create Cost Centers
 INSERT INTO cost_centers (company_id, code, name)
@@ -27,20 +27,20 @@ SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'TechCorp Solutions
 
 -- 5. Create Users (these will be linked to Supabase auth users)
 INSERT INTO users (id, email, first_name, last_name, profile_image_url) VALUES
-('admin-user-001', 'admin@techcorp.tn', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'),
-('hr-user-001', 'hr@techcorp.tn', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'),
-('manager-user-001', 'manager@techcorp.tn', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'),
-('employee-user-001', 'employee@techcorp.tn', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face');
+(gen_random_uuid(), 'admin@techcorp.tn', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'),
+(gen_random_uuid(), 'hr@techcorp.tn', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'),
+(gen_random_uuid(), 'manager@techcorp.tn', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'),
+(gen_random_uuid(), 'employee@techcorp.tn', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face');
 
 -- 6. Create Memberships (User-Company relationships with roles)
 INSERT INTO memberships (user_id, company_id, role)
-SELECT u.id, c.id, 'OWNER' FROM users u, companies c WHERE u.email = 'admin@techcorp.tn' AND c.name = 'TechCorp Solutions'
+SELECT u.id, c.id, 'OWNER'::user_role FROM users u, companies c WHERE u.email = 'admin@techcorp.tn' AND c.name = 'TechCorp Solutions'
 UNION ALL
-SELECT u.id, c.id, 'HR' FROM users u, companies c WHERE u.email = 'hr@techcorp.tn' AND c.name = 'TechCorp Solutions'
+SELECT u.id, c.id, 'HR'::user_role FROM users u, companies c WHERE u.email = 'hr@techcorp.tn' AND c.name = 'TechCorp Solutions'
 UNION ALL
-SELECT u.id, c.id, 'MANAGER' FROM users u, companies c WHERE u.email = 'manager@techcorp.tn' AND c.name = 'TechCorp Solutions'
+SELECT u.id, c.id, 'MANAGER'::user_role FROM users u, companies c WHERE u.email = 'manager@techcorp.tn' AND c.name = 'TechCorp Solutions'
 UNION ALL
-SELECT u.id, c.id, 'EMPLOYEE' FROM users u, companies c WHERE u.email = 'employee@techcorp.tn' AND c.name = 'TechCorp Solutions';
+SELECT u.id, c.id, 'EMPLOYEE'::user_role FROM users u, companies c WHERE u.email = 'employee@techcorp.tn' AND c.name = 'TechCorp Solutions';
 
 -- 7. Create Employees
 INSERT INTO employees (
@@ -50,11 +50,11 @@ INSERT INTO employees (
 )
 SELECT 
   c.id, u.id, u.first_name, u.last_name, u.email,
-  '2023-01-15', 'FULL_TIME', 'CEO & Founder', 
+  '2023-01-15'::date, 'FULL_TIME'::employment_type, 'CEO & Founder', 
   (SELECT id FROM locations WHERE name = 'Tunis' AND company_id = c.id),
   (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
   (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
-  15000, 'MONTHLY', 'ACTIVE'
+  15000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
 FROM users u, companies c 
 WHERE u.email = 'admin@techcorp.tn' AND c.name = 'TechCorp Solutions'
 
@@ -62,11 +62,11 @@ UNION ALL
 
 SELECT 
   c.id, u.id, u.first_name, u.last_name, u.email,
-  '2023-02-01', 'FULL_TIME', 'HR Manager',
+  '2023-02-01'::date, 'FULL_TIME'::employment_type, 'HR Manager',
   (SELECT id FROM locations WHERE name = 'Tunis' AND company_id = c.id),
   (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
   (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
-  8000, 'MONTHLY', 'ACTIVE'
+  8000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
 FROM users u, companies c 
 WHERE u.email = 'hr@techcorp.tn' AND c.name = 'TechCorp Solutions'
 
@@ -74,11 +74,11 @@ UNION ALL
 
 SELECT 
   c.id, u.id, u.first_name, u.last_name, u.email,
-  '2023-03-01', 'FULL_TIME', 'Engineering Manager',
+  '2023-03-01'::date, 'FULL_TIME'::employment_type, 'Engineering Manager',
   (SELECT id FROM locations WHERE name = 'Tunis' AND company_id = c.id),
   (SELECT id FROM cost_centers WHERE code = 'ENG' AND company_id = c.id),
   (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
-  12000, 'MONTHLY', 'ACTIVE'
+  12000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
 FROM users u, companies c 
 WHERE u.email = 'manager@techcorp.tn' AND c.name = 'TechCorp Solutions'
 
@@ -86,11 +86,11 @@ UNION ALL
 
 SELECT 
   c.id, u.id, u.first_name, u.last_name, u.email,
-  '2023-04-01', 'FULL_TIME', 'Software Developer',
+  '2023-04-01'::date, 'FULL_TIME'::employment_type, 'Software Developer',
   (SELECT id FROM locations WHERE name = 'Sfax' AND company_id = c.id),
   (SELECT id FROM cost_centers WHERE code = 'ENG' AND company_id = c.id),
   (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
-  6000, 'MONTHLY', 'ACTIVE'
+  6000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
 FROM users u, companies c 
 WHERE u.email = 'employee@techcorp.tn' AND c.name = 'TechCorp Solutions';
 
@@ -103,7 +103,7 @@ WHERE email = 'employee@techcorp.tn';
 INSERT INTO leave_policies (company_id, code, name, accrual_rule, unit, carry_over_max)
 SELECT 
   c.id, 'ANNUAL', 'Annual Leave', 
-  '{"type": "MONTHLY", "daysPerMonth": 1.83, "maxCarryOver": 5}',
+  '{"type": "MONTHLY", "daysPerMonth": 1.83, "maxCarryOver": 5}'::jsonb,
   'DAYS', 5
 FROM companies c WHERE c.name = 'TechCorp Solutions'
 
@@ -111,7 +111,7 @@ UNION ALL
 
 SELECT 
   c.id, 'SICK', 'Sick Leave',
-  '{"type": "UNLIMITED", "maxDaysPerYear": 30}',
+  '{"type": "UNLIMITED", "maxDaysPerYear": 30}'::jsonb,
   'DAYS', 0
 FROM companies c WHERE c.name = 'TechCorp Solutions';
 
@@ -123,7 +123,7 @@ SELECT
   EXTRACT(YEAR FROM CURRENT_DATE - INTERVAL '1 month'),
   'https://example.com/payroll-sample.pdf',
   'Sample payroll document',
-  'APPROVED'
+  'APPROVED'::payroll_status
 FROM companies c WHERE c.name = 'TechCorp Solutions'
 
 UNION ALL
@@ -134,7 +134,7 @@ SELECT
   EXTRACT(YEAR FROM CURRENT_DATE),
   'https://example.com/payroll-current.pdf',
   'Current month payroll',
-  'UPLOADED'
+  'UPLOADED'::payroll_status
 FROM companies c WHERE c.name = 'TechCorp Solutions';
 
 -- 11. Create some sample timesheets
@@ -142,7 +142,7 @@ INSERT INTO timesheets (employee_id, week_start, status)
 SELECT 
   e.id, 
   DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 week')::DATE,
-  'APPROVED'
+  'APPROVED'::timesheet_status
 FROM employees e 
 WHERE e.email = 'employee@techcorp.tn'
 
@@ -151,7 +151,7 @@ UNION ALL
 SELECT 
   e.id, 
   DATE_TRUNC('week', CURRENT_DATE)::DATE,
-  'DRAFT'
+  'DRAFT'::timesheet_status
 FROM employees e 
 WHERE e.email = 'employee@techcorp.tn';
 

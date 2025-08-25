@@ -1,8 +1,5 @@
 "use client"
 
-import { getServerSession } from "better-auth"
-import { redirect } from "next/navigation"
-import { authConfig } from "@/lib/auth"
 import MainLayout from "@/components/layout/main-layout"
 import EmployeeTable from "@/components/employees/employee-table"
 import { useState } from "react"

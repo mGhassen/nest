@@ -1,15 +1,15 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth/auth-context"
 import { useEffect, useState } from "react"
 import { redirect } from "next/navigation"
 
 export default function HomePage() {
-  const { user, loading } = useAuth()
+  const { user, isLoading } = useAuth()
   const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isLoading && !user) {
       redirect("/auth/signin")
       return
     }
@@ -17,9 +17,9 @@ export default function HomePage() {
     if (user) {
       setUserRole(user.role)
     }
-  }, [user, loading])
+  }, [user, isLoading])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading...</div>
