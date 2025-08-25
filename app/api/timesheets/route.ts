@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth-middleware"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { timesheets, timesheetEntries } from "@/lib/db/schema"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and, gte, lte } from "drizzle-orm"
 import { z } from "zod"
+import type { Database } from "@/types/database.types"
 
 const createTimesheetSchema = z.object({
   employeeId: z.string(),
@@ -20,7 +18,9 @@ const createTimesheetSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -39,12 +39,13 @@ export async function GET(request: NextRequest) {
     const weekStart = searchParams.get("weekStart")
     const employeeId = searchParams.get("employeeId")
 
-    let query = db.query.timesheets.findMany({
-      with: {
-        employee: true,
-        entries: true,
-      },
-    })
+    let query = supabase
+      .from('timesheets')
+      .select(`
+        *,
+        employee:employees(*),
+        entries:timesheet_entries(*)
+      `)
 
     // Filter by week if provided
     if (weekStart) {
@@ -52,49 +53,51 @@ export async function GET(request: NextRequest) {
       const endDate = new Date(startDate)
       endDate.setDate(endDate.getDate() + 7)
 
-      query = db.query.timesheets.findMany({
-        where: and(
-          gte(timesheets.weekStart, startDate),
-          lte(timesheets.weekStart, endDate)
-        ),
-        with: {
-          employee: true,
-          entries: true,
-        },
-      })
+      query = query
+        .gte('week_start', startDate.toISOString().split('T')[0])
+        .lte('week_start', endDate.toISOString().split('T')[0])
     }
 
     // Filter by employee if provided and user has permission
     if (employeeId) {
       if (user.role === "EMPLOYEE") {
         // Employee can only see their own timesheets
-        const employee = await db.query.employees.findFirst({
-          where: eq(employees.userId, user.id),
-        })
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+        
         if (employee?.id !== employeeId) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
       } else if (user.role === "MANAGER") {
         // Manager can only see direct reports' timesheets
-        const employee = await db.query.employees.findFirst({
-          where: eq(employees.id, employeeId),
-        })
-        if (employee?.managerId !== user.id) {
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('manager_id')
+          .eq('id', employeeId)
+          .single()
+        
+        if (employee?.manager_id !== user.id) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
       }
       // ADMIN, HR, OWNER can see all timesheets
 
-      query = db.query.timesheets.findMany({
-        where: eq(timesheets.employeeId, employeeId),
-        with: {
-          employee: true,
-          entries: true,
-        },
-      })
+      query = query.eq('employee_id', employeeId)
     }
 
-    const timesheetsList = await query
+    const { data: timesheetsList, error } = await query
+
+    if (error) {
+      console.error("Error fetching timesheets:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch timesheets" },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(timesheetsList)
   } catch (error) {
     console.error("Error fetching timesheets:", error)
@@ -107,7 +110,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -127,30 +132,66 @@ export async function POST(request: NextRequest) {
 
     // Check if user can create timesheet for this employee
     if (user.role === "EMPLOYEE") {
-      const employee = await db.query.employees.findFirst({
-        where: eq(employees.userId, user.id),
-      })
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+      
       if (employee?.id !== validatedData.employeeId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     }
 
     // Create timesheet
-    const newTimesheet = await db.insert(timesheets).values({
-      employeeId: validatedData.employeeId,
-      weekStart: validatedData.weekStart,
+    const newTimesheetData = {
+      employee_id: validatedData.employeeId,
+      week_start: validatedData.weekStart.toISOString().split('T')[0],
       status: "DRAFT",
-    }).returning()
+    }
+
+    const { data: newTimesheet, error: timesheetError } = await supabase
+      .from('timesheets')
+      .insert(newTimesheetData)
+      .select()
+      .single()
+
+    if (timesheetError) {
+      console.error("Error creating timesheet:", timesheetError)
+      return NextResponse.json(
+        { error: "Failed to create timesheet" },
+        { status: 500 }
+      )
+    }
 
     // Create timesheet entries
     const entries = validatedData.entries.map(entry => ({
-      timesheetId: newTimesheet[0].id,
-      ...entry,
+      timesheet_id: newTimesheet.id,
+      date: entry.date.toISOString().split('T')[0],
+      project: entry.project,
+      hours: entry.hours,
+      notes: entry.notes,
     }))
 
-    await db.insert(timesheetEntries).values(entries)
+    const { error: entriesError } = await supabase
+      .from('timesheet_entries')
+      .insert(entries)
 
-    return NextResponse.json(newTimesheet[0], { status: 201 })
+    if (entriesError) {
+      console.error("Error creating timesheet entries:", entriesError)
+      // Try to clean up the timesheet if entries creation fails
+      await supabase
+        .from('timesheets')
+        .delete()
+        .eq('id', newTimesheet.id)
+      
+      return NextResponse.json(
+        { error: "Failed to create timesheet entries" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(newTimesheet, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

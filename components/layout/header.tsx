@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -20,16 +21,15 @@ import {
   CalendarDays,
   DollarSign
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { UserProfile } from "@/components/auth/user-profile";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
 }
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
-  const { user } = useAuth();
-  const [location] = useLocation();
+  const pathname = usePathname() || '';
   const [searchQuery, setSearchQuery] = useState("");
   const [notificationCount] = useState(3);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -41,18 +41,18 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     {
       group: "Core",
       items: [
-        { href: "/", label: "Dashboard", icon: Home, active: location === "/" },
-        { href: "/employees", label: "People", icon: Users, active: location.startsWith("/employees") },
-        { href: "/timesheets", label: "Time & Attendance", icon: Clock, active: location.startsWith("/timesheets") },
-        { href: "/leave", label: "Leave Management", icon: CalendarDays, active: location.startsWith("/leave") },
-        { href: "/payroll", label: "Payroll", icon: DollarSign, active: location.startsWith("/payroll") },
+        { href: "/", label: "Dashboard", icon: Home, active: pathname === "/" },
+        { href: "/employees", label: "People", icon: Users, active: pathname.startsWith("/employees") },
+        { href: "/timesheets", label: "Time & Attendance", icon: Clock, active: pathname.startsWith("/timesheets") },
+        { href: "/leave", label: "Leave Management", icon: CalendarDays, active: pathname.startsWith("/leave") },
+        { href: "/payroll", label: "Payroll", icon: DollarSign, active: pathname.startsWith("/payroll") },
       ]
     },
     {
       group: "Operations",
       items: [
-        { href: "/documents", label: "Documents", icon: FileText, active: location.startsWith("/documents") },
-        { href: "/settings", label: "Settings", icon: Settings, active: location.startsWith("/settings") },
+        { href: "/documents", label: "Documents", icon: FileText, active: pathname.startsWith("/documents") },
+        { href: "/settings", label: "Settings", icon: Settings, active: pathname.startsWith("/settings") },
       ]
     }
   ];
@@ -221,61 +221,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleUserMenu}
-                className="flex items-center space-x-2 pl-2 pr-3 py-1 h-9 hover:bg-gray-50 rounded-md"
-                data-testid="button-user-menu"
-              >
-                <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-medium text-xs" data-testid="text-header-user-initials">
-                    {user ? getInitials(`${user.firstName || ''} ${user.lastName || ''}`) : 'JD'}
-                  </span>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </Button>
-              
-              {/* User Dropdown Menu */}
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50" data-testid="user-menu-dropdown">
-                  {/* User Info */}
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <div className="font-medium text-gray-900" data-testid="text-user-name">
-                      {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'John Doe'}
-                    </div>
-                    <div className="text-sm text-gray-500" data-testid="text-user-email">
-                      {user?.email || 'john@example.com'}
-                    </div>
-                  </div>
-
-                  {/* Menu Items */}
-                  <div className="py-1">
-                    <Link href="/settings">
-                      <button
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        data-testid="button-profile"
-                      >
-                        <User className="w-4 h-4 mr-3" />
-                        Profile & Settings
-                      </button>
-                    </Link>
-                  </div>
-
-                  {/* Logout */}
-                  <div className="border-t border-gray-100 py-1">
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      data-testid="button-logout"
-                    >
-                      <LogOut className="w-4 h-4 mr-3" />
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
-              )}
+              <UserProfile />
             </div>
           </div>
         </div>

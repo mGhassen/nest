@@ -1,117 +1,91 @@
-"use client"
+'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from './auth';
 
-export type Role = "OWNER" | "ADMIN" | "HR" | "MANAGER" | "EMPLOYEE"
+type User = {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    full_name?: string;
+    avatar_url?: string;
+  };
+};
 
-interface User {
-  id: string
-  email: string
-  firstName?: string
-  lastName?: string
-  role: Role
-  companyId: string
-}
+type AuthContextType = {
+  user: User | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+};
 
-interface AuthContextType {
-  user: User | null
-  loading: boolean
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signOut: () => void
-  isAuthenticated: boolean
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-// Mock user data for development
-const mockUsers: Record<string, User> = {
-  'admin@techcorp.tn': {
-    id: 'admin-user-001',
-    email: 'admin@techcorp.tn',
-    firstName: 'Ahmed',
-    lastName: 'Ben Ali',
-    role: 'OWNER',
-    companyId: 'company-001'
-  },
-  'hr@techcorp.tn': {
-    id: 'hr-user-001',
-    email: 'hr@techcorp.tn',
-    firstName: 'Fatma',
-    lastName: 'Trabelsi',
-    role: 'HR',
-    companyId: 'company-001'
-  },
-  'manager@techcorp.tn': {
-    id: 'manager-user-001',
-    email: 'manager@techcorp.tn',
-    firstName: 'Mohamed',
-    lastName: 'Karray',
-    role: 'MANAGER',
-    companyId: 'company-001'
-  },
-  'employee@techcorp.tn': {
-    id: 'employee-user-001',
-    email: 'employee@techcorp.tn',
-    firstName: 'Sara',
-    lastName: 'Mansouri',
-    role: 'EMPLOYEE',
-    companyId: 'company-001'
-  }
-}
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('auth-user')
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        console.error('Error parsing stored user:', error)
-        localStorage.removeItem('auth-user')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        setIsLoading(false);
       }
-    }
-    setLoading(false)
-  }, [])
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    // For development, accept any password for mock users
-    const mockUser = mockUsers[email]
-    if (mockUser) {
-      setUser(mockUser)
-      localStorage.setItem('auth-user', JSON.stringify(mockUser))
-      return { success: true }
-    }
-    return { success: false, error: 'Invalid credentials' }
-  }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    router.refresh();
+  };
 
-  const signOut = () => {
-    setUser(null)
-    localStorage.removeItem('auth-user')
-  }
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+    if (error) throw error;
+  };
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    signIn,
-    signOut,
-    isAuthenticated: !!user
-  }
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth/signin');
+    router.refresh();
+  };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        signIn,
+        signOut,
+        signUp,
+      }}
+    >
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
+export const useAuth = () => {
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
-}
+  return context;
+};

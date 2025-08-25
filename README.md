@@ -1,207 +1,194 @@
-# Nest HR System
+# 🏢 Nest HR System
 
-A modern HR management system built with Next.js 15, Supabase, and Better Auth.
+A comprehensive Human Resources management system built with Next.js 15, Supabase, and modern web technologies.
 
-## Features
+## ✨ Features
 
-- 🔐 **Authentication**: Secure authentication with Better Auth
-- 🗄️ **Database**: PostgreSQL with Supabase and Drizzle ORM
-- 🎨 **UI**: Modern UI with Radix UI and Tailwind CSS
-- 📱 **Responsive**: Mobile-first responsive design
-- 🌙 **Dark Mode**: Built-in dark mode support
-- 🔄 **Real-time**: Real-time updates with Supabase
-- 👥 **Role-Based Access**: Admin, Manager, and Employee portals
-- 🔒 **RBAC**: Comprehensive role-based access control
+- 👥 **Employee Management**: Complete employee lifecycle management
+- 📊 **Timesheet Tracking**: Weekly timesheet management with approval workflows
+- 🏖️ **Leave Management**: Leave request system with policies and approvals
+- 💰 **Payroll Management**: Payroll cycle management and document handling
+- 🏢 **Company Management**: Multi-company support with locations and cost centers
+- 🔐 **Role-Based Access Control**: Granular permissions for different user roles
+- 📱 **Responsive Design**: Modern UI built with Tailwind CSS and shadcn/ui
+- 🔒 **Secure Authentication**: Supabase Auth with email verification
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **Database**: Supabase (PostgreSQL)
-- **ORM**: Drizzle ORM
-- **Authentication**: Better Auth
-- **UI**: Radix UI + Tailwind CSS
-- **State Management**: TanStack Query
-- **Forms**: React Hook Form + Zod
-- **Icons**: Lucide React
+- **Frontend**: Next.js 15, React 18, TypeScript
+- **Database**: PostgreSQL with Supabase
+- **Authentication**: Supabase Auth
+- **Styling**: Tailwind CSS, shadcn/ui components
+- **State Management**: React Query (TanStack Query)
+- **Form Handling**: React Hook Form with Zod validation
+- **Icons**: Lucide React, React Icons
 
-## Project Structure
-
-```
-app/
-├── admin/                    # Admin Portal (OWNER, ADMIN, HR)
-│   ├── dashboard/           # Admin dashboard
-│   ├── employees/           # Employee management
-│   ├── payroll/             # Payroll management
-│   └── settings/            # System settings
-├── employee/                # Employee Portal (EMPLOYEE + MANAGER)
-│   ├── dashboard/           # Employee/Manager dashboard
-│   ├── timesheets/          # Timesheet management
-│   ├── leave/               # Leave management
-│   └── documents/           # Document management
-├── router/                  # Smart Routing
-│   └── dashboard/           # Role-based redirects
-├── api/                     # API Routes
-│   ├── auth/                # Authentication
-│   ├── employees/           # Employee CRUD
-│   ├── timesheets/          # Timesheet operations
-│   ├── leave/               # Leave operations
-│   ├── payroll/             # Payroll operations
-│   ├── dashboard/           # Dashboard stats
-│   └── cron/                # Background jobs
-└── auth/                    # Authentication pages
-```
-
-## Role-Based Access Control
-
-### Admin Portal (`/admin/*`)
-- **Access**: OWNER, ADMIN, HR
-- **Features**:
-  - Employee management (CRUD)
-  - Payroll processing
-  - System settings
-  - Company-wide analytics
-
-### Employee Portal (`/employee/*`)
-- **Access**: EMPLOYEE + MANAGER
-- **Features**:
-  - **For Employees**: Personal timesheets, leave requests, documents
-  - **For Managers**: Team management, approvals, team calendar + personal features
-  - **Shared**: Timesheet management, leave management, document access
-
-### Router (`/router/*`)
-- **Purpose**: Smart routing and role-based redirects
-- **Features**: Automatic redirection to appropriate portal based on user role
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 18+ 
-- npm or yarn
-- Supabase account
+- pnpm (recommended) or npm
+- Supabase CLI
 
-### 1. Clone the repository
+### Installation
 
-```bash
-git clone <repository-url>
-cd nest
-```
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd nest
+   ```
 
-### 2. Install dependencies
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-```bash
-npm install
-```
+3. **Set up environment variables**
+   ```bash
+   cp env.example .env.local
+   ```
+   
+   Fill in your Supabase credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
+   SUPABASE_SERVICE_ROLE_KEY="your-supabase-service-role-key"
+   ```
 
-### 3. Set up Supabase
+4. **Set up Supabase database**
+   ```bash
+   # Start local Supabase (optional, for development)
+   ./scripts/setup-supabase.sh start
+   
+   # Apply migrations and seed data
+   ./scripts/setup-supabase.sh setup
+   ```
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Get your project URL and anon key from the project settings
-3. Create a new database and get the connection string
+5. **Run the development server**
+   ```bash
+   pnpm dev
+   ```
 
-### 4. Set up environment variables
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-Copy the example environment file and fill in your values:
+## 🗄️ Database Setup
 
-```bash
-cp env.example .env.local
-```
+### Using Supabase CLI
 
-Fill in the following variables:
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-DATABASE_URL=your_supabase_database_url_here
-
-# Better Auth Configuration
-BETTER_AUTH_SECRET=your_better_auth_secret_here
-
-# OAuth Providers (Optional)
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-
-# Cron Jobs
-CRON_SECRET=your_cron_secret_here
-```
-
-### 5. Set up the database
-
-Run the database migrations:
+The project includes a comprehensive setup script:
 
 ```bash
-npm run db:push
+# Interactive mode
+./scripts/setup-supabase.sh
+
+# Command line mode
+./scripts/setup-supabase.sh setup    # Full setup
+./scripts/setup-supabase.sh start    # Start local Supabase
+./scripts/setup-supabase.sh migrate  # Apply migrations
+./scripts/setup-supabase.sh seed     # Seed database
+./scripts/setup-supabase.sh types    # Generate TypeScript types
 ```
 
-### 6. Start the development server
+### Manual Setup
+
+1. **Create a new Supabase project** at [supabase.com](https://supabase.com)
+2. **Apply the initial migration**:
+   ```bash
+   supabase db push
+   ```
+3. **Seed the database**:
+   ```bash
+   supabase db reset
+   ```
+
+## 📁 Project Structure
+
+```
+nest/
+├── app/                    # Next.js app directory
+│   ├── api/              # API routes
+│   ├── admin/            # Admin dashboard
+│   ├── employee/         # Employee dashboard
+│   └── auth/             # Authentication pages
+├── components/            # Reusable UI components
+│   ├── ui/               # shadcn/ui components
+│   ├── admin/            # Admin-specific components
+│   └── employees/        # Employee management components
+├── lib/                   # Utility libraries
+│   ├── db/               # Database configuration
+│   ├── auth/             # Authentication utilities
+│   └── rbac/             # Role-based access control
+├── supabase/              # Supabase configuration
+│   ├── migrations/       # Database migrations
+│   ├── config.toml       # Supabase configuration
+│   └── seed.sql          # Seed data
+├── types/                 # TypeScript type definitions
+└── scripts/               # Utility scripts
+```
+
+## 🔐 Authentication & Authorization
+
+The system uses Supabase Auth with role-based access control:
+
+- **OWNER**: Full system access
+- **HR**: Employee and HR management
+- **MANAGER**: Team management and approvals
+- **EMPLOYEE**: Self-service features
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. **Connect your repository** to Vercel
+2. **Set environment variables** in Vercel dashboard
+3. **Deploy** - Vercel will automatically detect Next.js
+
+### Other Platforms
+
+The app can be deployed to any platform that supports Next.js:
+- Netlify
+- Railway
+- DigitalOcean App Platform
+- AWS Amplify
+
+## 🧪 Development
+
+### Available Scripts
+
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
+
+### Database Development
 
 ```bash
-npm run dev
+# Start local Supabase
+./scripts/setup-supabase.sh start
+
+# View local database
+supabase studio
+
+# Reset database
+./scripts/setup-supabase.sh reset
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+## 📚 API Documentation
 
-## Available Scripts
+### Core Endpoints
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run db:push` - Push database schema changes
-- `npm run db:studio` - Open Drizzle Studio
-- `npm run db:generate` - Generate database migrations
+- `GET/POST /api/employees` - Employee management
+- `GET/POST /api/timesheets` - Timesheet operations
+- `GET/POST /api/leave` - Leave request management
+- `GET/POST /api/payroll` - Payroll cycle management
 
-## Database Schema
+### Authentication
 
-The application includes the following main entities:
+All API endpoints require authentication via Supabase JWT tokens.
 
-- **Users** - Authentication and user management
-- **Companies** - Organization management
-- **Employees** - Employee records and profiles
-- **Timesheets** - Time tracking and reporting
-- **Leave Requests** - Leave management
-- **Payroll** - Payroll processing and management
-
-## Authentication
-
-The application uses Better Auth for authentication with support for:
-
-- Email/password authentication
-- Google OAuth (optional)
-- Session management
-- Role-based access control
-
-## API Endpoints
-
-### Employees
-- `GET /api/employees` - List employees (filtered by role)
-- `POST /api/employees` - Create employee
-- `GET /api/employees/[id]` - Get employee details
-- `PUT /api/employees/[id]` - Update employee
-- `DELETE /api/employees/[id]` - Delete employee
-
-### Timesheets
-- `GET /api/timesheets` - List timesheets (filtered by role)
-- `POST /api/timesheets` - Create timesheet
-- `POST /api/timesheets/[id]/approve` - Approve/reject timesheet
-
-### Leave Management
-- `GET /api/leave` - List leave requests (filtered by role)
-- `POST /api/leave` - Create leave request
-- `POST /api/leave/[id]/approve` - Approve/reject leave request
-
-### Payroll
-- `GET /api/payroll` - List payroll cycles
-- `POST /api/payroll` - Create payroll cycle
-
-### Dashboard
-- `GET /api/dashboard/stats` - Get role-specific dashboard statistics
-
-### Background Jobs
-- `POST /api/cron/daily` - Daily automated tasks
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -209,6 +196,13 @@ The application uses Better Auth for authentication with support for:
 4. Add tests if applicable
 5. Submit a pull request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the repository
+- Check the [Supabase documentation](https://supabase.com/docs)
+- Review the [Next.js documentation](https://nextjs.org/docs)

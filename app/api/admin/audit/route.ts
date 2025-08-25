@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth-middleware"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { auditLogs } from "@/lib/db/schema"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and, desc } from "drizzle-orm"
 import { z } from "zod"
-import { sql } from "drizzle-orm"
+import type { Database } from "@/types/database.types"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -33,66 +32,78 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "100")
     const offset = parseInt(searchParams.get("offset") || "0")
 
-    let query = db.query.auditLogs.findMany({
-      orderBy: [desc(auditLogs.createdAt)],
-      limit,
-      offset,
-    })
+    let query = supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     // Filter by entity type if provided
     if (entityType) {
-      query = db.query.auditLogs.findMany({
-        where: eq(auditLogs.entityType, entityType),
-        orderBy: [desc(auditLogs.createdAt)],
-        limit,
-        offset,
-      })
+      query = query.eq('entity_type', entityType)
     }
 
     // Filter by entity ID if provided
     if (entityId) {
-      query = db.query.auditLogs.findMany({
-        where: eq(auditLogs.entityId, entityId),
-        orderBy: [desc(auditLogs.createdAt)],
-        limit,
-        offset,
-      })
+      query = query.eq('entity_id', entityId)
     }
 
     // Filter by actor if provided
     if (actorId) {
-      query = db.query.auditLogs.findMany({
-        where: eq(auditLogs.actorId, actorId),
-        orderBy: [desc(auditLogs.createdAt)],
-        limit,
-        offset,
-      })
+      query = query.eq('actor_id', actorId)
     }
 
     // Filter by action if provided
     if (action) {
-      query = db.query.auditLogs.findMany({
-        where: eq(auditLogs.action, action),
-        orderBy: [desc(auditLogs.createdAt)],
-        limit,
-        offset,
-      })
+      query = query.eq('action', action)
     }
 
-    const auditLogsList = await query
+    const { data: auditLogsList, error } = await query
+
+    if (error) {
+      console.error("Error fetching audit logs:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch audit logs" },
+        { status: 500 }
+      )
+    }
 
     // Get total count for pagination
-    const totalCount = await db
-      .select({ count: sql`count(*)` })
-      .from(auditLogs)
+    let countQuery = supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact', head: true })
+
+    // Apply the same filters for count
+    if (entityType) {
+      countQuery = countQuery.eq('entity_type', entityType)
+    }
+    if (entityId) {
+      countQuery = countQuery.eq('entity_id', entityId)
+    }
+    if (actorId) {
+      countQuery = countQuery.eq('actor_id', actorId)
+    }
+    if (action) {
+      countQuery = countQuery.eq('action', action)
+    }
+
+    const { count: totalCount, error: countError } = await countQuery
+
+    if (countError) {
+      console.error("Error counting audit logs:", countError)
+      return NextResponse.json(
+        { error: "Failed to get audit log count" },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
-      data: auditLogsList,
+      data: auditLogsList || [],
       pagination: {
-        total: totalCount[0].count,
+        total: totalCount || 0,
         limit,
         offset,
-        hasMore: offset + limit < totalCount[0].count,
+        hasMore: (offset + limit) < (totalCount || 0),
       },
     })
   } catch (error) {

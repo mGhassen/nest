@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "better-auth"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { payrollCycles } from "@/lib/db/schema"
-import { getUserWithRole, can } from "@/lib/rbac"
-import { eq } from "drizzle-orm"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
+import { getUserWithRole } from "@/lib/rbac"
 import { z } from "zod"
+import type { Database } from "@/types/database.types"
 
 const updatePayrollCycleSchema = z.object({
   month: z.number().min(1).max(12).optional(),
@@ -20,7 +18,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -30,16 +30,18 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check permissions
-    if (!can(user.role, "read", "payroll")) {
+    // Only admin can view payroll details
+    if (user.role !== 'OWNER' && user.role !== 'HR') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const payrollCycle = await db.query.payrollCycles.findFirst({
-      where: eq(payrollCycles.id, params.id),
-    })
+    const { data: payrollCycle, error } = await supabase
+      .from('payroll_cycles')
+      .select('*')
+      .eq('id', params.id)
+      .single()
 
-    if (!payrollCycle) {
+    if (error || !payrollCycle) {
       return NextResponse.json({ error: "Payroll cycle not found" }, { status: 404 })
     }
 
@@ -58,7 +60,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -68,28 +72,41 @@ export async function PUT(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check permissions
-    if (!can(user.role, "write", "payroll")) {
+    // Only admin can update payroll cycles
+    if (user.role !== 'OWNER' && user.role !== 'HR') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const body = await request.json()
     const validatedData = updatePayrollCycleSchema.parse(body)
 
-    const updatedPayrollCycle = await db
-      .update(payrollCycles)
-      .set({
-        ...validatedData,
-        updatedAt: new Date(),
-      })
-      .where(eq(payrollCycles.id, params.id))
-      .returning()
+    // Transform field names to match database schema
+    const updateData = {
+      month: validatedData.month,
+      year: validatedData.year,
+      document_url: validatedData.documentUrl,
+      notes: validatedData.notes,
+      status: validatedData.status,
+      updated_at: new Date().toISOString(),
+    }
 
-    if (!updatedPayrollCycle[0]) {
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => 
+      updateData[key as keyof typeof updateData] === undefined && delete updateData[key as keyof typeof updateData]
+    )
+
+    const { data: updatedPayrollCycle, error } = await supabase
+      .from('payroll_cycles')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error || !updatedPayrollCycle) {
       return NextResponse.json({ error: "Payroll cycle not found" }, { status: 404 })
     }
 
-    return NextResponse.json(updatedPayrollCycle[0])
+    return NextResponse.json(updatedPayrollCycle)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -111,7 +128,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -121,17 +140,17 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check permissions
-    if (!can(user.role, "delete", "payroll")) {
+    // Only admin can delete payroll cycles
+    if (user.role !== 'OWNER' && user.role !== 'HR') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const deletedPayrollCycle = await db
-      .delete(payrollCycles)
-      .where(eq(payrollCycles.id, params.id))
-      .returning()
+    const { error } = await supabase
+      .from('payroll_cycles')
+      .delete()
+      .eq('id', params.id)
 
-    if (!deletedPayrollCycle[0]) {
+    if (error) {
       return NextResponse.json({ error: "Payroll cycle not found" }, { status: 404 })
     }
 

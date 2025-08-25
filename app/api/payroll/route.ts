@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "better-auth"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { payrollCycles } from "@/lib/db/schema"
-import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and, desc } from "drizzle-orm"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
+import { getUserWithRole } from "@/lib/rbac"
 import { z } from "zod"
+import type { Database } from "@/types/database.types"
 
 const createPayrollCycleSchema = z.object({
   month: z.number().min(1).max(12),
@@ -16,7 +14,9 @@ const createPayrollCycleSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check permissions
-    if (!can(user.role, "read", "payroll")) {
+    // Only admin can view all payrolls
+    if (user.role !== 'admin') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -35,24 +35,30 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get("month")
     const year = searchParams.get("year")
 
-    let query = db.query.payrollCycles.findMany({
-      where: eq(payrollCycles.companyId, user.companyId),
-      orderBy: [desc(payrollCycles.year), desc(payrollCycles.month)],
-    })
+    let query = supabase
+      .from('payroll_cycles')
+      .select('*')
+      .eq('company_id', user.company_id || '')
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
 
     // Filter by month and year if provided
     if (month && year) {
-      query = db.query.payrollCycles.findMany({
-        where: and(
-          eq(payrollCycles.companyId, user.companyId),
-          eq(payrollCycles.month, parseInt(month)),
-          eq(payrollCycles.year, parseInt(year))
-        ),
-        orderBy: [desc(payrollCycles.year), desc(payrollCycles.month)],
-      })
+      query = query
+        .eq('month', parseInt(month))
+        .eq('year', parseInt(year))
     }
 
-    const payrollCyclesList = await query
+    const { data: payrollCyclesList, error } = await query
+
+    if (error) {
+      console.error("Error fetching payroll cycles:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch payroll cycles" },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(payrollCyclesList)
   } catch (error) {
     console.error("Error fetching payroll cycles:", error)
@@ -65,7 +71,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -75,8 +83,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check permissions
-    if (!can(user.role, "write", "payroll")) {
+    // Only admin can create payroll cycles
+    if (user.role !== 'admin') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -84,13 +92,21 @@ export async function POST(request: NextRequest) {
     const validatedData = createPayrollCycleSchema.parse(body)
 
     // Check if payroll cycle already exists for this month/year
-    const existingCycle = await db.query.payrollCycles.findFirst({
-      where: and(
-        eq(payrollCycles.companyId, user.companyId),
-        eq(payrollCycles.month, validatedData.month),
-        eq(payrollCycles.year, validatedData.year)
-      ),
-    })
+    const { data: existingCycle, error: checkError } = await supabase
+      .from('payroll_cycles')
+      .select('*')
+      .eq('company_id', user.company_id || '')
+      .eq('month', validatedData.month)
+      .eq('year', validatedData.year)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error("Error checking existing payroll cycle:", checkError)
+      return NextResponse.json(
+        { error: "Failed to check existing payroll cycle" },
+        { status: 500 }
+      )
+    }
 
     if (existingCycle) {
       return NextResponse.json(
@@ -99,16 +115,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const newPayrollCycle = await db.insert(payrollCycles).values({
-      companyId: user.companyId,
+    const newPayrollCycleData = {
+      company_id: user.company_id || '',
       month: validatedData.month,
       year: validatedData.year,
-      documentUrl: validatedData.documentUrl,
+      document_url: validatedData.documentUrl,
       notes: validatedData.notes,
       status: "UPLOADED",
-    }).returning()
+    }
 
-    return NextResponse.json(newPayrollCycle[0], { status: 201 })
+    const { data: newPayrollCycle, error } = await supabase
+      .from('payroll_cycles')
+      .insert(newPayrollCycleData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating payroll cycle:", error)
+      return NextResponse.json(
+        { error: "Failed to create payroll cycle" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(newPayrollCycle, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

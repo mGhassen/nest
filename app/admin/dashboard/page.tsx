@@ -1,31 +1,30 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { redirect } from "next/navigation"
+import { useAuth } from "@/hooks/useSupabaseAuth"
 import MainLayout from "@/components/layout/main-layout"
-import { getUserWithRole } from "@/lib/rbac"
 import StatsCards from "@/components/dashboard/stats-cards"
 import TeamOverview from "@/components/dashboard/team-overview"
 import RecentActivity from "@/components/dashboard/recent-activity"
 import PendingActions from "@/components/dashboard/pending-actions"
 
 export default function AdminDashboardPage() {
-  const { user, loading } = useAuth()
-  const [userRole, setUserRole] = useState<string | null>(null)
+  const { user, loading, isAdmin } = useAuth()
 
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       redirect("/auth/signin")
-      return
     }
-
-    if (user) {
-      setUserRole(user.role)
+    
+    // Redirect to unauthorized if not admin
+    if (!loading && user && !isAdmin) {
+      redirect("/unauthorized")
     }
-  }, [user, loading])
+  }, [user, loading, isAdmin])
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -38,42 +37,33 @@ export default function AdminDashboardPage() {
   }
 
   // Redirect non-admins to appropriate portal
-  if (userRole && !["OWNER", "ADMIN", "HR"].includes(userRole)) {
-    if (userRole === "MANAGER") {
-      redirect("/manager/dashboard")
-    } else if (userRole === "EMPLOYEE") {
+  if (!isAdmin) {
+    if (user.role === 'employee') {
       redirect("/employee/dashboard")
-    } else {
-      redirect("/shared/dashboard")
     }
+    redirect("/unauthorized")
   }
 
   return (
     <MainLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Welcome back, {user.email?.split('@')[0] || 'Admin'}!
+          </h2>
         </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-4">
-            <div className="rounded-xl border bg-card text-card-foreground shadow">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold">System Administration</h3>
-                <p className="text-muted-foreground mt-2">
-                  Manage employees, payroll, company settings, and system configuration.
-                </p>
-              </div>
+        <div className="space-y-4">
+          <StatsCards />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="col-span-4">
+              <TeamOverview />
+            </div>
+            <div className="col-span-3">
+              <RecentActivity />
             </div>
           </div>
+          <PendingActions />
         </div>
-        
-        <StatsCards />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <TeamOverview />
-          <RecentActivity />
-        </div>
-        <PendingActions />
       </div>
     </MainLayout>
   )

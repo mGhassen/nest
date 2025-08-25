@@ -1,42 +1,43 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useSupabaseAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Clock, 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
+import { LeaveRequest, Timesheet } from "@/types/leave-request";
+import {
+  Clock,
+  Calendar,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   FileText,
   Users,
   ArrowRight
 } from "lucide-react";
 import { format } from "date-fns";
-import { Link } from "wouter";
+import Link from "next/link";
 
 export default function PendingActions() {
   const { user } = useAuth();
   const companyId = user?.companyId;
 
   // Fetch pending leave requests
-  const { data: leaveRequests = [] } = useQuery({
+  const { data: leaveRequests = [] } = useQuery<LeaveRequest[]>({
     queryKey: ['/api/leave-requests'],
     enabled: !!companyId,
   });
 
   // Fetch pending timesheets  
-  const { data: timesheets = [] } = useQuery({
+  const { data: timesheets = [] } = useQuery<Timesheet[]>({
     queryKey: ['/api/companies', companyId, 'timesheets'],
     enabled: !!companyId,
   });
 
-  const pendingLeaveRequests = leaveRequests.filter((request: any) => 
+  const pendingLeaveRequests = leaveRequests.filter((request) =>
     request.status === 'SUBMITTED'
   );
 
-  const pendingTimesheets = timesheets.filter((timesheet: any) => 
+  const pendingTimesheets = timesheets.filter((timesheet) =>
     timesheet.status === 'SUBMITTED'
   );
 
@@ -95,7 +96,7 @@ export default function PendingActions() {
               </Link>
             </div>
             <div className="space-y-2">
-              {pendingLeaveRequests.slice(0, 3).map((request: any) => (
+              {pendingLeaveRequests.slice(0, 3).map((request) => (
                 <div key={request.id} className="flex items-center justify-between text-sm">
                   <div className="flex-1">
                     <span className="text-orange-900">

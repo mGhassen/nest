@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { timesheets, leaveRequests, employees } from "@/lib/db/schema"
-import { eq, and, lt, gte } from "drizzle-orm"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
+import type { Database } from "@/types/database.types"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,52 +11,60 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     const today = new Date()
     const twoWeeksAgo = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
 
     // Auto-submit draft timesheets that are past due
-    const pastDueTimesheets = await db
-      .update(timesheets)
-      .set({
+    const { data: pastDueTimesheets, error: updateError } = await supabase
+      .from('timesheets')
+      .update({
         status: "SUBMITTED",
-        submittedAt: today,
-        updatedAt: today,
+        updated_at: today.toISOString(),
       })
-      .where(
-        and(
-          eq(timesheets.status, "DRAFT"),
-          lt(timesheets.weekStart, twoWeeksAgo)
-        )
-      )
-      .returning()
+      .eq('status', 'DRAFT')
+      .lt('week_start', twoWeeksAgo.toISOString().split('T')[0])
+      .select()
+
+    if (updateError) {
+      console.error("Error updating past due timesheets:", updateError)
+    }
 
     // Send reminders for unsubmitted timesheets
-    const unsubmittedTimesheets = await db.query.timesheets.findMany({
-      where: and(
-        eq(timesheets.status, "DRAFT"),
-        gte(timesheets.weekStart, twoWeeksAgo)
-      ),
-      with: {
-        employee: true,
-      },
-    })
+    const { data: unsubmittedTimesheets, error: queryError } = await supabase
+      .from('timesheets')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
+      .eq('status', 'DRAFT')
+      .gte('week_start', twoWeeksAgo.toISOString().split('T')[0])
+
+    if (queryError) {
+      console.error("Error fetching unsubmitted timesheets:", queryError)
+    }
 
     // TODO: Send email reminders for unsubmitted timesheets
-    console.log(`Found ${unsubmittedTimesheets.length} unsubmitted timesheets`)
+    console.log(`Found ${unsubmittedTimesheets?.length || 0} unsubmitted timesheets`)
 
     // Recalculate leave balances for active employees
-    const activeEmployees = await db.query.employees.findMany({
-      where: eq(employees.terminationDate, null),
-    })
+    const { data: activeEmployees, error: employeeError } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('status', 'ACTIVE')
+
+    if (employeeError) {
+      console.error("Error fetching active employees:", employeeError)
+    }
 
     // TODO: Implement leave balance recalculation logic
-    console.log(`Recalculating leave balances for ${activeEmployees.length} employees`)
+    console.log(`Recalculating leave balances for ${activeEmployees?.length || 0} employees`)
 
     return NextResponse.json({
       message: "Daily cron job completed",
-      autoSubmittedTimesheets: pastDueTimesheets.length,
-      unsubmittedTimesheets: unsubmittedTimesheets.length,
-      employeesProcessed: activeEmployees.length,
+      autoSubmittedTimesheets: pastDueTimesheets?.length || 0,
+      unsubmittedTimesheets: unsubmittedTimesheets?.length || 0,
+      employeesProcessed: activeEmployees?.length || 0,
     })
   } catch (error) {
     console.error("Error in daily cron job:", error)

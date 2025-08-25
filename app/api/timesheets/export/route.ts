@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth-middleware"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { timesheets, timesheetEntries, employees } from "@/lib/db/schema"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and, gte, lte } from "drizzle-orm"
+import type { Database } from "@/types/database.types"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -38,74 +38,71 @@ export async function GET(request: NextRequest) {
     const start = new Date(startDate)
     const end = new Date(endDate)
 
-    let query = db.query.timesheets.findMany({
-      where: and(
-        gte(timesheets.weekStart, start),
-        lte(timesheets.weekStart, end)
-      ),
-      with: {
-        employee: {
-          with: {
-            location: true,
-            costCenter: true,
-          },
-        },
-        entries: true,
-      },
-    })
+    let query = supabase
+      .from('timesheets')
+      .select(`
+        *,
+        employee:employees(
+          *,
+          location:locations(*),
+          cost_center:cost_centers(*)
+        ),
+        entries:timesheet_entries(*)
+      `)
+      .gte('week_start', start.toISOString().split('T')[0])
+      .lte('week_start', end.toISOString().split('T')[0])
 
     // Filter by employee if provided and user has permission
     if (employeeId) {
       if (user.role === "EMPLOYEE") {
         // Employee can only export their own timesheets
-        const employee = await db.query.employees.findFirst({
-          where: eq(employees.userId, user.id),
-        })
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+        
         if (employee?.id !== employeeId) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
       } else if (user.role === "MANAGER") {
         // Manager can only export direct reports' timesheets
-        const employee = await db.query.employees.findFirst({
-          where: eq(employees.id, employeeId),
-        })
-        if (employee?.managerId !== user.id) {
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('manager_id')
+          .eq('id', employeeId)
+          .single()
+        
+        if (employee?.manager_id !== user.id) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
       }
       // ADMIN, HR, OWNER can export all timesheets
 
-      query = db.query.timesheets.findMany({
-        where: and(
-          eq(timesheets.employeeId, employeeId),
-          gte(timesheets.weekStart, start),
-          lte(timesheets.weekStart, end)
-        ),
-        with: {
-          employee: {
-            with: {
-              location: true,
-              costCenter: true,
-            },
-          },
-          entries: true,
-        },
-      })
+      query = query.eq('employee_id', employeeId)
     }
 
-    const timesheetsList = await query
+    const { data: timesheetsList, error } = await query
+
+    if (error) {
+      console.error("Error fetching timesheets:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch timesheets" },
+        { status: 500 }
+      )
+    }
 
     // Convert to CSV format
-    const csvData = timesheetsList.flatMap(timesheet =>
-      timesheet.entries.map(entry => ({
-        employee: `${timesheet.employee.firstName} ${timesheet.employee.lastName}`,
-        date: entry.date.toISOString().split('T')[0],
+    const csvData = (timesheetsList || []).flatMap(timesheet =>
+      (timesheet.entries || []).map((entry: any) => ({
+        employee: `${timesheet.employee?.first_name || ''} ${timesheet.employee?.last_name || ''}`,
+        date: entry.date,
         hours: entry.hours,
         project: entry.project || '',
-        costCenter: timesheet.employee.costCenter?.name || '',
-        location: timesheet.employee.location?.name || '',
+        costCenter: timesheet.employee?.cost_center?.name || '',
+        location: timesheet.employee?.location?.name || '',
         status: timesheet.status,
-        weekStart: timesheet.weekStart.toISOString().split('T')[0],
+        weekStart: timesheet.week_start,
       }))
     )
 

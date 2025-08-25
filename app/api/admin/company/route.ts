@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "better-auth"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { companies, locations, costCenters, workSchedules } from "@/lib/db/schema"
-import { getUserWithRole, can } from "@/lib/rbac"
-import { eq } from "drizzle-orm"
-import { z } from "zod"
+import { NextRequest, NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { z } from 'zod'
+import type { Database } from '@/types/database.types'
+import { getUserWithRole } from '@/lib/rbac'
 
 const updateCompanySchema = z.object({
   name: z.string().min(1).optional(),
@@ -15,31 +13,38 @@ const updateCompanySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+      
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    // Get the company for the current user (assuming user ID is the company ID for now)
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select(`
+        *,
+        locations(*),
+        cost_centers(*),
+        work_schedules(*)
+      `)
+      .eq('id', session.user.id)
+      .single()
 
-    // Check permissions
-    if (!can(user.role, "read", "company")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    const company = await db.query.companies.findFirst({
-      where: eq(companies.id, user.companyId),
-      with: {
-        locations: true,
-        costCenters: true,
-        workSchedules: true,
-      },
-    })
-
-    if (!company) {
+    if (companyError) {
+      console.error("Error fetching company:", companyError)
       return NextResponse.json({ error: "Company not found" }, { status: 404 })
     }
 
@@ -55,9 +60,22 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+      
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const user = await getUserWithRole(session.user.id)
@@ -65,28 +83,35 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check permissions
-    if (!can(user.role, "write", "company")) {
+    // Check if user is admin
+    if (user.role !== 'admin') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const body = await request.json()
     const validatedData = updateCompanySchema.parse(body)
 
-    const updatedCompany = await db
-      .update(companies)
-      .set({
+    // Update the company using the user's ID as the company ID for now
+    const { data: updatedCompany, error: updateError } = await supabase
+      .from('companies')
+      .update({
         ...validatedData,
-        updatedAt: new Date(),
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(companies.id, user.companyId))
-      .returning()
+      .eq('id', session.user.id)
+      .select()
+      .single()
 
-    if (!updatedCompany[0]) {
+    if (updateError) {
+      console.error("Error updating company:", updateError)
+      return NextResponse.json({ error: "Failed to update company" }, { status: 500 })
+    }
+
+    if (!updatedCompany) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 })
     }
 
-    return NextResponse.json(updatedCompany[0])
+    return NextResponse.json(updatedCompany)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

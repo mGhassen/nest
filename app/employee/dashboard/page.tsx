@@ -1,27 +1,26 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { redirect } from "next/navigation"
+import { useAuth } from "@/hooks/useSupabaseAuth"
 import MainLayout from "@/components/layout/main-layout"
-import { getUserWithRole } from "@/lib/rbac"
 
-export default function EmployeePortalPage() {
-  const { user, loading } = useAuth()
-  const [userRole, setUserRole] = useState<string | null>(null)
+export default function EmployeeDashboardPage() {
+  const { user, loading, isAdmin } = useAuth()
 
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       redirect("/auth/signin")
-      return
     }
-
-    if (user) {
-      setUserRole(user.role)
+    
+    // Redirect admins to admin dashboard
+    if (!loading && isAdmin) {
+      redirect("/admin/dashboard")
     }
-  }, [user, loading])
+  }, [user, loading, isAdmin])
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -33,13 +32,9 @@ export default function EmployeePortalPage() {
     )
   }
 
-  // Redirect non-employees/managers to appropriate portal
-  if (userRole && !["EMPLOYEE", "MANAGER"].includes(userRole)) {
-    if (["OWNER", "ADMIN", "HR"].includes(userRole)) {
-      redirect("/admin/dashboard")
-    } else {
-      redirect("/shared/dashboard")
-    }
+  // Redirect non-employees to unauthorized
+  if (user.role !== 'employee') {
+    redirect("/unauthorized")
   }
 
   return (
@@ -47,7 +42,7 @@ export default function EmployeePortalPage() {
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">
-            {userRole === "MANAGER" ? "Manager Portal" : "Employee Portal"}
+            Welcome back, {user.email?.split('@')[0] || 'Employee'}!
           </h2>
         </div>
         
@@ -56,16 +51,10 @@ export default function EmployeePortalPage() {
             <div className="rounded-xl border bg-card text-card-foreground shadow">
               <div className="p-6">
                 <h3 className="text-lg font-semibold">
-                  {userRole === "MANAGER" 
-                    ? "Welcome to Your Manager Portal" 
-                    : "Welcome to Your Employee Portal"
-                  }
+                  Welcome to Your Employee Portal
                 </h3>
                 <p className="text-muted-foreground mt-2">
-                  {userRole === "MANAGER"
-                    ? "Manage your team's timesheets, leave requests, and performance."
-                    : "Access your timesheets, leave requests, and personal information."
-                  }
+                  Access your timesheets, leave requests, and personal information.
                 </p>
               </div>
             </div>

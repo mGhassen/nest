@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth-middleware"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { leaveRequests } from "@/lib/db/schema"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { getUserWithRole, can } from "@/lib/rbac"
-import { eq, and } from "drizzle-orm"
 import { z } from "zod"
+import type { Database } from "@/types/database.types"
 
 const createLeaveRequestSchema = z.object({
   employeeId: z.string(),
@@ -19,7 +17,9 @@ const createLeaveRequestSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -38,58 +38,60 @@ export async function GET(request: NextRequest) {
     const employeeId = searchParams.get("employeeId")
     const status = searchParams.get("status")
 
-    let query = db.query.leaveRequests.findMany({
-      with: {
-        employee: true,
-        policy: true,
-        approver: true,
-      },
-    })
+    let query = supabase
+      .from('leave_requests')
+      .select(`
+        *,
+        employee:employees(*),
+        policy:leave_policies(*),
+        approver:employees!leave_requests_approved_by_fkey(*)
+      `)
 
     // Filter by employee if provided
     if (employeeId) {
       if (user.role === "EMPLOYEE") {
         // Employee can only see their own leave requests
-        const employee = await db.query.employees.findFirst({
-          where: eq(employees.userId, user.id),
-        })
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+        
         if (employee?.id !== employeeId) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
       } else if (user.role === "MANAGER") {
         // Manager can only see direct reports' leave requests
-        const employee = await db.query.employees.findFirst({
-          where: eq(employees.id, employeeId),
-        })
-        if (employee?.managerId !== user.id) {
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('manager_id')
+          .eq('id', employeeId)
+          .single()
+        
+        if (employee?.manager_id !== user.id) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
       }
       // ADMIN, HR, OWNER can see all leave requests
 
-      query = db.query.leaveRequests.findMany({
-        where: eq(leaveRequests.employeeId, employeeId),
-        with: {
-          employee: true,
-          policy: true,
-          approver: true,
-        },
-      })
+      query = query.eq('employee_id', employeeId)
     }
 
     // Filter by status if provided
     if (status) {
-      query = db.query.leaveRequests.findMany({
-        where: eq(leaveRequests.status, status),
-        with: {
-          employee: true,
-          policy: true,
-          approver: true,
-        },
-      })
+      query = query.eq('status', status)
     }
 
-    const leaveRequestsList = await query
+    const { data: leaveRequestsList, error } = await query
+
+    if (error) {
+      console.error("Error fetching leave requests:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch leave requests" },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(leaveRequestsList)
   } catch (error) {
     console.error("Error fetching leave requests:", error)
@@ -102,7 +104,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -122,20 +126,47 @@ export async function POST(request: NextRequest) {
 
     // Check if user can create leave request for this employee
     if (user.role === "EMPLOYEE") {
-      const employee = await db.query.employees.findFirst({
-        where: eq(employees.userId, user.id),
-      })
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+      
       if (employee?.id !== validatedData.employeeId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     }
 
-    const newLeaveRequest = await db.insert(leaveRequests).values({
-      ...validatedData,
-      status: "DRAFT",
-    }).returning()
+    // Calculate days requested
+    const startDate = validatedData.startDate
+    const endDate = validatedData.endDate
+    const daysRequested = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-    return NextResponse.json(newLeaveRequest[0], { status: 201 })
+    const newLeaveRequestData = {
+      employee_id: validatedData.employeeId,
+      leave_policy_id: validatedData.policyId,
+      start_date: startDate.toISOString().split('T')[0],
+      end_date: endDate.toISOString().split('T')[0],
+      days_requested: daysRequested,
+      reason: validatedData.reason,
+      status: "PENDING",
+    }
+
+    const { data: newLeaveRequest, error } = await supabase
+      .from('leave_requests')
+      .insert(newLeaveRequestData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating leave request:", error)
+      return NextResponse.json(
+        { error: "Failed to create leave request" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(newLeaveRequest, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

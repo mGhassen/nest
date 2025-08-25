@@ -1,47 +1,43 @@
-import { NextRequest, NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
-import { getUserWithRole } from "@/lib/rbac"
+import { NextRequest, NextResponse } from 'next/server';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import type { Database } from '@/types/database.types';
 
-type AuthResult = 
-  | { user: any; error: null }
-  | { user: null; error: string; status: number }
-
-export async function authenticateUser(request: NextRequest): Promise<AuthResult> {
-  try {
-    // Get auth header
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
-      return { user: null, error: "Unauthorized", status: 401 }
-    }
-
-    const token = authHeader.substring(7)
-    
-    // Verify token with Supabase
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    
-    if (authError || !user) {
-      return { user: null, error: "Unauthorized", status: 401 }
-    }
-
-    const userWithRole = await getUserWithRole(user.id)
-    if (!userWithRole) {
-      return { user: null, error: "User not found", status: 404 }
-    }
-
-    return { user: userWithRole, error: null }
-  } catch (error) {
-    console.error("Auth middleware error:", error)
-    return { user: null, error: "Internal server error", status: 500 }
+export async function withAuthMiddleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient<Database>({ req, res });
+  
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/auth/signin';
+    redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
   }
+  
+  return res;
 }
 
-export async function requireAuth(request: NextRequest): Promise<any | NextResponse> {
-  const authResult = await authenticateUser(request)
-  if (authResult.error) {
-    return NextResponse.json(
-      { error: authResult.error },
-      { status: authResult.status }
-    )
+export async function withAdminMiddleware(req: NextRequest) {
+  const res = await withAuthMiddleware(req);
+  if (res !== NextResponse.next()) return res;
+
+  const supabase = createMiddlewareClient<Database>({ req, res });
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return NextResponse.redirect(new URL('/auth/signin', req.url));
   }
-  return authResult.user
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'admin') {
+    return NextResponse.redirect(new URL('/unauthorized', req.url));
+  }
+
+  return res;
 }

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth-middleware"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { leaveRequests } from "@/lib/db/schema"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { canApproveLeave } from "@/lib/rbac"
-import { eq } from "drizzle-orm"
 import { z } from "zod"
+import type { Database } from "@/types/database.types"
 
 const approveLeaveRequestSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
@@ -17,7 +15,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -31,22 +31,25 @@ export async function POST(
     const body = await request.json()
     const validatedData = approveLeaveRequestSchema.parse(body)
 
-    const updatedLeaveRequest = await db
-      .update(leaveRequests)
-      .set({
-        status: validatedData.status,
-        approverId: session.user.id,
-        approvedAt: validatedData.status === "APPROVED" ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(leaveRequests.id, params.id))
-      .returning()
+    const updateData = {
+      status: validatedData.status,
+      approved_by: session.user.id,
+      approved_at: validatedData.status === "APPROVED" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    }
 
-    if (!updatedLeaveRequest[0]) {
+    const { data: updatedLeaveRequest, error } = await supabase
+      .from('leave_requests')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error || !updatedLeaveRequest) {
       return NextResponse.json({ error: "Leave request not found" }, { status: 404 })
     }
 
-    return NextResponse.json(updatedLeaveRequest[0])
+    return NextResponse.json(updatedLeaveRequest)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

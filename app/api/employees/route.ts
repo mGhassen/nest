@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { employees } from "@/lib/db/schema"
-import { can } from "@/lib/rbac"
-import { eq } from "drizzle-orm"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { z } from "zod"
-import { requireAuth } from "@/lib/auth-middleware"
+import { requireAuth, requireRole } from "@/lib/middleware/auth"
+import { Database } from "@/types/database.types"
+import type { EmploymentType, SalaryPeriod } from "@/types/database.types"
 
 const createEmployeeSchema = z.object({
   firstName: z.string().min(1),
@@ -23,46 +23,58 @@ const createEmployeeSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
-    if (user instanceof NextResponse) return user
+    const auth = await requireAuth(request)
+    if (auth instanceof NextResponse) return auth
 
     // Check permissions
-    if (!can(user.role, "read", "employee")) {
+    if (auth.user.role !== 'admin' && auth.user.role !== 'hr') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
     const locationId = searchParams.get("locationId")
     const costCenterId = searchParams.get("costCenterId")
 
-    let query = db.query.employees.findMany({
-      where: eq(employees.companyId, user.companyId),
-      with: {
-        location: true,
-        costCenter: true,
-        manager: true,
-        workSchedule: true,
-      },
-    })
+    // Build the query
+    let query = supabase
+      .from('employees')
+      .select(`
+        *,
+        location:locations(*),
+        cost_center:cost_centers(*),
+        manager:employees!manager_id(*),
+        work_schedule:work_schedules(*)
+      `)
+      .eq('company_id', auth.user.companyId || '')
 
     // Apply filters if provided
     if (status) {
-      query = db.query.employees.findMany({
-        where: eq(employees.status, status),
-        with: {
-          location: true,
-          costCenter: true,
-          manager: true,
-          workSchedule: true,
-        },
-      })
+      query = query.eq('status', status)
     }
 
-    const employeesList = await query
-    return NextResponse.json(employeesList)
+    if (locationId) {
+      query = query.eq('location_id', locationId)
+    }
+
+    if (costCenterId) {
+      query = query.eq('cost_center_id', costCenterId)
+    }
+
+    const { data: employees, error } = await query
+
+    if (error) {
+      console.error("Error fetching employees:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch employees" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(employees)
   } catch (error) {
-    console.error("Error fetching employees:", error)
+    console.error("Error in GET /api/employees:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -72,33 +84,51 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
-    if (user instanceof NextResponse) return user
+    const auth = await requireAuth(request)
+    if (auth instanceof NextResponse) return auth
 
     // Check permissions
-    if (!can(user.role, "write", "employee")) {
+    if (auth.user.role !== 'admin' && auth.user.role !== 'hr') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const body = await request.json()
-    const validatedData = createEmployeeSchema.parse(body)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const data = await request.json()
+    const validation = createEmployeeSchema.safeParse(data)
 
-    const newEmployee = await db.insert(employees).values({
-      ...validatedData,
-      companyId: user.companyId,
-      status: "ACTIVE",
-    }).returning()
-
-    return NextResponse.json(newEmployee[0], { status: 201 })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Invalid data", details: validation.error.format() },
         { status: 400 }
       )
     }
 
-    console.error("Error creating employee:", error)
+    const employeeData = {
+      ...validation.data,
+      company_id: auth.user.companyId,
+      status: "ACTIVE",
+      hire_date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data: newEmployee, error } = await supabase
+      .from('employees')
+      .insert(employeeData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating employee:", error)
+      return NextResponse.json(
+        { error: "Failed to create employee" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(newEmployee, { status: 201 })
+  } catch (error) {
+    console.error("Error in POST /api/employees:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth-middleware"
-import { authConfig } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { employees, timesheets, leaveRequests, payrollCycles } from "@/lib/db/schema"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from 'next/headers'
 import { getUserWithRole } from "@/lib/rbac"
-import { eq, and, count, sql } from "drizzle-orm"
+import type { Database } from "@/types/database.types"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -19,120 +19,116 @@ export async function GET(request: NextRequest) {
     }
 
     // Get company stats
-    const totalEmployees = await db
-      .select({ count: count() })
-      .from(employees)
-      .where(eq(employees.companyId, user.companyId))
+    const { count: totalEmployees } = await supabase
+      .from('employees')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', user.company_id)
 
-    const pendingTimesheets = await db
-      .select({ count: count() })
-      .from(timesheets)
-      .where(
-        and(
-          eq(timesheets.status, "SUBMITTED"),
-          sql`${timesheets.employeeId} IN (
-            SELECT id FROM employees WHERE company_id = ${user.companyId}
-          )`
-        )
-      )
+    // Get pending timesheets for company
+    const { data: companyEmployees } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('company_id', user.company_id)
 
-    const pendingLeaveRequests = await db
-      .select({ count: count() })
-      .from(leaveRequests)
-      .where(
-        and(
-          eq(leaveRequests.status, "SUBMITTED"),
-          sql`${leaveRequests.employeeId} IN (
-            SELECT id FROM employees WHERE company_id = ${user.companyId}
-          )`
-        )
-      )
+    let pendingTimesheets = 0
+    if (companyEmployees && companyEmployees.length > 0) {
+      const employeeIds = companyEmployees.map(emp => emp.id)
+      const { count } = await supabase
+        .from('timesheets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'SUBMITTED')
+        .in('employee_id', employeeIds)
+      pendingTimesheets = count || 0
+    }
 
-    const activePayrollCycles = await db
-      .select({ count: count() })
-      .from(payrollCycles)
-      .where(
-        and(
-          eq(payrollCycles.companyId, user.companyId),
-          eq(payrollCycles.status, "UPLOADED")
-        )
-      )
+    // Get pending leave requests for company
+    let pendingLeaveRequests = 0
+    if (companyEmployees && companyEmployees.length > 0) {
+      const employeeIds = companyEmployees.map(emp => emp.id)
+      const { count } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'SUBMITTED')
+        .in('employee_id', employeeIds)
+      pendingLeaveRequests = count || 0
+    }
+
+    const { count: activePayrollCycles } = await supabase
+      .from('payroll_cycles')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', user.company_id)
+      .eq('status', 'UPLOADED')
 
     // Get role-specific stats
     let roleSpecificStats = {}
 
     if (user.role === "EMPLOYEE") {
       // Employee can only see their own stats
-      const employee = await db.query.employees.findFirst({
-        where: eq(employees.userId, user.id),
-      })
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
 
       if (employee) {
-        const myPendingTimesheets = await db
-          .select({ count: count() })
-          .from(timesheets)
-          .where(
-            and(
-              eq(timesheets.employeeId, employee.id),
-              eq(timesheets.status, "SUBMITTED")
-            )
-          )
+        const { count: myPendingTimesheets } = await supabase
+          .from('timesheets')
+          .select('*', { count: 'exact', head: true })
+          .eq('employee_id', employee.id)
+          .eq('status', 'SUBMITTED')
 
-        const myPendingLeaveRequests = await db
-          .select({ count: count() })
-          .from(leaveRequests)
-          .where(
-            and(
-              eq(leaveRequests.employeeId, employee.id),
-              eq(leaveRequests.status, "SUBMITTED")
-            )
-          )
+        const { count: myPendingLeaveRequests } = await supabase
+          .from('leave_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('employee_id', employee.id)
+          .eq('status', 'SUBMITTED')
 
         roleSpecificStats = {
-          myPendingTimesheets: myPendingTimesheets[0].count,
-          myPendingLeaveRequests: myPendingLeaveRequests[0].count,
+          myPendingTimesheets: myPendingTimesheets || 0,
+          myPendingLeaveRequests: myPendingLeaveRequests || 0,
         }
       }
     } else if (user.role === "MANAGER") {
       // Manager can see direct reports' stats
-      const directReports = await db.query.employees.findMany({
-        where: eq(employees.managerId, user.id),
-      })
+      const { data: directReports } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('manager_id', user.id)
 
-      const directReportIds = directReports.map(emp => emp.id)
+      if (directReports && directReports.length > 0) {
+        const directReportIds = directReports.map(emp => emp.id)
 
-      const directReportsPendingTimesheets = await db
-        .select({ count: count() })
-        .from(timesheets)
-        .where(
-          and(
-            sql`${timesheets.employeeId} IN (${sql.join(directReportIds, sql`, `)})`,
-            eq(timesheets.status, "SUBMITTED")
-          )
-        )
+        const { count: directReportsPendingTimesheets } = await supabase
+          .from('timesheets')
+          .select('*', { count: 'exact', head: true })
+          .in('employee_id', directReportIds)
+          .eq('status', 'SUBMITTED')
 
-      const directReportsPendingLeaveRequests = await db
-        .select({ count: count() })
-        .from(leaveRequests)
-        .where(
-          and(
-            sql`${leaveRequests.employeeId} IN (${sql.join(directReportIds, sql`, `)})`,
-            eq(leaveRequests.status, "SUBMITTED")
-          )
-        )
+        const { count: directReportsPendingLeaveRequests } = await supabase
+          .from('leave_requests')
+          .select('*', { count: 'exact', head: true })
+          .in('employee_id', directReportIds)
+          .eq('status', 'SUBMITTED')
 
-      roleSpecificStats = {
-        directReportsCount: directReports.length,
-        directReportsPendingTimesheets: directReportsPendingTimesheets[0].count,
-        directReportsPendingLeaveRequests: directReportsPendingLeaveRequests[0].count,
+        roleSpecificStats = {
+          directReportsCount: directReports.length,
+          directReportsPendingTimesheets: directReportsPendingTimesheets || 0,
+          directReportsPendingLeaveRequests: directReportsPendingLeaveRequests || 0,
+        }
+      } else {
+        roleSpecificStats = {
+          directReportsCount: 0,
+          directReportsPendingTimesheets: 0,
+          directReportsPendingLeaveRequests: 0,
+        }
       }
     }
 
     const stats = {
-      totalEmployees: totalEmployees[0].count,
-      pendingTimesheets: pendingTimesheets[0].count,
-      pendingLeaveRequests: pendingLeaveRequests[0].count,
-      activePayrollCycles: activePayrollCycles[0].count,
+      totalEmployees: totalEmployees || 0,
+      pendingTimesheets,
+      pendingLeaveRequests,
+      activePayrollCycles: activePayrollCycles || 0,
       ...roleSpecificStats,
     }
 

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { employees } from "@/lib/db/schema"
+import { supabase } from "@/lib/db"
 import { can } from "@/lib/rbac"
-import { eq } from "drizzle-orm"
 import { z } from "zod"
-import { requireAuth } from "@/lib/auth-middleware"
+import { requireAuth } from "@/lib/middleware/auth"
+import type { Database, UserRole } from "@/types/database.types"
 
 const updateEmployeeSchema = z.object({
   firstName: z.string().min(1).optional(),
@@ -31,23 +30,24 @@ export async function GET(
     if (authResult instanceof NextResponse) return authResult
 
     // Check permissions
-    if (!can(authResult.role, "read", "employee")) {
+    if (!can(authResult.user.role as UserRole, "read", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const employee = await db.query.employees.findFirst({
-      where: eq(employees.id, params.id),
-      with: {
-        location: true,
-        costCenter: true,
-        manager: true,
-        workSchedule: true,
-        timesheets: true,
-        leaveRequests: true,
-      },
-    })
+    // Fetch employee with related data
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .select(`
+        *,
+        location:locations(*),
+        cost_center:cost_centers(*),
+        manager:employees!employees_manager_id_fkey(*),
+        work_schedule:work_schedules(*)
+      `)
+      .eq('id', params.id)
+      .single()
 
-    if (!employee) {
+    if (error || !employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
@@ -70,27 +70,47 @@ export async function PUT(
     if (authResult instanceof NextResponse) return authResult
 
     // Check permissions
-    if (!can(authResult.role, "write", "employee")) {
+    if (!can(authResult.user.role as UserRole, "write", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const body = await request.json()
     const validatedData = updateEmployeeSchema.parse(body)
 
-    const updatedEmployee = await db
-      .update(employees)
-      .set({
-        ...validatedData,
-        updatedAt: new Date(),
-      })
-      .where(eq(employees.id, params.id))
-      .returning()
+    // Transform field names to match database schema
+    const updateData: Record<string, any> = {
+      first_name: validatedData.firstName,
+      last_name: validatedData.lastName,
+      email: validatedData.email,
+      employment_type: validatedData.employmentType,
+      manager_id: validatedData.managerId,
+      position_title: validatedData.positionTitle,
+      location_id: validatedData.locationId,
+      cost_center_id: validatedData.costCenterId,
+      base_salary: validatedData.baseSalary,
+      salary_period: validatedData.salaryPeriod,
+      work_schedule_id: validatedData.workScheduleId,
+      status: validatedData.status,
+      updated_at: new Date().toISOString(),
+    }
 
-    if (!updatedEmployee[0]) {
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => 
+      updateData[key] === undefined && delete updateData[key]
+    )
+
+    const { data: updatedEmployee, error } = await supabase
+      .from('employees')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error || !updatedEmployee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
-    return NextResponse.json(updatedEmployee[0])
+    return NextResponse.json(updatedEmployee)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -116,16 +136,16 @@ export async function DELETE(
     if (authResult instanceof NextResponse) return authResult
 
     // Check permissions
-    if (!can(authResult.role, "delete", "employee")) {
+    if (!can(authResult.user.role as UserRole, "delete", "employee")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const deletedEmployee = await db
-      .delete(employees)
-      .where(eq(employees.id, params.id))
-      .returning()
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', params.id)
 
-    if (!deletedEmployee[0]) {
+    if (error) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
