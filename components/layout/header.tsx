@@ -103,7 +103,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 h-16 sticky top-0 z-40" data-testid="header">
+      <header className="bg-background border-b h-16 sticky top-0 z-40" data-testid="header">
         <div className="flex items-center justify-between h-full px-4 lg:px-6">
           <div className="flex items-center space-x-4">
             {/* Mobile menu button */}
@@ -231,7 +231,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
       {mobileMenuOpen && (
         <div className="lg:hidden">
           <div className="fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-xl">
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-background shadow-xl">
             <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">

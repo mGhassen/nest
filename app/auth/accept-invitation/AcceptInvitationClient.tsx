@@ -235,7 +235,7 @@ export default function AcceptInvitationClient({ searchParams }: { searchParams:
           <div className="mx-auto mb-4 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
-          <CardTitle>Welcome to Wild Energy!</CardTitle>
+          <CardTitle>Welcome to your Nest!</CardTitle>
           <CardDescription>
             Your account has been successfully activated
           </CardDescription>
@@ -255,7 +255,7 @@ export default function AcceptInvitationClient({ searchParams }: { searchParams:
       <CardHeader>
         <CardTitle>Set Your Password</CardTitle>
         <CardDescription>
-          Welcome to Wild Energy! Please set a password for your account.
+          Welcome to your Nest! Please set a password for your account.
           {userEmail && (
             <div className="mt-2 text-sm text-muted-foreground">
               Account: {userEmail}

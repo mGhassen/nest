@@ -1,71 +1,111 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { UserPlus, Check, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Clock, User, FileText, Calendar } from "lucide-react";
 
-const activities = [
-  {
-    id: '1',
-    type: 'timesheet_submitted',
-    icon: UserPlus,
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-blue-600',
-    title: 'Sarah Chen submitted timesheet for week of Jan 15, 2024',
-    time: '2 minutes ago'
-  },
-  {
-    id: '2',
-    type: 'leave_approved',
-    icon: Check,
-    iconBg: 'bg-green-50',
-    iconColor: 'text-green-600',
-    title: 'Mark Rodriguez approved leave request from Alex Thompson',
-    time: '15 minutes ago'
-  },
-  {
-    id: '3',
-    type: 'payroll_calculated',
-    icon: FileText,
-    iconBg: 'bg-purple-50',
-    iconColor: 'text-purple-600',
-    title: 'Payroll cycle for January 2024 has been calculated',
-    time: '1 hour ago'
-  }
-];
+interface Activity {
+  id: string;
+  type: "timesheet" | "leave" | "document" | "profile";
+  title: string;
+  description: string;
+  time: string;
+  user: string;
+}
 
-export default function RecentActivity() {
+interface RecentActivityProps {
+  activities?: Activity[];
+}
+
+export default function RecentActivity({ activities }: RecentActivityProps) {
+  const defaultActivities: Activity[] = [
+    {
+      id: "1",
+      type: "timesheet",
+      title: "Timesheet submitted",
+      description: "Weekly timesheet for Engineering team",
+      time: "2 hours ago",
+      user: "John Doe",
+    },
+    {
+      id: "2",
+      type: "leave",
+      title: "Leave request approved",
+      description: "Annual leave for next week",
+      time: "4 hours ago",
+      user: "Jane Smith",
+    },
+    {
+      id: "3",
+      type: "document",
+      title: "Document uploaded",
+      description: "New employee handbook",
+      time: "6 hours ago",
+      user: "HR Team",
+    },
+    {
+      id: "4",
+      type: "profile",
+      title: "Profile updated",
+      description: "Contact information changed",
+      time: "1 day ago",
+      user: "Mike Johnson",
+    },
+  ];
+
+  const data = activities || defaultActivities;
+
+  const getActivityIcon = (type: Activity["type"]) => {
+    switch (type) {
+      case "timesheet":
+        return <Clock className="w-4 h-4" />;
+      case "leave":
+        return <Calendar className="w-4 h-4" />;
+      case "document":
+        return <FileText className="w-4 h-4" />;
+      case "profile":
+        return <User className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  const getActivityColor = (type: Activity["type"]) => {
+    switch (type) {
+      case "timesheet":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400";
+      case "leave":
+        return "bg-green-100 text-green-800 dark:bg-green-950/20 dark:text-green-400";
+      case "document":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-950/20 dark:text-purple-400";
+      case "profile":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-950/20 dark:text-orange-400";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-950/20 dark:text-gray-400";
+    }
+  };
+
   return (
-    <Card className="bg-white rounded-xl border border-gray-200" data-testid="recent-activity-card">
-      <CardHeader className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-gray-900" data-testid="text-recent-activity-title">
-            Recent Activity
-          </CardTitle>
-          <Button variant="ghost" className="text-primary text-sm font-medium hover:text-blue-700" data-testid="button-view-all-activity">
-            View all
-          </Button>
-        </div>
+    <Card className="rounded-xl border" data-testid="recent-activity-card">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold text-foreground" data-testid="text-recent-activity-title">
+          Recent Activity
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const Icon = activity.icon;
-            return (
-              <div key={activity.id} className="flex items-start space-x-3" data-testid={`activity-${activity.id}`}>
-                <div className={`w-8 h-8 ${activity.iconBg} rounded-full flex items-center justify-center`}>
-                  <Icon className={`w-4 h-4 ${activity.iconColor}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900" data-testid={`text-activity-title-${activity.id}`}>
-                    {activity.title}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1" data-testid={`text-activity-time-${activity.id}`}>
-                    {activity.time}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <CardContent className="space-y-4">
+        {data.map((activity) => (
+          <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+            <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
+              {getActivityIcon(activity.type)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground" data-testid={`text-activity-title-${activity.id}`}>
+                {activity.title}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1" data-testid={`text-activity-time-${activity.id}`}>
+                {activity.time} • {activity.user}
+              </p>
+            </div>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

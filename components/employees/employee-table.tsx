@@ -51,50 +51,50 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
 
   if (employees.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="rounded-xl border">
         <div className="p-8 text-center">
-          <div className="text-gray-400 mb-4">
+          <div className="text-muted-foreground mb-4">
             <Eye className="w-12 h-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
-          <p className="text-gray-600">Get started by adding your first employee.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">No employees found</h3>
+          <p className="text-muted-foreground">Get started by adding your first employee.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg" data-testid="employee-table">
+    <div className="border rounded-lg" data-testid="employee-table">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-100">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Person
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Group
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Worker type
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Worker status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Hire Date
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Worker ID
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody className="bg-background divide-y divide-border">
             {employees.map((employee) => (
-              <tr key={employee.id} className="hover:bg-gray-50" data-testid={`employee-row-${employee.id}`}>
+              <tr key={employee.id} className="hover:bg-muted/50" data-testid={`employee-row-${employee.id}`}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -108,24 +108,24 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                           {employee.first_name} {employee.last_name}
                         </div>
                       </Link>
-                      <div className="text-xs text-gray-500" data-testid={`text-employee-email-${employee.id}`}>
+                      <div className="text-xs text-muted-foreground" data-testid={`text-employee-email-${employee.id}`}>
                         {employee.email}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`text-employee-position-${employee.id}`}>
-                  <div className="text-sm text-gray-900">{employee.position_title || 'Engineering'}</div>
-                  <div className="text-xs text-gray-500">Wayne Enterprise Global</div>
+                  <div className="text-sm text-foreground">{employee.position_title || 'Engineering'}</div>
+                  <div className="text-xs text-muted-foreground">Wayne Enterprise Global</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-testid={`text-employee-type-${employee.id}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground" data-testid={`text-employee-type-${employee.id}`}>
                   {employee.employment_type || 'Contractor'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`badge-employee-status-${employee.id}`}>
                   {getStatusBadge(employee.status)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`text-employee-hire-date-${employee.id}`}>
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-foreground">
                     {employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric', 
@@ -133,10 +133,10 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                     }) : 'Not set'}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   {employee.id?.slice(0, 3).toUpperCase() || 'N/A'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   <div className="flex items-center space-x-2">
                     <Link href={`/admin/employees/${employee.id}`}>
                       <Button variant="ghost" size="sm">
@@ -166,9 +166,9 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
       </div>
       
       {/* Pagination */}
-      <div className="px-6 py-4 border-t border-gray-200">
+      <div className="px-6 py-4 border-t">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-500" data-testid="text-pagination-info">
+          <div className="text-sm text-muted-foreground" data-testid="text-pagination-info">
             Showing 1 to {employees.length} of {employees.length} results
           </div>
           <div className="flex items-center space-x-2">

@@ -204,12 +204,12 @@ function AccountStatusContent() {
           color: "text-red-600",
           bgColor: "bg-red-100",
           instructions: [
-            "1. Contact support at support@wildenergy.gym",
+            "1. Contact support at support@guepard.run",
             "2. Provide your account details",
             "3. Wait for support to review your case"
           ],
           actionText: "Contact Support",
-          actionHandler: () => window.open('mailto:support@wildenergy.gym', '_blank')
+          actionHandler: () => window.open('mailto:support@guepard.run', '_blank')
         };
       
       default:
@@ -382,7 +382,7 @@ function AccountStatusContent() {
           </div>
 
           <div className="text-center text-sm text-muted-foreground border-t pt-4">
-            <p>Need help? Contact support at <span className="font-mono">support@wildenergy.gym</span></p>
+            <p>Need help? Contact support at <span className="font-mono">support@guepard.run</span></p>
           </div>
         </CardContent>
       </Card>

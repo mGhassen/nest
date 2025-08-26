@@ -12,6 +12,7 @@ import type { Employee } from "@/types/schema"
 export default function AdminEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loadingEmployees, setLoadingEmployees] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Fetch employees when component mounts
   useEffect(() => {
@@ -58,11 +59,14 @@ export default function AdminEmployeesPage() {
           {/* Search and Filters */}
           <div className="flex items-center space-x-4">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search employees..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                data-testid="input-search-employees"
               />
             </div>
           </div>

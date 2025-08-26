@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { createSupabaseClient } from '@/lib/supabase';
 
 export interface User {
   id: string;
@@ -47,73 +48,64 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authError, setAuthError] = useState<string | null>(null); // NEW
   const router = useRouter();
 
-  // Fetch user session
-  const fetchSession = async (token: string) => {
+  // Fetch user session using Supabase
+  const fetchSession = async (token?: string) => {
     try {
-      console.log('Fetching session with token:', token ? 'present' : 'missing');
+      console.log('Fetching session with Supabase...');
       
-      const response = await fetch('/api/auth/session', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      console.log('Session API response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('Session API error response:', errorData);
-        
-        // Handle specific status codes
-        if (response.status === 403) {
-          // User is archived, suspended, or pending
-          if (errorData.status === 'archived') {
-            // Redirect to waiting approval page
-            router.push('/auth/waiting-approval');
-            setAuthError(errorData.error || 'Account pending approval');
-            return null;
-          }
-          setAuthError(errorData.error || 'Account access denied');
-          return null;
-        }
-        
-        if (response.status === 401) {
-          console.log('401 error - clearing tokens and redirecting to login');
-          // Clear invalid token
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          if (typeof window !== 'undefined') {
-            delete window.__authToken;
-          }
-          setUser(null);
-          router.push('/login');
-          setAuthError('Your session has expired or is invalid. Please log in again.');
-          return null;
-        }
-        
-        setAuthError(errorData.error || 'Failed to fetch session');
+      const supabase = createSupabaseClient();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.log('Supabase session error:', error);
+        setAuthError(error.message);
         return null;
       }
-
-      const data = await response.json();
-      console.log('Session API success response:', data);
       
-      if (data.success && data.user) {
-        setUser(data.user);
-        setAuthError(null); // Clear any previous errors
-        return data.user;
+      if (!session) {
+        console.log('No active Supabase session');
+        setAuthError('No active session');
+        return null;
       }
-      return null;
+      
+      console.log('Supabase session found, user ID:', session.user.id);
+      
+      // Get user profile from our database
+      const { data: userProfile, error: profileError } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .single();
+      
+      if (profileError || !userProfile) {
+        console.log('User profile not found:', profileError);
+        setAuthError('User profile not found');
+        return null;
+      }
+      
+      if (!userProfile.is_active) {
+        console.log('User account not active');
+        setAuthError('Account is not active. Please contact support.');
+        return null;
+      }
+      
+      // Create user object
+      const user: User = {
+        id: userProfile.id,
+        email: session.user.email || '',
+        isAdmin: ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role),
+        firstName: userProfile.first_name || session.user.email?.split('@')[0] || 'User',
+        lastName: userProfile.last_name || '',
+        status: userProfile.is_active ? 'active' : 'inactive',
+        role: ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role) ? 'admin' : 'member',
+      };
+      
+      setUser(user);
+      setAuthError(null);
+      return user;
     } catch (error) {
       console.error('Session fetch error:', error);
-      setAuthError(
-        error instanceof Error && error.message.includes('expired')
-          ? 'Your session has expired. Please log in again.'
-          : 'An unexpected authentication error occurred. Please try again.'
-      );
+      setAuthError('An unexpected authentication error occurred. Please try again.');
       return null;
     }
   };
@@ -121,25 +113,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const user = await fetchSession(token);
-        if (!user) {
-          // Session was invalid, tokens already cleared in fetchSession
-          console.log('Session check failed - no user returned');
+        const supabase = createSupabaseClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          console.log('Found existing Supabase session, fetching user profile...');
+          await fetchSession(); // Token not needed for Supabase session
+        } else {
+          console.log('No existing Supabase session found');
+          setUser(null);
         }
       } catch (error) {
         console.error('Session check failed:', error);
-        // Fallback cleanup in case fetchSession didn't handle it
-        localStorage.removeItem('access_token');
-        if (typeof window !== 'undefined') {
-          delete window.__authToken;
-        }
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -151,9 +137,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Refresh the current session
   const refreshSession = async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return null;
-    return fetchSession(token);
+    await fetchSession();
   };
 
   const login = async (email: string, password: string) => {
@@ -225,40 +209,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      if (!data.session || !data.session.access_token) {
-        console.log('Session structure:', JSON.stringify(data.session, null, 2));
-        setLoginError(new Error('No access token received'));
-        return;
-      }
-
-      // 2. Store tokens
-      localStorage.setItem('access_token', data.session.access_token);
-      if (data.session.refresh_token) {
-        localStorage.setItem('refresh_token', data.session.refresh_token);
-      }
-      if (typeof window !== 'undefined') {
-        window.__authToken = data.session.access_token;
-      }
-
-      // Clean up any pending email
-      localStorage.removeItem('pending_email');
-      localStorage.removeItem('pending_approval_email');
-      localStorage.removeItem('account_status_email');
-
-      // 3. Set user data from response
+      // 2. Set user data from response
       if (!data.user) {
         setLoginError(new Error('Failed to load user profile'));
         return;
       }
       setUser(data.user);
       setLoginError(null); // Clear any previous errors
+      
+      // Clean up any pending email
+      localStorage.removeItem('pending_email');
+      localStorage.removeItem('pending_approval_email');
+      localStorage.removeItem('account_status_email');
+      
+      // 3. Redirect based on user role
+      if (data.user.isAdmin) {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/employee/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      if (typeof window !== 'undefined') {
-        delete window.__authToken;
-      }
       setUser(null);
       setLoginError(error instanceof Error ? error : new Error(String(error)));
     } finally {
@@ -268,27 +239,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        await fetch('/api/auth/logout', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include'
-        });
-      }
+      const supabase = createSupabaseClient();
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear all auth-related data regardless of API call success
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      if (typeof window !== 'undefined') {
-        delete window.__authToken;
-      }
-      
       // Clear user state immediately
       setUser(null);
       

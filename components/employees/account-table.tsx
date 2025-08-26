@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import type { Account } from "@/types/schema";
 
@@ -40,45 +40,42 @@ export default function AccountTable({ accounts, onEdit, onDelete }: AccountTabl
 
   if (accounts.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="rounded-xl border">
         <div className="p-8 text-center">
-          <div className="text-gray-400 mb-4">
-            <Eye className="w-12 h-12 mx-auto" />
+          <div className="text-muted-foreground mb-4">
+            <Users className="w-12 h-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No accounts found</h3>
-          <p className="text-gray-600">Get started by adding your first employee account.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">No accounts found</h3>
+          <p className="text-muted-foreground">Get started by adding your first employee account.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg" data-testid="account-table">
+    <div className="border rounded-lg" data-testid="account-table">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-100">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Person
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Account
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Role
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Last Login
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Created
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody className="bg-background divide-y divide-border">
             {accounts.map((account) => (
               <tr key={account.id} className="hover:bg-gray-50" data-testid={`account-row-${account.id}`}>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -94,22 +91,22 @@ export default function AccountTable({ accounts, onEdit, onDelete }: AccountTabl
                           {account.first_name} {account.last_name}
                         </div>
                       </Link>
-                      <div className="text-xs text-gray-500" data-testid={`text-account-email-${account.id}`}>
+                      <div className="text-xs text-muted-foreground" data-testid={`text-account-email-${account.id}`}>
                         {account.email}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {getRoleBadge(account.role)}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                  {account.role || 'Employee'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusBadge(account.is_active)}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                  {account.is_active ? 'Active' : 'Inactive'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   {account.last_login ? new Date(account.last_login).toLocaleDateString() : 'Never'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   {new Date(account.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

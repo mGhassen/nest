@@ -7,60 +7,49 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Load environment variables
-require('dotenv').config();
+// Supabase configuration
+const supabaseUrl = 'http://127.0.0.1:54421';
+const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nk0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing environment variables. Please check your .env file.');
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Test users to create
+const testUsers = [
+  {
+    email: 'admin@guepard.run',
+    password: 'admin123',
+    firstName: 'Ahmed',
+    lastName: 'Ben Ali'
+  },
+  {
+    email: 'hr@guepard.run',
+    password: 'hr123',
+    firstName: 'Fatma',
+    lastName: 'Trabelsi'
+  },
+  {
+    email: 'manager@guepard.run',
+    password: 'manager123',
+    firstName: 'Mohamed',
+    lastName: 'Karray'
+  },
+  {
+    email: 'employee@guepard.run',
+    password: 'employee123',
+    firstName: 'Sara',
+    lastName: 'Mansouri'
+  }
+];
 
 async function createTestUsers() {
-  try {
-    console.log('Creating test users...');
-
-    // Test user credentials
-    const testUsers = [
-      {
-        email: 'admin@guepard.run',
-        password: 'admin123',
-        firstName: 'Ahmed',
-        lastName: 'Ben Ali',
-        role: 'OWNER'
-      },
-      {
-        email: 'hr@guepard.run',
-        password: 'hr123',
-        firstName: 'Fatma',
-        lastName: 'Trabelsi',
-        role: 'HR'
-      },
-      {
-        email: 'manager@guepard.run',
-        password: 'manager123',
-        firstName: 'Mohamed',
-        lastName: 'Karray',
-        role: 'MANAGER'
-      },
-      {
-        email: 'employee@guepard.run',
-        password: 'employee123',
-        firstName: 'Sara',
-        lastName: 'Mansouri',
-        role: 'EMPLOYEE'
-      }
-    ];
-
-    for (const user of testUsers) {
+  console.log('Creating test users in Supabase auth...');
+  
+  for (const user of testUsers) {
+    try {
       console.log(`Creating user: ${user.email}`);
       
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create user in Supabase auth
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: user.email,
         password: user.password,
         email_confirm: true,
@@ -69,39 +58,36 @@ async function createTestUsers() {
           last_name: user.lastName
         }
       });
-
+      
       if (authError) {
-        console.error(`Error creating auth user for ${user.email}:`, authError);
+        console.error(`Error creating auth user ${user.email}:`, authError.message);
         continue;
       }
-
-      console.log(`Auth user created: ${authData.user.id}`);
-
-      // Update the accounts table with the auth_user_id
+      
+      console.log(`✅ Created auth user: ${user.email} (ID: ${authUser.user.id})`);
+      
+      // Update the accounts table to link the auth_user_id
       const { error: updateError } = await supabase
         .from('accounts')
-        .update({ 
-          auth_user_id: authData.user.id,
-          is_active: true
-        })
+        .update({ auth_user_id: authUser.user.id })
         .eq('email', user.email);
-
+      
       if (updateError) {
-        console.error(`Error updating account for ${user.email}:`, updateError);
+        console.error(`Error updating account ${user.email}:`, updateError.message);
       } else {
-        console.log(`Account updated for ${user.email}`);
+        console.log(`✅ Linked account ${user.email} to auth user`);
       }
+      
+    } catch (error) {
+      console.error(`Error processing user ${user.email}:`, error.message);
     }
-
-    console.log('Test users setup complete!');
-    console.log('\nYou can now login with:');
-    testUsers.forEach(user => {
-      console.log(`${user.email} / ${user.password}`);
-    });
-
-  } catch (error) {
-    console.error('Error creating test users:', error);
   }
+  
+  console.log('\n🎉 Test users creation completed!');
+  console.log('\nYou can now login with these credentials:');
+  testUsers.forEach(user => {
+    console.log(`${user.email} / ${user.password}`);
+  });
 }
 
-createTestUsers();
+createTestUsers().catch(console.error);

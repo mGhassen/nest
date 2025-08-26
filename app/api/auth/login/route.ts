@@ -3,7 +3,10 @@ import { supabaseServer } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('Login API called with:', { email: req.body ? 'body present' : 'no body' });
+    
     const { email, password } = await req.json();
+    console.log('Parsed credentials:', { email: email ? 'present' : 'missing', password: password ? 'present' : 'missing' });
 
     if (!email || !password) {
       return NextResponse.json({
@@ -13,9 +16,15 @@ export async function POST(req: NextRequest) {
     }
 
     // First attempt authentication with Supabase
+    console.log('Attempting Supabase authentication...');
     const { data: { session, user }, error } = await supabaseServer().auth.signInWithPassword({
       email,
       password,
+    });
+    console.log('Supabase auth result:', { 
+      hasSession: !!session, 
+      hasUser: !!user, 
+      error: error?.message || 'none' 
     });
 
     if (error || !session || !user) {
@@ -40,26 +49,8 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // Check user status after successful authentication
-    if (userProfile.status === 'archived') {
-      return NextResponse.json({
-        success: false,
-        error: 'Account is pending admin approval. Please wait for approval before logging in.',
-      }, { status: 403 });
-    }
-    if (userProfile.status === 'pending') {
-      return NextResponse.json({
-        success: false,
-        error: 'Account is pending invitation acceptance. Please check your email and accept the invitation.',
-      }, { status: 403 });
-    }
-    if (userProfile.status === 'suspended') {
-      return NextResponse.json({
-        success: false,
-        error: 'Account has been suspended. Please contact support.',
-      }, { status: 403 });
-    }
-    if (userProfile.status !== 'active') {
+    // Check if account is active
+    if (!userProfile.is_active) {
       return NextResponse.json({
         success: false,
         error: 'Account is not active. Please contact support.',
@@ -83,7 +74,7 @@ export async function POST(req: NextRequest) {
         firstName: userProfile.first_name || user.email?.split('@')[0] || 'User',
         lastName: userProfile.last_name || '',
         status: userProfile.is_active ? 'active' : 'inactive',
-        role: userProfile.role === 'EMPLOYEE' ? 'member' : 'admin',
+        role: ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role) ? 'admin' : 'member',
       },
     });
   } catch (error: any) {

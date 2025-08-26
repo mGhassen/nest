@@ -102,7 +102,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
-            Welcome to WildEnergy
+            Welcome to Nest
           </CardTitle>
           <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
@@ -220,7 +220,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      setEmail("admin@wildenergy.gym");
+                      setEmail("admin@guepard.run");
                       setPassword("admin");
                     }}
                     className="text-xs"
@@ -231,12 +231,12 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      setEmail("member@wildenergy.gym");
+                      setEmail("employee@guepard.run");
                       setPassword("member");
                     }}
                     className="text-xs"
                   >
-                    Member Login
+                    Employee Login
                   </Button>
                 </div>
               </div>

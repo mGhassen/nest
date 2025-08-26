@@ -1,76 +1,76 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Code, TrendingUp, Palette } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
-const departments = [
-  {
-    id: 'engineering',
-    name: 'Engineering',
-    employees: 42,
-    completion: 95,
-    icon: Code,
-    iconBg: 'bg-blue-500'
-  },
-  {
-    id: 'marketing',
-    name: 'Marketing',
-    employees: 18,
-    completion: 87,
-    icon: TrendingUp,
-    iconBg: 'bg-green-500'
-  },
-  {
-    id: 'design',
-    name: 'Design',
-    employees: 12,
-    completion: 92,
-    icon: Palette,
-    iconBg: 'bg-purple-500'
-  }
-];
+interface Department {
+  id: string;
+  name: string;
+  employeeCount: number;
+  completionRate: number;
+}
 
-export default function TeamOverview() {
+interface TeamOverviewProps {
+  departments?: Department[];
+}
+
+export default function TeamOverview({ departments }: TeamOverviewProps) {
+  const defaultDepartments: Department[] = [
+    {
+      id: "1",
+      name: "Engineering",
+      employeeCount: 12,
+      completionRate: 85,
+    },
+    {
+      id: "2",
+      name: "Sales",
+      employeeCount: 8,
+      completionRate: 92,
+    },
+    {
+      id: "3",
+      name: "Marketing",
+      employeeCount: 6,
+      completionRate: 78,
+    },
+    {
+      id: "4",
+      name: "HR",
+      employeeCount: 4,
+      completionRate: 95,
+    },
+  ];
+
+  const data = departments || defaultDepartments;
+
   return (
-    <Card className="bg-white rounded-xl border border-gray-200" data-testid="team-overview-card">
-      <CardHeader className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-gray-900" data-testid="text-team-overview-title">
-            Team Overview
-          </CardTitle>
-          <Button variant="ghost" className="text-primary text-sm font-medium hover:text-blue-700" data-testid="button-manage-teams">
-            Manage
-          </Button>
-        </div>
+    <Card className="rounded-xl border" data-testid="team-overview-card">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold text-foreground" data-testid="text-team-overview-title">
+          Team Overview
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          {departments.map((dept) => {
-            const Icon = dept.icon;
-            return (
-              <div key={dept.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-testid={`department-${dept.id}`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 ${dept.iconBg} rounded-lg flex items-center justify-center`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900" data-testid={`text-dept-name-${dept.id}`}>
-                      {dept.name}
-                    </p>
-                    <p className="text-sm text-gray-600" data-testid={`text-dept-employees-${dept.id}`}>
-                      {dept.employees} employees
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900" data-testid={`text-dept-completion-${dept.id}`}>
-                    {dept.completion}%
-                  </p>
-                  <p className="text-xs text-gray-500">Timesheet completion</p>
-                </div>
+      <CardContent className="space-y-6">
+        {data.map((dept) => (
+          <div key={dept.id} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-foreground" data-testid={`text-dept-name-${dept.id}`}>
+                  {dept.name}
+                </p>
+                <p className="text-sm text-muted-foreground" data-testid={`text-dept-employees-${dept.id}`}>
+                  {dept.employeeCount} employees
+                </p>
               </div>
-            );
-          })}
-        </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-foreground" data-testid={`text-dept-completion-${dept.id}`}>
+                  {dept.completionRate}%
+                </p>
+                <p className="text-xs text-muted-foreground">Timesheet completion</p>
+              </div>
+            </div>
+            <Progress value={dept.completionRate} className="h-2" />
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

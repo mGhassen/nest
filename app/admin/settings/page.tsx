@@ -1,10 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import ProtectedRoute from "@/components/auth/protected-route"
 import AdminLayout from "@/components/layout/admin-layout"
 import { Button } from "@/components/ui/button"
 
 export default function SettingsPage() {
+  const [companyName, setCompanyName] = useState("Nest HR Solutions")
+  const [industry, setIndustry] = useState("Technology")
 
   return (
     <ProtectedRoute requireAdmin>
@@ -26,23 +29,27 @@ export default function SettingsPage() {
                 <div className="mt-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Company Name
                       </label>
                       <input
                         type="text"
-                        defaultValue="Nest HR Solutions"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Enter company name"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Industry
                       </label>
                       <input
                         type="text"
-                        defaultValue="Technology"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={industry}
+                        onChange={(e) => setIndustry(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Enter industry"
                       />
                     </div>
                   </div>

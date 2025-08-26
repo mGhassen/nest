@@ -39,7 +39,7 @@ export default function StatsCard({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-background rounded-xl border p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
@@ -55,7 +55,7 @@ export default function StatsCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-background rounded-xl border p-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
