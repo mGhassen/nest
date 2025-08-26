@@ -1,5 +1,6 @@
--- Initial schema migration for HR System
--- This migration creates all the necessary tables for the HR system
+-- Complete HR System Database Schema
+-- This migration creates all necessary tables with improved structure and Supabase auth integration
+-- Includes both local development and production-ready configurations
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -60,21 +61,31 @@ CREATE TABLE work_schedules (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create users table (linked to Supabase auth)
-CREATE TABLE users (
-    id UUID PRIMARY KEY,
+-- Create accounts table (linked to Supabase auth)
+-- This table has both a local UUID for development and a reference to Supabase auth users
+CREATE TABLE accounts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     profile_image_url TEXT,
+    role user_role DEFAULT 'EMPLOYEE',
+    is_active BOOLEAN DEFAULT true,
+    last_login TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add comment explaining the dual-column approach
+COMMENT ON TABLE accounts IS 'User accounts table with dual ID approach: id (local UUID) and auth_user_id (Supabase auth reference)';
+COMMENT ON COLUMN accounts.id IS 'Local primary key for development and internal references';
+COMMENT ON COLUMN accounts.auth_user_id IS 'Reference to Supabase auth.users(id) for production authentication';
+
 -- Create memberships table (User-Company relationships with roles)
 CREATE TABLE memberships (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     role user_role NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -86,7 +97,7 @@ CREATE TABLE memberships (
 CREATE TABLE employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -173,25 +184,13 @@ CREATE TABLE leave_requests (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create profiles table (for Supabase auth integration)
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    username VARCHAR(255),
-    full_name VARCHAR(255),
-    avatar_url TEXT,
-    website TEXT,
-    role VARCHAR(20) DEFAULT 'employee',
-    email VARCHAR(255)
-);
-
 -- Create audit_logs table for system auditing
 CREATE TABLE audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     entity_type VARCHAR(50) NOT NULL,
     entity_id UUID,
     action VARCHAR(50) NOT NULL,
-    actor_id UUID REFERENCES users(id),
+    actor_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
     actor_email VARCHAR(255),
     old_values JSONB,
     new_values JSONB,
@@ -202,15 +201,25 @@ CREATE TABLE audit_logs (
 );
 
 -- Create indexes for better performance
+CREATE INDEX idx_companies_name ON companies(name);
+CREATE INDEX idx_locations_company_id ON locations(company_id);
+CREATE INDEX idx_cost_centers_company_id ON cost_centers(company_id);
+CREATE INDEX idx_work_schedules_company_id ON work_schedules(company_id);
+CREATE INDEX idx_accounts_email ON accounts(email);
+CREATE INDEX idx_accounts_role ON accounts(role);
+CREATE INDEX idx_accounts_is_active ON accounts(is_active);
+CREATE INDEX idx_memberships_user_id ON memberships(user_id);
+CREATE INDEX idx_memberships_company_id ON memberships(company_id);
 CREATE INDEX idx_employees_company_id ON employees(company_id);
 CREATE INDEX idx_employees_user_id ON employees(user_id);
 CREATE INDEX idx_employees_manager_id ON employees(manager_id);
+CREATE INDEX idx_leave_policies_company_id ON leave_policies(company_id);
+CREATE INDEX idx_payroll_cycles_company_id ON payroll_cycles(company_id);
 CREATE INDEX idx_timesheets_employee_id ON timesheets(employee_id);
 CREATE INDEX idx_timesheets_week_start ON timesheets(week_start);
+CREATE INDEX idx_timesheet_entries_timesheet_id ON timesheet_entries(timesheet_id);
 CREATE INDEX idx_leave_requests_employee_id ON leave_requests(employee_id);
 CREATE INDEX idx_leave_requests_status ON leave_requests(status);
-CREATE INDEX idx_memberships_user_id ON memberships(user_id);
-CREATE INDEX idx_memberships_company_id ON memberships(company_id);
 CREATE INDEX idx_audit_logs_entity_type ON audit_logs(entity_type);
 CREATE INDEX idx_audit_logs_entity_id ON audit_logs(entity_id);
 CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_id);
@@ -230,7 +239,7 @@ CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies FOR EACH R
 CREATE TRIGGER update_locations_updated_at BEFORE UPDATE ON locations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_cost_centers_updated_at BEFORE UPDATE ON cost_centers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_work_schedules_updated_at BEFORE UPDATE ON work_schedules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_memberships_updated_at BEFORE UPDATE ON memberships FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON employees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_leave_policies_updated_at BEFORE UPDATE ON leave_policies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -238,14 +247,13 @@ CREATE TRIGGER update_payroll_cycles_updated_at BEFORE UPDATE ON payroll_cycles 
 CREATE TRIGGER update_timesheets_updated_at BEFORE UPDATE ON timesheets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_timesheet_entries_updated_at BEFORE UPDATE ON timesheet_entries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_leave_requests_updated_at BEFORE UPDATE ON leave_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cost_centers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_policies ENABLE ROW LEVEL SECURITY;
@@ -253,5 +261,115 @@ ALTER TABLE payroll_cycles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE timesheets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE timesheet_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for accounts table
+-- These policies work with both local development and production environments
+CREATE POLICY "Users can view their own account" ON accounts
+    FOR SELECT USING (
+        auth.uid() = auth_user_id OR 
+        (auth_user_id IS NULL AND auth.uid()::text = id::text)
+    );
+
+CREATE POLICY "Users can update their own account" ON accounts
+    FOR UPDATE USING (
+        auth.uid() = auth_user_id OR 
+        (auth_user_id IS NULL AND auth.uid()::text = id::text)
+    );
+
+CREATE POLICY "HR and managers can view all accounts" ON accounts
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM memberships m 
+            WHERE (m.user_id = auth.uid() OR m.user_id::text = auth.uid()::text)
+            AND m.role IN ('HR', 'MANAGER', 'OWNER')
+        )
+    );
+
+-- Create a function to automatically create an account when a user signs up
+-- This function works in both local development and production environments
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if auth.users table exists (for local development compatibility)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users') THEN
+        -- Check if account already exists for this user (by email or auth_user_id)
+        IF NOT EXISTS (
+            SELECT 1 FROM public.accounts 
+            WHERE auth_user_id = NEW.id OR email = NEW.email
+        ) THEN
+            INSERT INTO public.accounts (id, auth_user_id, email, first_name, last_name)
+            VALUES (
+                uuid_generate_v4(), -- Generate local UUID
+                NEW.id, -- Reference to Supabase auth user
+                NEW.email,
+                COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+                COALESCE(NEW.raw_user_meta_data->>'last_name', '')
+            );
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to automatically create account on user signup
+-- Note: This trigger will only fire in production where auth.users table exists
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT ALL ON public.companies TO authenticated;
+GRANT ALL ON public.locations TO authenticated;
+GRANT ALL ON public.cost_centers TO authenticated;
+GRANT ALL ON public.work_schedules TO authenticated;
+GRANT ALL ON public.accounts TO authenticated;
+GRANT ALL ON public.memberships TO authenticated;
+GRANT ALL ON public.employees TO authenticated;
+GRANT ALL ON public.leave_policies TO authenticated;
+GRANT ALL ON public.payroll_cycles TO authenticated;
+GRANT ALL ON public.timesheets TO authenticated;
+GRANT ALL ON public.timesheet_entries TO authenticated;
+GRANT ALL ON public.leave_requests TO authenticated;
+GRANT ALL ON public.audit_logs TO authenticated;
+
+-- Grant sequence permissions
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- Production-ready foreign key constraint (optional)
+-- This section adds production constraints when auth.users table exists
+-- For local development, these constraints are not enforced
+
+-- Function to safely add production constraints
+CREATE OR REPLACE FUNCTION add_production_constraints()
+RETURNS void AS $$
+BEGIN
+    -- Only add constraints if auth.users table exists (production environment)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users') THEN
+        -- The foreign key constraint is already added in the table creation
+        -- auth_user_id column references auth.users(id) ON DELETE CASCADE
+        RAISE NOTICE 'Production constraints already in place - auth_user_id references auth.users(id)';
+        
+        -- Create index on auth_user_id for better performance in production
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_indexes 
+            WHERE indexname = 'idx_accounts_auth_user_id'
+        ) THEN
+            CREATE INDEX idx_accounts_auth_user_id ON accounts(auth_user_id);
+            RAISE NOTICE 'Production index on auth_user_id created successfully';
+        ELSE
+            RAISE NOTICE 'Production index on auth_user_id already exists';
+        END IF;
+    ELSE
+        RAISE NOTICE 'Skipping production constraints - auth.users table not found (local development)';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Automatically attempt to add production constraints
+-- This will succeed in production and gracefully skip in local development
+SELECT add_production_constraints();
+
+-- Clean up the helper function
+DROP FUNCTION add_production_constraints();

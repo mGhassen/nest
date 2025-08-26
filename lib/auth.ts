@@ -34,7 +34,7 @@ export const getSession = async () => {
 
 export const checkUserRole = async (userId: string, requiredRole: string) => {
   const { data: userData, error } = await supabase
-    .from('profiles')
+    .from('accounts')
     .select('role')
     .eq('id', userId)
     .single();

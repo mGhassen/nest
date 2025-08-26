@@ -27,7 +27,7 @@ export async function requireAuth(request: NextRequest) {
   
   // Get the user's profile to get their role and company
   const { data: profile, error } = await supabase
-    .from('profiles')
+    .from('accounts')
     .select('role, company_id')
     .eq('id', session.user.id)
     .single()

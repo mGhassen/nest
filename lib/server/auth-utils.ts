@@ -22,7 +22,7 @@ export const requireServerAuth = async (requiredRole?: string) => {
 
   if (requiredRole) {
     const { data: userData } = await supabase
-      .from('profiles')
+      .from('accounts')
       .select('role')
       .eq('id', session.user.id)
       .single();

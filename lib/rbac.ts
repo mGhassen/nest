@@ -1,7 +1,7 @@
 import { supabase } from './auth'
 import type { Database, UserRole } from '@/types/database.types'
 
-type Profile = Database['public']['Tables']['profiles']['Row']
+type Account = Database['public']['Tables']['accounts']['Row']
 export type Action = 'read' | 'write' | 'delete' | 'approve' | 'admin'
 export type Entity = 'employee' | 'timesheet' | 'leave' | 'payroll' | 'company' | 'settings' | 'audit'
 
@@ -61,7 +61,7 @@ const permissions: Record<UserRole, Record<Entity, Action[]>> = {
 export async function getUserWithRole(userId: string): Promise<UserWithRole | null> {
   try {
     const { data: profile, error } = await supabase
-      .from('profiles')
+      .from('accounts')
       .select('*')
       .eq('id', userId)
       .single()

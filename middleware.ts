@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
     // Check role-based access for admin paths
     if (adminPaths.some(path => pathname.startsWith(path))) {
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('accounts')
         .select('role')
         .eq('id', session.user.id)
         .single()

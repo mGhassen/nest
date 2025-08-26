@@ -141,31 +141,43 @@ export interface Database {
         }
       }
       
-      users: {
+      accounts: {
         Row: {
           id: string
+          auth_user_id: string | null
           email: string
           first_name: string
           last_name: string
           profile_image_url: string | null
+          role: UserRole
+          is_active: boolean
+          last_login: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
-          id: string
+          id?: string
+          auth_user_id?: string | null
           email: string
           first_name: string
           last_name: string
           profile_image_url?: string | null
+          role?: UserRole
+          is_active?: boolean
+          last_login?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
+          auth_user_id?: string | null
           email?: string
           first_name?: string
           last_name?: string
           profile_image_url?: string | null
+          role?: UserRole
+          is_active?: boolean
+          last_login?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -441,39 +453,6 @@ export interface Database {
         }
       }
       
-      profiles: {
-        Row: {
-          id: string
-          updated_at: string | null
-          username: string | null
-          full_name: string | null
-          avatar_url: string | null
-          website: string | null
-          role: string
-          email: string | null
-        }
-        Insert: {
-          id: string
-          updated_at?: string | null
-          username?: string | null
-          full_name?: string | null
-          avatar_url?: string | null
-          website?: string | null
-          role?: string
-          email?: string | null
-        }
-        Update: {
-          id?: string
-          updated_at?: string | null
-          username?: string | null
-          full_name?: string | null
-          avatar_url?: string | null
-          website?: string | null
-          role?: string
-          email?: string | null
-        }
-      }
-      
       audit_logs: {
         Row: {
           id: string
@@ -509,7 +488,6 @@ export interface Database {
           entity_id?: string | null
           action?: string
           actor_id?: string | null
-          actor_email?: string | null
           old_values?: Json | null
           new_values?: Json | null
           metadata?: Json | null

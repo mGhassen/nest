@@ -22,12 +22,12 @@ export async function GET(request: NextRequest) {
     
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('accounts')
       .select('role')
       .eq('id', session.user.id)
       .single()
       
-    if (profile?.role !== 'admin') {
+    if (profile?.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -69,12 +69,12 @@ export async function PUT(request: NextRequest) {
     
     // Check if user is admin
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('accounts')
       .select('role')
       .eq('id', session.user.id)
       .single()
       
-    if (profile?.role !== 'admin') {
+    if (profile?.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (user.role !== 'OWNER') {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
