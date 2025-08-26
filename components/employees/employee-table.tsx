@@ -2,24 +2,44 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
-import type { Employee } from "@/lib/db/schema";
+import type { Employee } from "@/types/schema";
 
 interface EmployeeTableProps {
   employees: Employee[];
-  onEdit: (employee: Employee) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (employee: Employee) => void;
+  onDelete?: (id: string) => void;
 }
 
 export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeTableProps) {
-  const getInitials = (firstName: string, lastName: string) => {
+  // Default handlers if not provided
+  const handleEdit = onEdit || ((employee: Employee) => {
+    window.location.href = `/admin/employees/${employee.id}`;
+  });
+  
+  const handleDelete = onDelete || ((id: string) => {
+    if (confirm('Are you sure you want to delete this employee?')) {
+      // Default delete behavior - could be enhanced later
+      console.log('Delete employee:', id);
+    }
+  });
+  const getInitials = (firstName: string | null, lastName: string | null) => {
+    if (!firstName || !lastName) return '??';
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const getStatusBadge = (terminationDate: string | null) => {
-    if (terminationDate) {
-      return <Badge variant="secondary">Inactive</Badge>;
-    }
-    return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+  const getStatusBadge = (status: string) => {
+    const statusColors = {
+      'ACTIVE': 'bg-green-100 text-green-800',
+      'INACTIVE': 'bg-gray-100 text-gray-800',
+      'TERMINATED': 'bg-red-100 text-red-800',
+      'ON_LEAVE': 'bg-yellow-100 text-yellow-800'
+    };
+    
+    return (
+      <Badge className={statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}>
+        {status}
+      </Badge>
+    );
   };
 
   const formatSalary = (baseSalary: string | null, salaryPeriod: string | null) => {
@@ -62,10 +82,13 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                 Worker status
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Start date
+                Hire Date
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                 Worker ID
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Actions
               </th>
             </tr>
           </thead>
@@ -76,13 +99,13 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <span className="text-blue-600 font-medium text-sm" data-testid={`text-employee-initials-${employee.id}`}>
-                        {getInitials(employee.firstName, employee.lastName)}
+                        {getInitials(employee.first_name, employee.last_name)}
                       </span>
                     </div>
                     <div className="ml-3">
                       <Link href={`/employees/${employee.id}`} className="hover:underline">
                         <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
-                          {employee.firstName} {employee.lastName}
+                          {employee.first_name} {employee.last_name}
                         </div>
                       </Link>
                       <div className="text-xs text-gray-500" data-testid={`text-employee-email-${employee.id}`}>
@@ -92,29 +115,49 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`text-employee-position-${employee.id}`}>
-                  <div className="text-sm text-gray-900">{employee.positionTitle || 'Engineering'}</div>
+                  <div className="text-sm text-gray-900">{employee.position_title || 'Engineering'}</div>
                   <div className="text-xs text-gray-500">Wayne Enterprise Global</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-testid={`text-employee-type-${employee.id}`}>
-                  {employee.employmentType || 'Contractor'}
+                  {employee.employment_type || 'Contractor'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`badge-employee-status-${employee.id}`}>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                    <span className="text-sm text-gray-900">ONBOARDING</span>
-                  </div>
+                  {getStatusBadge(employee.status)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap" data-testid={`text-employee-salary-${employee.id}`}>
+                <td className="px-6 py-4 whitespace-nowrap" data-testid={`text-employee-hire-date-${employee.id}`}>
                   <div className="text-sm text-gray-900">
-                    {employee.createdAt ? new Date(employee.createdAt).toLocaleDateString('en-US', { 
+                    {employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric', 
                       year: 'numeric' 
-                    }) : 'Jul 28th, 2024'}
+                    }) : 'Not set'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {employee.id?.slice(0, 3).toUpperCase() || 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div className="flex items-center space-x-2">
+                    <Link href={`/admin/employees/${employee.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit(employee)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDelete(employee.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -1,14 +1,14 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/lib/auth/auth-context'
+import { useAuth } from '@/hooks/use-auth'
 
 export function SignOutButton() {
-  const { signOut } = useAuth()
+  const { logout } = useAuth()
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      await logout()
     } catch (error) {
       console.error('Error signing out:', error)
     }

@@ -3,7 +3,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import type { Database } from '@/types/database.types'
-import { getUserWithRole } from '@/lib/rbac'
+// import { getUserWithRole } from '@/lib/rbac'
 
 const updateCompanySchema = z.object({
   name: z.string().min(1).optional(),
@@ -78,15 +78,15 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    // const user = await getUserWithRole(session.user.id)
+    // if (!user) {
+    //   return NextResponse.json({ error: "User not found" }, { status: 404 })
+    // }
 
-    // Check if user is admin
-    if (user.role !== 'OWNER') {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    // // Check if user is admin
+    // if (user.role !== 'OWNER') {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    // }
 
     const body = await request.json()
     const validatedData = updateCompanySchema.parse(body)

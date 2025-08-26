@@ -1,27 +1,27 @@
 "use client"
 
-import { useAuth } from "@/lib/auth/auth-context"
-import { useEffect, useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
+import { useEffect } from "react"
 import { redirect } from "next/navigation"
 
 export default function HomePage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isAuthenticated } = useAuth()
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      redirect("/auth/signin")
+    if (!isLoading && !isAuthenticated) {
+      redirect("/auth/login")
       return
     }
 
     if (user && !isLoading) {
       // Redirect based on role
-      if (["OWNER", "HR", "MANAGER"].includes(user.role)) {
+      if (user.isAdmin) {
         redirect("/admin/dashboard")
-      } else if (["EMPLOYEE"].includes(user.role)) {
+      } else {
         redirect("/employee/dashboard")
       }
     }
-  }, [user, isLoading])
+  }, [user, isLoading, isAuthenticated])
 
   if (isLoading) {
     return (

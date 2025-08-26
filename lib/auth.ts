@@ -1,85 +1,52 @@
-import { createClient } from '@supabase/supabase-js';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Database } from '@/types/database.types';
+export function getInitials(firstName?: string, lastName?: string): string {
+  const first = firstName?.charAt(0) || '';
+  const last = lastName?.charAt(0) || '';
+  return (first + last).toUpperCase() || '?';
+}
 
-// Server-side Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+export function formatPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  if (match) {
+    return `(${match[1]}) ${match[2]}-${match[3]}`;
   }
-});
+  return phone;
+}
 
-// Client-side Supabase client
-export const createClientSupabase = () => createClientComponentClient<Database>();
-
-// Auth utility functions
-export const isUnauthorizedError = (error: any): boolean => {
-  return error?.status === 401 || error?.code === 'UNAUTHORIZED';
-};
-
-export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-};
-
-export const getSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-};
-
-export const checkUserRole = async (userId: string, requiredRole: string) => {
-  const { data: userData, error } = await supabase
-    .from('accounts')
-    .select('role')
-    .eq('auth_user_id', userId)
-    .single();
-
-  if (error || !userData) return false;
-  return userData.role === requiredRole;
-};
-
-export const requireAuth = async (requiredRole?: string) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session?.user) {
-    return { user: null, redirect: '/auth/signin' };
-  }
-
-  if (requiredRole) {
-    const hasRole = await checkUserRole(session.user.id, requiredRole);
-    if (!hasRole) {
-      return { user: null, redirect: '/unauthorized' };
-    }
-  }
-
-  return { user: session.user, redirect: null };
-};
-
-// Auth actions
-export const signInWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+export function formatDate(date: string | undefined | Date): string {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   });
-  return { data, error };
-};
+}
 
-export const signOut = async () => {
-  await supabase.auth.signOut();
-};
-
-export const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`,
-    },
+export function formatDateTime(date: string | undefined | Date): string {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  const dateStr = d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   });
-  return { data, error };
-};
+  const timeStr = d.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return `${dateStr} ${timeStr}`;
+}
+
+export function getDayName(dayOfWeek: number): string {
+  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  return days[dayOfWeek] || '';
+}
+
+export function formatTime(time: string | undefined): string {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':');
+  return `${hours}:${minutes}`;
+}

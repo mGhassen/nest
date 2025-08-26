@@ -1,34 +1,14 @@
 "use client"
 
-import { useAuth } from "@/lib/auth/auth-context"
-import { useEffect } from "react"
-import { redirect } from "next/navigation"
+import ProtectedRoute from "@/components/auth/protected-route"
 import MainLayout from "@/components/layout/main-layout"
 
 export default function LeaveCalendarPage() {
-  const { user, isLoading } = useAuth()
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      redirect("/auth/signin")
-    }
-  }, [user, isLoading])
-
-  if (isLoading || !user) {
-    return (
-      <MainLayout>
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading...</div>
-          </div>
-        </div>
-      </MainLayout>
-    )
-  }
 
   return (
-    <MainLayout>
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <ProtectedRoute requireEmployee>
+      <MainLayout>
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Leave Calendar</h2>
         </div>
@@ -52,6 +32,7 @@ export default function LeaveCalendarPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+      </MainLayout>
+    </ProtectedRoute>
   )
 }

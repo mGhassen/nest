@@ -13,7 +13,7 @@ import {
   Building,
   X
 } from "lucide-react";
-import { useAuth } from "@/lib/auth/auth-context";
+import { useAuth } from "@/hooks/use-auth";
 
 const menuItems = [
   {

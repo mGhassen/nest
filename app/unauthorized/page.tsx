@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/lib/auth/auth-context"
+import { useAuth } from "@/hooks/use-auth"
 import { useEffect } from "react"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
