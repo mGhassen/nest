@@ -1,54 +1,39 @@
 "use client"
 
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
-import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/auth/auth-context"
+import { useEffect } from "react"
 import { redirect } from "next/navigation"
-import MainLayout from "@/components/layout/main-layout"
-import { getUserWithRole } from "@/lib/rbac"
+import AdminLayout from "@/components/layout/admin-layout"
+import { Button } from "@/components/ui/button"
 
 export default function PayrollPage() {
-  const { data: session, status } = useSession()
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, isLoading } = useAuth()
 
   useEffect(() => {
-    if (session?.user?.id) {
-      getUserWithRole(session.user.id).then((user) => {
-        if (user) {
-          setUserRole(user.role)
-        }
-        setLoading(false)
-      })
-    } else if (status === "unauthenticated") {
+    if (!isLoading && !user) {
       redirect("/auth/signin")
     }
-  }, [session, status])
+    
+    // Redirect non-admins to appropriate portal
+    if (!isLoading && user && !["OWNER", "HR", "MANAGER"].includes(user.role)) {
+      redirect("/employee/dashboard")
+    }
+  }, [user, isLoading])
 
-  if (loading) {
+  if (isLoading || !user) {
     return (
-      <MainLayout>
+      <AdminLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-center h-64">
             <div className="text-lg">Loading...</div>
           </div>
         </div>
-      </MainLayout>
+      </AdminLayout>
     )
   }
 
-  // Redirect non-admins to appropriate portal
-  if (userRole && !["OWNER", "ADMIN", "HR"].includes(userRole)) {
-    if (userRole === "MANAGER") {
-      redirect("/manager/dashboard")
-    } else if (userRole === "EMPLOYEE") {
-      redirect("/employee/dashboard")
-    } else {
-      redirect("/shared/dashboard")
-    }
-  }
-
   return (
-    <MainLayout>
+    <AdminLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Payroll</h2>
@@ -61,17 +46,35 @@ export default function PayrollPage() {
                 <p className="text-muted-foreground mt-2">
                   Process payroll cycles, generate payslips, and manage compensation.
                 </p>
-                {/* TODO: Add payroll management component */}
-                <div className="mt-4 p-4 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Payroll management component will be implemented here.
-                  </p>
+                
+                {/* Payroll Cycles */}
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-md font-medium">Current Payroll Cycle</h4>
+                    <Button size="sm">Process Payroll</Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="text-sm text-blue-600 font-medium">Active Employees</div>
+                      <div className="text-2xl font-bold text-blue-900">24</div>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="text-sm text-green-600 font-medium">Total Payroll</div>
+                      <div className="text-2xl font-bold text-green-900">€45,200</div>
+                    </div>
+                    <div className="bg-amber-50 p-4 rounded-lg">
+                      <div className="text-sm text-amber-600 font-medium">Status</div>
+                      <div className="text-2xl font-bold text-amber-900">Ready</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </MainLayout>
+    </AdminLayout>
   )
 }
+

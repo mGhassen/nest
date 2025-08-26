@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { useAuth } from "@/hooks/useSupabaseAuth"
+import { useAuth } from "@/lib/auth/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,7 +23,7 @@ export default function SignIn() {
   const searchParams = useSearchParams()
   const { signIn, signInWithGoogle } = useAuth()
   
-  const redirectedFrom = searchParams.get('redirectedFrom') || '/dashboard'
+  const redirectedFrom = searchParams.get('redirectedFrom') || '/'
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +37,8 @@ export default function SignIn() {
 
     try {
       await signIn(email, password)
-      router.push(redirectedFrom)
+      // The redirect will be handled by the auth context after successful authentication
+      // No need to manually redirect here
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.')
     } finally {

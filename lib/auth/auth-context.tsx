@@ -21,8 +21,11 @@ type AuthContextType = {
   user: UserProfile | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  resetPassword: (params: { email?: string; token?: string; newPassword?: string }) => Promise<{ error: any }>;
+  verifyOtp: (params: { token: string; type: string }) => Promise<{ data: any; error: any }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session check:', session);
+        
         if (session?.user && mounted) {
           // Get user profile with role
           const { data: profile, error } = await supabase
@@ -47,6 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .select('*')
             .eq('auth_user_id', session.user.id)
             .single();
+
+          console.log('Profile lookup result:', { profile, error });
 
           if (profile && mounted) {
             setUser({
@@ -57,12 +64,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               last_name: profile.last_name || null,
               profile_image_url: profile.profile_image_url || null
             });
+            console.log('User set successfully:', profile);
+          } else if (error && mounted) {
+            console.error('Profile not found by auth_user_id, trying by email...');
+            // Try to find profile by email instead
+            const { data: profileByEmail, error: emailError } = await supabase
+              .from('accounts')
+              .select('*')
+              .eq('email', session.user.email)
+              .single();
+            
+            if (profileByEmail && mounted) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                role: profileByEmail.role || 'EMPLOYEE',
+                first_name: profileByEmail.first_name || null,
+                last_name: profileByEmail.last_name || null,
+                profile_image_url: profileByEmail.profile_image_url || null
+              });
+              console.log('User set successfully by email lookup:', profileByEmail);
+            } else {
+              console.error('Profile not found by email either:', emailError);
+              // Set user with basic info even if profile not found
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                role: 'EMPLOYEE',
+                first_name: null,
+                last_name: null,
+                profile_image_url: null
+              });
+            }
           }
+        } else if (mounted) {
+          console.log('No session found, setting user to null');
+          setUser(null);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
+        if (mounted) setUser(null);
       } finally {
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          console.log('Setting isLoading to false');
+          setIsLoading(false);
+        }
       }
     };
     
@@ -90,6 +136,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 last_name: profile.last_name || null,
                 profile_image_url: profile.profile_image_url || null
               });
+            } else if (mounted) {
+              // Try to find profile by email instead
+              const { data: profileByEmail, error: emailError } = await supabase
+                .from('accounts')
+                .select('*')
+                .eq('email', session.user.email)
+                .single();
+              
+              if (profileByEmail && mounted) {
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  role: profileByEmail.role || 'EMPLOYEE',
+                  first_name: profileByEmail.first_name || null,
+                  last_name: profileByEmail.last_name || null,
+                  profile_image_url: profileByEmail.profile_image_url || null
+                });
+              }
             }
           } else if (mounted) {
             setUser(null);
@@ -112,7 +176,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await signInWithEmail(email, password);
       if (error) throw error;
-      router.refresh();
+      
+      // Get the user's profile to determine redirect
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from('accounts')
+          .select('role')
+          .eq('auth_user_id', authUser.id)
+          .single();
+        
+        if (profile) {
+          // Redirect based on role
+          if (['OWNER', 'HR', 'MANAGER'].includes(profile.role)) {
+            router.push('/admin/dashboard');
+          } else {
+            router.push('/employee/dashboard');
+          }
+        } else {
+          // Try to find profile by email
+          const { data: profileByEmail } = await supabase
+            .from('accounts')
+            .select('role')
+            .eq('email', authUser.email)
+            .single();
+          
+          if (profileByEmail) {
+            if (['OWNER', 'HR', 'MANAGER'].includes(profileByEmail.role)) {
+              router.push('/admin/dashboard');
+            } else {
+              router.push('/employee/dashboard');
+            }
+          } else {
+            // Fallback redirect
+            router.push('/employee/dashboard');
+          }
+        }
+      }
     } catch (error) {
       console.error('Error signing in:', error);
       throw error;
@@ -131,6 +231,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSignInWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (params: { email?: string; token?: string; newPassword?: string }) => {
+    try {
+      if (params.token && params.newPassword) {
+        // Complete password reset
+        const { error } = await supabase.auth.updateUser({
+          password: params.newPassword,
+        });
+        return { error };
+      } else if (params.email) {
+        // Request password reset
+        const { error } = await supabase.auth.resetPasswordForEmail(params.email, {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        });
+        return { error };
+      }
+      return { error: { message: 'Invalid parameters' } };
+    } catch (error) {
+      console.error('Error in password reset:', error);
+      return { error };
+    }
+  };
+
+  const handleVerifyOtp = async (params: { token: string; type: string }) => {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: params.token,
+        type: params.type as any,
+      });
+      return { data, error };
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      return { data: null, error };
     }
   };
 
@@ -155,8 +308,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         signIn: handleSignIn,
+        signInWithGoogle: handleSignInWithGoogle,
         signOut: handleSignOut,
         signUp: handleSignUp,
+        resetPassword: handleResetPassword,
+        verifyOtp: handleVerifyOtp,
       }}
     >
       {children}

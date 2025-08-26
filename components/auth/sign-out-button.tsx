@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/useSupabaseAuth'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export function SignOutButton() {
   const { signOut } = useAuth()

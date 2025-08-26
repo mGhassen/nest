@@ -55,9 +55,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
     
-    // If user is signed in and trying to access an auth page, redirect to dashboard
+    // If user is signed in and trying to access an auth page, redirect to home
     if (pathname.startsWith('/auth/')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+    
+    // Redirect root path to home page for authenticated users
+    if (pathname === '/') {
+      return NextResponse.next()
     }
     
     // Check role-based access for admin paths
@@ -65,10 +70,11 @@ export async function middleware(request: NextRequest) {
       const { data: profile } = await supabase
         .from('accounts')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('auth_user_id', session.user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
+      // Allow OWNER, HR, and MANAGER roles to access admin paths
+      if (!profile || !['OWNER', 'HR', 'MANAGER'].includes(profile.role)) {
         return NextResponse.redirect(new URL('/unauthorized', request.url))
       }
     }

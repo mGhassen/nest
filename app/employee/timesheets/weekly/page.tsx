@@ -1,36 +1,24 @@
 "use client"
 
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
-import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/auth/auth-context"
+import { useEffect } from "react"
 import { redirect } from "next/navigation"
 import MainLayout from "@/components/layout/main-layout"
-import { getUserWithRole } from "@/lib/rbac"
 
 export default function WeeklyTimesheetPage() {
-  const { data: session, status } = useSession()
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, isLoading } = useAuth()
 
   useEffect(() => {
-    if (session?.user?.id) {
-      getUserWithRole(session.user.id).then((user) => {
-        if (user) {
-          setUserRole(user.role)
-        }
-        setLoading(false)
-      })
-    } else if (status === "unauthenticated") {
+    if (!isLoading && !user) {
       redirect("/auth/signin")
     }
-  }, [session, status])
+  }, [user, isLoading])
 
-  if (loading) {
+  if (isLoading || !user) {
     return (
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading...</div>
-          </div>
+          <div className="text-lg">Loading...</div>
         </div>
       </MainLayout>
     )

@@ -2,25 +2,25 @@
 
 import { useEffect } from "react"
 import { redirect } from "next/navigation"
-import { useAuth } from "@/hooks/useSupabaseAuth"
+import { useAuth } from "@/lib/auth/auth-context"
 import MainLayout from "@/components/layout/main-layout"
 
 export default function EmployeeDashboardPage() {
-  const { user, loading, isAdmin } = useAuth()
+  const { user, isLoading } = useAuth()
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isLoading && !user) {
       redirect("/auth/signin")
     }
     
     // Redirect admins to admin dashboard
-    if (!loading && isAdmin) {
+    if (!isLoading && user && ['OWNER', 'HR', 'MANAGER'].includes(user.role)) {
       redirect("/admin/dashboard")
     }
-  }, [user, loading, isAdmin])
+  }, [user, isLoading])
 
-  if (loading || !user) {
+  if (isLoading || !user) {
     return (
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -33,7 +33,7 @@ export default function EmployeeDashboardPage() {
   }
 
   // Redirect non-employees to unauthorized
-  if (user.role !== 'employee') {
+  if (!['EMPLOYEE'].includes(user.role)) {
     redirect("/unauthorized")
   }
 

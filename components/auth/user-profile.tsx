@@ -12,7 +12,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/hooks/useSupabaseAuth'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export function UserProfile() {
   const { user } = useAuth()

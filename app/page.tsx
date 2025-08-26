@@ -6,7 +6,6 @@ import { redirect } from "next/navigation"
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
-  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -14,8 +13,13 @@ export default function HomePage() {
       return
     }
 
-    if (user) {
-      setUserRole(user.role)
+    if (user && !isLoading) {
+      // Redirect based on role
+      if (["OWNER", "HR", "MANAGER"].includes(user.role)) {
+        redirect("/admin/dashboard")
+      } else if (["EMPLOYEE"].includes(user.role)) {
+        redirect("/employee/dashboard")
+      }
     }
   }, [user, isLoading])
 
@@ -27,15 +31,10 @@ export default function HomePage() {
     )
   }
 
-  // Redirect based on role
-  if (userRole) {
-    if (["OWNER", "HR", "MANAGER"].includes(userRole)) {
-      redirect("/admin/dashboard")
-    } else if (["EMPLOYEE"].includes(userRole)) {
-      redirect("/employee/dashboard")
-    }
-  }
-
-  // Fallback to employee dashboard
-  redirect("/employee/dashboard")
+  // Show loading while redirecting
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-lg">Redirecting...</div>
+    </div>
+  )
 }
