@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from 'next/headers'
-import { getUserWithRole } from "@/lib/rbac"
+import { getUserWithRole, can } from "@/lib/rbac"
 import { z } from "zod"
 import type { Database } from "@/types/database.types"
 
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Only admin can view all payrolls
-    if (user.role !== 'admin') {
+    // Check permissions
+    if (!can(user.role, "read", "payroll")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Only admin can create payroll cycles
-    if (user.role !== 'admin') {
+    // Check permissions
+    if (!can(user.role, "write", "payroll")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
