@@ -2,26 +2,29 @@
 
 import { useAuth } from "@/hooks/use-auth"
 import { useEffect } from "react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 export default function HomePage() {
   const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      redirect("/auth/login")
-      return
-    }
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/auth/login")
+        return
+      }
 
-    if (user && !isLoading) {
-      // Redirect based on role
-      if (user.isAdmin) {
-        redirect("/admin/dashboard")
-      } else {
-        redirect("/employee/dashboard")
+      if (user) {
+        // Redirect based on role
+        if (user.isAdmin) {
+          router.push("/admin/dashboard")
+        } else {
+          router.push("/employee/dashboard")
+        }
       }
     }
-  }, [user, isLoading, isAuthenticated])
+  }, [user, isLoading, isAuthenticated, router])
 
   if (isLoading) {
     return (

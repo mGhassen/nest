@@ -53,8 +53,17 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
       toast({
         title: "Login successful!",
         description: "Redirecting you to your dashboard...",
+        variant: "default",
       });
-      // Note: The actual redirection is handled in the useAuth hook after successful login
+      
+      // The auth state change listener will handle the redirect automatically
+      // But we can also handle it here as a fallback
+      setTimeout(() => {
+        // Check if user is admin based on the login response
+        // This is a fallback in case the auth state change doesn't trigger
+        router.push('/admin/dashboard'); // Default to admin dashboard, will be corrected by auth state
+      }, 1000);
+      
     } catch (err: unknown) {
       console.error('Login error:', err);
       let errorMessage = 'An error occurred during login';
@@ -120,12 +129,12 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {success && (
-            <Alert variant="success">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
+                  {success && (
+          <Alert variant="default">
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
 
           {/* Google Login */}
           <Button
@@ -221,7 +230,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                     size="sm"
                     onClick={() => {
                       setEmail("admin@guepard.run");
-                      setPassword("admin");
+                      setPassword("admin123");
                     }}
                     className="text-xs"
                   >
@@ -232,7 +241,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                     size="sm"
                     onClick={() => {
                       setEmail("employee@guepard.run");
-                      setPassword("member");
+                      setPassword("employee123");
                     }}
                     className="text-xs"
                   >

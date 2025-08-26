@@ -23,7 +23,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
-  authError: string | null; // <-- Added
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<Error | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null); // NEW
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
 
   // Fetch user session using Supabase
@@ -102,6 +102,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setUser(user);
       setAuthError(null);
+      
+      // Store user info in localStorage for persistence
+      localStorage.setItem('nest_user', JSON.stringify(user));
+      
       return user;
     } catch (error) {
       console.error('Session fetch error:', error);
@@ -110,16 +114,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Check for existing session on mount
+  // Check for existing session on mount and set up auth listener
   useEffect(() => {
+    const supabase = createSupabaseClient();
+    
+    // First, try to restore user from localStorage
+    const storedUser = localStorage.getItem('nest_user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('nest_user');
+      }
+    }
+
+    // Set up Supabase auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
+        
+        if (event === 'SIGNED_IN' && session) {
+          console.log('User signed in, fetching profile...');
+          await fetchSession();
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          setUser(null);
+          localStorage.removeItem('nest_user');
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          console.log('Token refreshed, updating session...');
+          await fetchSession();
+        } else if (event === 'INITIAL_SESSION') {
+          console.log('Initial session check...');
+          if (session) {
+            await fetchSession();
+          }
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
     const checkAuth = async () => {
       try {
-        const supabase = createSupabaseClient();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
           console.log('Found existing Supabase session, fetching user profile...');
-          await fetchSession(); // Token not needed for Supabase session
+          await fetchSession();
         } else {
           console.log('No existing Supabase session found');
           setUser(null);
@@ -133,7 +178,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     checkAuth();
-  }, [router]);
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Refresh the current session
   const refreshSession = async () => {
@@ -144,94 +194,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      // 1. Login request
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
+      // Use Supabase auth directly
+      const supabase = createSupabaseClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
-      
-      console.log('Login API response:', data);
-      console.log('Session object:', data.session);
-      
-      if (!response.ok || !data.success) {
-        // Handle specific status codes
-        if (response.status === 403) {
-          if (data.error && data.error.toLowerCase().includes('archived')) {
-            // User is archived (pending admin approval)
-            localStorage.setItem('account_status_email', email);
-            router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-            return;
-          }
-          if (data.error && data.error.toLowerCase().includes('pending')) {
-            // User is pending (needs to confirm invitation)
-            localStorage.setItem('account_status_email', email);
-            router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-            return;
-          }
-          if (data.error && data.error.toLowerCase().includes('suspended')) {
-            // User is suspended
-            localStorage.setItem('account_status_email', email);
-            router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-            return;
-          }
-          setLoginError(new Error(data.error || 'Account access denied'));
-          return;
-        }
-        
-        // Handle 401 errors (invalid credentials or user not found)
-        if (response.status === 401) {
-          // Check if it's a status-related error that should redirect
-          if (data.error && (data.error.toLowerCase().includes('pending') || data.error.toLowerCase().includes('archived'))) {
-            // This shouldn't happen with 401, but handle it gracefully
-            if (data.error.toLowerCase().includes('archived')) {
-              localStorage.setItem('account_status_email', email);
-              router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-              return;
-            }
-            if (data.error.toLowerCase().includes('pending')) {
-              localStorage.setItem('account_status_email', email);
-              router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-              return;
-            }
-          }
-          setLoginError(new Error(data.error || 'Invalid email or password'));
-          return;
-        }
-        
-        setLoginError(new Error(data.error || 'Login failed'));
-        return;
+      if (error) {
+        throw new Error(error.message);
       }
 
-      // 2. Set user data from response
-      if (!data.user) {
-        setLoginError(new Error('Failed to load user profile'));
-        return;
+      if (!data.session) {
+        throw new Error('No session created');
       }
-      setUser(data.user);
-      setLoginError(null); // Clear any previous errors
+
+      // The auth state change listener will handle the rest
+      console.log('Login successful, session created');
       
-      // Clean up any pending email
-      localStorage.removeItem('pending_email');
-      localStorage.removeItem('pending_approval_email');
-      localStorage.removeItem('account_status_email');
-      
-      // 3. Redirect based on user role
-      if (data.user.isAdmin) {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/employee/dashboard');
-      }
     } catch (error) {
       console.error('Login error:', error);
-      setUser(null);
       setLoginError(error instanceof Error ? error : new Error(String(error)));
+      throw error;
     } finally {
       setIsLoggingIn(false);
     }
@@ -241,14 +225,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const supabase = createSupabaseClient();
       await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Clear user state immediately
+      
+      // Clear user state and localStorage
       setUser(null);
+      localStorage.removeItem('nest_user');
       
       // Redirect to login page
-      router.push('/login');
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear local state
+      setUser(null);
+      localStorage.removeItem('nest_user');
+      router.push('/auth/login');
     }
   };
 
@@ -261,7 +250,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     refreshSession,
-    authError, // <-- Added
+    authError,
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);
