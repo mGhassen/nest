@@ -32,9 +32,10 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Login successful for:', email);
     
-    // Return simple response - let the client handle the rest
+    // Return session and user info
     return NextResponse.json({
       success: true,
+      session,
       user: {
         id: user.id,
         email: user.email,

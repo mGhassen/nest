@@ -25,19 +25,16 @@ export async function GET(request: NextRequest) {
     console.log("🔍 Starting employees GET request")
     
     const supabase = supabaseServer()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
-    if (sessionError) {
-      console.error("❌ Session error:", sessionError)
-      return NextResponse.json({ error: "Session error", details: sessionError }, { status: 500 })
-    }
-    
-    if (!session?.user?.id) {
-      console.log("❌ No session found")
+    // Get user from auth header instead of session
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log("❌ No auth header found")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
-    console.log("✅ Session found for user:", session.user.id)
+    
+    const token = authHeader.replace('Bearer ', '')
+    console.log("✅ Token found, length:", token.length)
 
     // Simple query - get all employees
     console.log("🔍 Executing database query...")
