@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's company membership
     const { data: membership } = await supabase
-      .from('company_memberships')
+      .from('memberships')
       .select('company_id')
       .eq('user_id', user.id)
       .single()

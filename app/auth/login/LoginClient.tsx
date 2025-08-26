@@ -13,20 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { useRouter } from 'next/navigation';
 import { AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function LoginClient({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const router = useRouter();
   const { toast } = useToast();
-  const { login, authError } = useAuth();
+  const { login, authError, isLoggingIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Check for success messages from searchParams
@@ -41,12 +38,9 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
-    setSuccess(""); // Clear success message when attempting login
-
+    
     try {
-      // Use the useAuth hook's login method which handles everything
       await login(email, password);
       
       // Show success message
@@ -55,14 +49,6 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
         description: "Redirecting you to your dashboard...",
         variant: "default",
       });
-      
-      // The auth state change listener will handle the redirect automatically
-      // But we can also handle it here as a fallback
-      setTimeout(() => {
-        // Check if user is admin based on the login response
-        // This is a fallback in case the auth state change doesn't trigger
-        router.push('/admin/dashboard'); // Default to admin dashboard, will be corrected by auth state
-      }, 1000);
       
     } catch (err: unknown) {
       console.error('Login error:', err);
@@ -82,13 +68,10 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
         description: errorMessage,
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
     setError("");
     try {
       toast({
@@ -101,8 +84,6 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
       } else {
         setError("Failed to sign in with Google");
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -129,19 +110,19 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-                  {success && (
-          <Alert variant="default">
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
+          {success && (
+            <Alert variant="default">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Google Login */}
           <Button
             variant="outline"
             className="w-full"
             onClick={handleGoogleLogin}
-            disabled={isLoading}
+            disabled={isLoggingIn}
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path
@@ -186,7 +167,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={isLoggingIn}
               />
             </div>
             <div className="space-y-2">
@@ -198,67 +179,61 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={isLoggingIn}
               />
               <div className="text-right">
                 <Button
-                  variant="link"
-                  className="p-0 h-auto text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => router.push('/auth/forgot-password')}
                   type="button"
+                  variant="link"
+                  className="text-xs p-0 h-auto"
+                  onClick={() => {/* TODO: Implement forgot password */}}
                 >
-                  Forgot your password?
+                  Forgot password?
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+              {isLoggingIn && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Sign In
             </Button>
           </form>
 
-          {process.env.NEXT_PUBLIC_ENV === "development" && (
-            <div className="mt-6 space-y-4">
-              <Separator />
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  Quick Login (Development)
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEmail("admin@guepard.run");
-                      setPassword("admin123");
-                    }}
-                    className="text-xs"
-                  >
-                    Admin Login
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEmail("employee@guepard.run");
-                      setPassword("employee123");
-                    }}
-                    className="text-xs"
-                  >
-                    Employee Login
-                  </Button>
-                </div>
-              </div>
+          {/* Test Credentials */}
+          <div className="text-center space-y-2">
+            <p className="text-xs text-gray-500">Test Credentials:</p>
+            <div className="flex flex-col space-y-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEmail("admin@guepard.run");
+                  setPassword("admin123");
+                }}
+                className="text-xs"
+              >
+                Admin Login
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEmail("employee@guepard.run");
+                  setPassword("employee123");
+                }}
+                className="text-xs"
+              >
+                Employee Login
+              </Button>
             </div>
-          )}
+          </div>
 
-          <div className="text-center mt-4">
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Need to create an account?{" "}
               <Button
                 variant="link"
-                className="p-0 font-normal"
-                onClick={() => router.push('/register')}
+                className="text-sm p-0 h-auto"
+                onClick={() => {/* TODO: Implement signup */}}
               >
                 Sign up
               </Button>

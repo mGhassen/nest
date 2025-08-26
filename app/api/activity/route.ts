@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's company membership
     const { data: membership } = await supabase
-      .from('company_memberships')
+      .from('memberships')
       .select('company_id')
       .eq('user_id', user.id)
       .single()
@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         end_date,
         status,
         reason,
+        created_at,
         employee:employees!inner(
           id,
           first_name,
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
           position_title
         )
       `)
-      .eq('company_id', companyId)
+      .eq('employee.company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(5)
 
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
         week_start,
         total_hours,
         status,
+        created_at,
         employee:employees!inner(
           id,
           first_name,
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest) {
           position_title
         )
       `)
-      .eq('company_id', companyId)
+      .eq('employee.company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(5)
 
@@ -91,38 +93,44 @@ export async function GET(request: NextRequest) {
       .limit(5)
 
     // Combine and format activities
-    const activities = []
+    const activities: any[] = []
 
     // Add leave requests
     leaveRequests?.forEach(lr => {
-      activities.push({
-        id: lr.id,
-        type: 'leave_request',
-        title: `${lr.employee.first_name} ${lr.employee.last_name} requested leave`,
-        description: `${lr.reason || 'No reason provided'} (${lr.start_date} to ${lr.end_date})`,
-        status: lr.status,
-        timestamp: lr.created_at,
-        user: {
-          name: `${lr.employee.first_name} ${lr.employee.last_name}`,
-          role: lr.employee.position_title
-        }
-      })
+      const employee = Array.isArray(lr.employee) ? lr.employee[0] : lr.employee
+      if (employee) {
+        activities.push({
+          id: lr.id,
+          type: 'leave_request',
+          title: `${employee.first_name} ${employee.last_name} requested leave`,
+          description: `${lr.reason || 'No reason provided'} (${lr.start_date} to ${lr.end_date})`,
+          status: lr.status,
+          timestamp: lr.created_at,
+          user: {
+            name: `${employee.first_name} ${employee.last_name}`,
+            role: employee.position_title
+          }
+        })
+      }
     })
 
     // Add timesheet submissions
     timesheets?.forEach(ts => {
-      activities.push({
-        id: ts.id,
-        type: 'timesheet',
-        title: `${ts.employee.first_name} ${ts.employee.last_name} submitted timesheet`,
-        description: `Week of ${ts.week_start} - ${ts.total_hours || 0} hours`,
-        status: ts.status,
-        timestamp: ts.created_at,
-        user: {
-          name: `${ts.employee.first_name} ${ts.employee.last_name}`,
-          role: ts.employee.position_title
-        }
-      })
+      const employee = Array.isArray(ts.employee) ? ts.employee[0] : ts.employee
+      if (employee) {
+        activities.push({
+          id: ts.id,
+          type: 'timesheet',
+          title: `${employee.first_name} ${employee.last_name} submitted timesheet`,
+          description: `Week of ${ts.week_start} - ${ts.total_hours || 0} hours`,
+          status: ts.status,
+          timestamp: ts.created_at,
+          user: {
+            name: `${employee.first_name} ${employee.last_name}`,
+            role: employee.position_title
+          }
+        })
+      }
     })
 
     // Add employee updates

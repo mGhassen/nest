@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from 'next/headers'
+import { supabaseServer } from '@/lib/supabase'
 import { getUserWithRole, can } from "@/lib/rbac"
 import { z } from "zod"
 import type { Database } from "@/types/database.types"
@@ -9,105 +8,79 @@ const insertEmployeeSchema = z.object({
   first_name: z.string().min(1),
   last_name: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().optional(),
-  position_title: z.string().min(1),
-  department: z.string().min(1),
   hire_date: z.string().transform((str) => new Date(str)),
-  salary: z.number().positive().optional(),
+  employment_type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'INTERN']),
+  position_title: z.string().min(1),
+  base_salary: z.number().positive(),
+  salary_period: z.enum(['HOURLY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY']),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE']).default('ACTIVE'),
   manager_id: z.string().optional(),
-  is_active: z.boolean().default(true),
+  location_id: z.string().optional(),
+  cost_center_id: z.string().optional(),
+  work_schedule_id: z.string().optional(),
 })
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    console.log("🔍 Starting employees GET request")
+    
+    const supabase = supabaseServer()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error("❌ Session error:", sessionError)
+      return NextResponse.json({ error: "Session error", details: sessionError }, { status: 500 })
+    }
     
     if (!session?.user?.id) {
+      console.log("❌ No session found")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    console.log("✅ Session found for user:", session.user.id)
 
-    // Check permissions
-    if (!can(user.role, "read", "employee")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const companyId = searchParams.get("companyId")
-    const status = searchParams.get("status")
-
-    let query = supabase
+    // Simple query - get all employees
+    console.log("🔍 Executing database query...")
+    const { data: employees, error: employeesError } = await supabase
       .from('employees')
       .select(`
-        *,
-        manager:employees!employees_manager_id_fkey(
-          id,
-          first_name,
-          last_name,
-          email
-        ),
-        department:departments(name),
-        company:companies(name)
+        id,
+        first_name,
+        last_name,
+        email,
+        hire_date,
+        employment_type,
+        position_title,
+        base_salary,
+        salary_period,
+        status,
+        created_at,
+        updated_at
       `)
 
-    // Filter by company if provided
-    if (companyId) {
-      query = query.eq('company_id', companyId)
+    console.log("🔍 Query result:", { data: employees, error: employeesError, count: employees?.length })
+
+    if (employeesError) {
+      console.error("❌ Error fetching employees:", employeesError)
+      return NextResponse.json({ error: "Failed to fetch employees", details: employeesError }, { status: 500 })
     }
 
-    // Filter by status if provided
-    if (status === 'active') {
-      query = query.eq('is_active', true)
-    } else if (status === 'inactive') {
-      query = query.eq('is_active', false)
-    }
-
-    // Role-based filtering
-    if (user.role === "MANAGER") {
-      // Manager can only see direct reports
-      query = query.eq('manager_id', user.id)
-    } else if (user.role === "EMPLOYEE") {
-      // Employee can only see themselves
-      const { data: employee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (employee) {
-        query = query.eq('id', employee.id)
-      }
-    }
-    // ADMIN, HR, OWNER can see all employees
-
-    const { data: employees, error } = await query
-
-    if (error) {
-      console.error("Error fetching employees:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch employees" },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json(employees)
+    console.log(`✅ Found ${employees?.length || 0} employees`)
+    
+    return NextResponse.json({
+      employees: employees || [],
+      count: employees?.length || 0
+    })
+    
   } catch (error) {
-    console.error("Error fetching employees:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+    console.error("💥 Employees API error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id) {
@@ -129,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's company membership
     const { data: membership } = await supabase
-      .from('company_memberships')
+      .from('memberships')
       .select('company_id')
       .eq('user_id', user.id)
       .single()
@@ -142,7 +115,8 @@ export async function POST(request: NextRequest) {
     const employeeData = { 
       ...validatedData, 
       company_id: membership.company_id,
-      hire_date: validatedData.hire_date.toISOString().split('T')[0]
+      hire_date: validatedData.hire_date.toISOString().split('T')[0],
+      user_id: session.user.id, // Set the current user as the employee
     }
 
     const { data: newEmployee, error } = await supabase
@@ -154,7 +128,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Error creating employee:", error)
       return NextResponse.json(
-        { error: "Failed to create employee" },
+        { error: "Failed to create employee", details: error },
         { status: 500 }
       )
     }
@@ -170,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     console.error("Error creating employee:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error },
       { status: 500 }
     )
   }

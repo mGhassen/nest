@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's company membership
     const { data: membership } = await supabase
-      .from('company_memberships')
+      .from('memberships')
       .select('company_id')
       .eq('user_id', user.id)
       .single()
@@ -42,21 +42,31 @@ export async function GET(request: NextRequest) {
       .from('employees')
       .select('*', { count: 'exact', head: true })
       .eq('company_id', companyId)
-      .eq('is_active', true)
+      .eq('status', 'ACTIVE')
 
-    // Get pending timesheets
-    const { count: pendingTimesheets } = await supabase
+    // Get pending timesheets (filter by employee's company)
+    const { data: pendingTimesheetsData } = await supabase
       .from('timesheets')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
+      .select(`
+        id,
+        employee:employees!inner(company_id)
+      `)
       .eq('status', 'SUBMITTED')
+      .eq('employee.company_id', companyId)
 
-    // Get pending leave requests
-    const { count: leaveRequests } = await supabase
+    const pendingTimesheets = pendingTimesheetsData?.length || 0
+
+    // Get pending leave requests (filter by employee's company)
+    const { data: leaveRequestsData } = await supabase
       .from('leave_requests')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
+      .select(`
+        id,
+        employee:employees!inner(company_id)
+      `)
       .eq('status', 'SUBMITTED')
+      .eq('employee.company_id', companyId)
+
+    const leaveRequests = leaveRequestsData?.length || 0
 
     // Get latest payroll status
     const { data: latestPayroll } = await supabase

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's company membership
     const { data: membership } = await supabase
-      .from('company_memberships')
+      .from('memberships')
       .select('company_id')
       .eq('user_id', user.id)
       .single()
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
           id,
           week_start,
           total_hours,
+          created_at,
           employee:employees!inner(
             id,
             first_name,
@@ -48,25 +49,28 @@ export async function GET(request: NextRequest) {
             position_title
           )
         `)
-        .eq('company_id', companyId)
+        .eq('employee.company_id', companyId)
         .eq('status', 'SUBMITTED')
         .order('created_at', { ascending: true })
         .limit(5)
 
       pendingTimesheets?.forEach(ts => {
-        pendingActions.push({
-          id: ts.id,
-          type: 'timesheet_approval',
-          title: 'Timesheet Approval Required',
-          description: `${ts.employee.first_name} ${ts.employee.last_name} - Week of ${ts.week_start}`,
-          priority: 'medium',
-          timestamp: ts.created_at,
-          user: {
-            name: `${ts.employee.first_name} ${ts.employee.last_name}`,
-            role: ts.employee.position_title
-          },
-          actionUrl: `/admin/timesheets/${ts.id}/approve`
-        })
+        const employee = Array.isArray(ts.employee) ? ts.employee[0] : ts.employee
+        if (employee) {
+          pendingActions.push({
+            id: ts.id,
+            type: 'timesheet_approval',
+            title: 'Timesheet Approval Required',
+            description: `${employee.first_name} ${employee.last_name} - Week of ${ts.week_start}`,
+            priority: 'medium',
+            timestamp: ts.created_at,
+            user: {
+              name: `${employee.first_name} ${employee.last_name}`,
+              role: employee.position_title
+            },
+            actionUrl: `/admin/timesheets/${ts.id}/approve`
+          })
+        }
       })
     }
 
@@ -79,6 +83,7 @@ export async function GET(request: NextRequest) {
           start_date,
           end_date,
           reason,
+          created_at,
           employee:employees!inner(
             id,
             first_name,
@@ -86,25 +91,28 @@ export async function GET(request: NextRequest) {
             position_title
           )
         `)
-        .eq('company_id', companyId)
+        .eq('employee.company_id', companyId)
         .eq('status', 'SUBMITTED')
         .order('created_at', { ascending: true })
         .limit(5)
 
       pendingLeaveRequests?.forEach(lr => {
-        pendingActions.push({
-          id: lr.id,
-          type: 'leave_approval',
-          title: 'Leave Request Approval Required',
-          description: `${lr.employee.first_name} ${lr.employee.last_name} - ${lr.start_date} to ${lr.end_date}`,
-          priority: 'high',
-          timestamp: lr.created_at,
-          user: {
-            name: `${lr.employee.first_name} ${lr.employee.last_name}`,
-            role: lr.employee.position_title
-          },
-          actionUrl: `/admin/leave/${lr.id}/approve`
-        })
+        const employee = Array.isArray(lr.employee) ? lr.employee[0] : lr.employee
+        if (employee) {
+          pendingActions.push({
+            id: lr.id,
+            type: 'leave_approval',
+            title: 'Leave Request Approval Required',
+            description: `${employee.first_name} ${employee.last_name} - ${lr.start_date} to ${lr.end_date}`,
+            priority: 'high',
+            timestamp: lr.created_at,
+            user: {
+              name: `${employee.first_name} ${employee.last_name}`,
+              role: employee.position_title
+            },
+            actionUrl: `/admin/leave/${lr.id}/approve`
+          })
+        }
       })
     }
 
@@ -120,8 +128,7 @@ export async function GET(request: NextRequest) {
           created_at
         `)
         .eq('company_id', companyId)
-        .eq('is_active', true)
-        .is('onboarding_completed', false)
+        .eq('status', 'ACTIVE')
         .order('created_at', { ascending: true })
         .limit(3)
 

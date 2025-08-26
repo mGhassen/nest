@@ -9,13 +9,16 @@ const insertEmployeeSchema = z.object({
   first_name: z.string().min(1),
   last_name: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().optional(),
-  position_title: z.string().min(1),
-  department: z.string().min(1),
   hire_date: z.string().transform((str) => new Date(str)),
-  salary: z.number().positive().optional(),
+  employment_type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'INTERN']),
+  position_title: z.string().min(1),
+  base_salary: z.number().positive(),
+  salary_period: z.enum(['HOURLY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY']),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE']).default('ACTIVE'),
   manager_id: z.string().optional(),
-  is_active: z.boolean().default(true),
+  location_id: z.string().optional(),
+  cost_center_id: z.string().optional(),
+  work_schedule_id: z.string().optional(),
 })
 
 const updateEmployeeSchema = insertEmployeeSchema.partial()
@@ -80,8 +83,9 @@ export async function GET(
           last_name,
           email
         ),
-        department:departments(name),
-        company:companies(name)
+        location:locations(name),
+        cost_center:cost_centers(name),
+        work_schedule:work_schedules(name)
       `)
       .eq('id', id)
       .single()
@@ -92,7 +96,7 @@ export async function GET(
       }
       console.error("Error fetching employee:", error)
       return NextResponse.json(
-        { error: "Failed to fetch employee" },
+        { error: "Failed to fetch employee", details: error },
         { status: 500 }
       )
     }
@@ -101,7 +105,7 @@ export async function GET(
   } catch (error) {
     console.error("Error fetching employee:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error },
       { status: 500 }
     )
   }
@@ -174,7 +178,7 @@ export async function PUT(
     if (error) {
       console.error("Error updating employee:", error)
       return NextResponse.json(
-        { error: "Failed to update employee" },
+        { error: "Failed to update employee", details: error },
         { status: 500 }
       )
     }
@@ -190,7 +194,7 @@ export async function PUT(
 
     console.error("Error updating employee:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error },
       { status: 500 }
     )
   }
@@ -233,7 +237,7 @@ export async function DELETE(
     if (error) {
       console.error("Error deleting employee:", error)
       return NextResponse.json(
-        { error: "Failed to delete employee" },
+        { error: "Failed to delete employee", details: error },
         { status: 500 }
       )
     }
@@ -242,7 +246,7 @@ export async function DELETE(
   } catch (error) {
     console.error("Error deleting employee:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error },
       { status: 500 }
     )
   }

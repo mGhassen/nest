@@ -11,11 +11,13 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
+        console.log('🚫 Not authenticated, redirecting to login');
         router.push("/auth/login")
         return
       }
 
       if (user) {
+        console.log('✅ Authenticated, redirecting to dashboard');
         // Redirect based on role
         if (user.isAdmin) {
           router.push("/admin/dashboard")

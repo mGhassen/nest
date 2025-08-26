@@ -1,4 +1,4 @@
-import { supabase } from './auth'
+import { supabase } from './supabase'
 import type { Database, UserRole } from '@/types/database.types'
 
 type Account = Database['public']['Tables']['accounts']['Row']
@@ -60,27 +60,42 @@ const permissions: Record<UserRole, Record<Entity, Action[]>> = {
 
 export async function getUserWithRole(userId: string): Promise<UserWithRole | null> {
   try {
-    const { data: profile, error } = await supabase
+    const supabaseClient = supabase()
+    
+    // First get the user's account info
+    const { data: profile, error: profileError } = await supabaseClient
       .from('accounts')
       .select('*')
-      .eq('id', userId)
+      .eq('auth_user_id', userId)
       .single()
 
-    if (error || !profile) {
-      console.error('Error getting user profile:', error)
+    if (profileError || !profile) {
+      console.error('Error getting user profile:', profileError)
       return null
+    }
+
+    // Then get the user's company membership using the account ID
+    const { data: membership, error: membershipError } = await supabaseClient
+      .from('memberships')
+      .select('company_id, role')
+      .eq('user_id', profile.id)
+      .single()
+
+    if (membershipError) {
+      console.error('Error getting user membership:', membershipError)
+      // If no membership found, still return user but with null company_id
     }
 
     // Create a properly typed user object
     const userWithRole: UserWithRole = {
       id: (profile as any).id,
       email: (profile as any).email || '',
-      role: ((profile as any).role as UserRole) || 'EMPLOYEE',
+      role: (membership?.role as UserRole) || ((profile as any).role as UserRole) || 'EMPLOYEE',
       username: (profile as any).username || null,
       full_name: (profile as any).full_name || null,
-      avatar_url: (profile as any).avatar_url || null,
+      avatar_url: (profile as any).profile_image_url || null,
       website: (profile as any).website || null,
-      company_id: null, // This will need to be populated from memberships table
+      company_id: membership?.company_id || null,
       updated_at: (profile as any).updated_at || null
     }
     

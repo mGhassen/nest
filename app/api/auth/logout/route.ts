@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    console.log('Server-side logout initiated');
     
-    // Clear all auth-related cookies
-    await cookieStore.delete("auth-token");
-    await cookieStore.delete("refresh-token");
-    await cookieStore.delete("user-role");
+    // Create Supabase client to handle server-side logout
+    const supabase = createRouteHandlerClient({ cookies });
+    
+    // Sign out from Supabase (this will clear the session)
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Supabase signOut error:', error);
+    }
+    
+    console.log('Server-side logout completed');
     
     return NextResponse.json(
       { message: "Logged out successfully" },
