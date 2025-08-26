@@ -32,7 +32,30 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Login successful for:', email);
     
-    // Return session and user info
+    // Get user profile from accounts table to determine role
+    const { data: userProfile, error: profileError } = await supabase
+      .from('accounts')
+      .select('role, is_active')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json({
+        success: false,
+        error: 'User profile not found',
+      }, { status: 404 });
+    }
+
+    if (!userProfile.is_active) {
+      return NextResponse.json({
+        success: false,
+        error: 'Account is not active',
+      }, { status: 403 });
+    }
+
+    const isAdmin = ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role);
+    
+    // Return session and user info with role
     return NextResponse.json({
       success: true,
       session,
@@ -41,6 +64,9 @@ export async function POST(req: NextRequest) {
         email: user.email,
         firstName: user.user_metadata?.first_name || 'User',
         lastName: user.user_metadata?.last_name || '',
+        isAdmin: isAdmin,
+        role: userProfile.role,
+        status: userProfile.is_active ? 'active' : 'inactive'
       }
     });
     
