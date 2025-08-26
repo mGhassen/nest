@@ -4,16 +4,17 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
-import type { Role } from '@/types/database.types';
+import type { UserRole } from '@/types/database.types';
 import { useRouter } from 'next/navigation';
 import { signInWithEmail, signUp, signOut } from '../auth';
 
 interface UserProfile {
   id: string
   email: string
-  role: Role
-  full_name?: string | null
-  avatar_url?: string | null
+  role: UserRole
+  first_name?: string | null
+  last_name?: string | null
+  profile_image_url?: string | null
 };
 
 type AuthContextType = {
@@ -35,6 +36,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && mounted) {
+          // Get user profile with role
+          const { data: profile, error } = await supabase
+            .from('accounts')
+            .select('*')
+            .eq('auth_user_id', session.user.id)
+            .single();
+
+          if (profile && mounted) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              role: profile.role || 'EMPLOYEE',
+              first_name: profile.first_name || null,
+              last_name: profile.last_name || null,
+              profile_image_url: profile.profile_image_url || null
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    
+    getInitialSession();
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: Session | null) => {
         if (!mounted) return;
@@ -45,17 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const { data: profile, error } = await supabase
               .from('accounts')
               .select('*')
-              .eq('id', session.user.id)
-              .single()
-              .throwOnError();
+              .eq('auth_user_id', session.user.id)
+              .single();
 
             if (profile && mounted) {
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
-                role: (profile.role as Role) || 'user',
-                full_name: profile.full_name || null,
-                avatar_url: profile.avatar_url || null
+                role: profile.role || 'EMPLOYEE',
+                first_name: profile.first_name || null,
+                last_name: profile.last_name || null,
+                profile_image_url: profile.profile_image_url || null
               });
             }
           } else if (mounted) {
@@ -64,8 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error('Error in auth state change:', error);
           if (mounted) setUser(null);
-        } finally {
-          if (mounted) setIsLoading(false);
         }
       }
     );

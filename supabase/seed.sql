@@ -26,137 +26,18 @@ SELECT id, 'Full Time (40h)', 40 FROM companies WHERE name = 'Guepard'
 UNION ALL
 SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'Guepard';
 
--- 5. Create test users in auth.users table for testing (if available)
--- These will simulate real Supabase auth users
-DO $$
-BEGIN
-    -- Check if auth.users table exists and we can insert into it
-    IF EXISTS (
-        SELECT 1 FROM information_schema.tables 
-        WHERE table_schema = 'auth' AND table_name = 'users'
-    ) AND EXISTS (
-        SELECT 1 FROM information_schema.table_privileges 
-        WHERE table_schema = 'auth' AND table_name = 'users' AND privilege_type = 'INSERT'
-    ) THEN
-        -- Insert test users into auth.users
-        INSERT INTO auth.users (
-            id,
-            email,
-            encrypted_password,
-            email_confirmed_at,
-            created_at,
-            updated_at,
-            raw_user_meta_data
-        ) VALUES
-        (
-            '550e8400-e29b-41d4-a716-446655440001',
-            'admin@guepard.run',
-            crypt('admin123', gen_salt('bf')),
-            NOW(),
-            NOW(),
-            NOW(),
-            '{"first_name": "Ahmed", "last_name": "Ben Ali"}'::jsonb
-        ),
-        (
-            '550e8400-e29b-41d4-a716-446655440002',
-            'hr@guepard.run',
-            crypt('hr123', gen_salt('bf')),
-            NOW(),
-            NOW(),
-            NOW(),
-            '{"first_name": "Fatma", "last_name": "Trabelsi"}'::jsonb
-        ),
-        (
-            '550e8400-e29b-41d4-a716-446655440003',
-            'manager@guepard.run',
-            crypt('manager123', gen_salt('bf')),
-            NOW(),
-            NOW(),
-            NOW(),
-            '{"first_name": "Mohamed", "last_name": "Karray"}'::jsonb
-        ),
-        (
-            '550e8400-e29b-41d4-a716-446655440004',
-            'employee@guepard.run',
-            crypt('employee123', gen_salt('bf')),
-            NOW(),
-            NOW(),
-            NOW(),
-            '{"first_name": "Sara", "last_name": "Mansouri"}'::jsonb
-        );
-        
-        RAISE NOTICE 'Test users created in auth.users table';
-    ELSE
-        RAISE NOTICE 'Skipping auth.users creation - table not available or no insert privileges';
-    END IF;
-END $$;
+-- 5. Create test users in auth.users table for testing
+-- Note: These users should be created through Supabase's auth API, not directly in SQL
+-- For now, we'll create accounts without auth user links and you can create the auth users manually
+-- or through your application's signup process
 
--- 6. Create Accounts (with or without auth users)
--- If auth.users exists, link to it; otherwise use NULL for auth_user_id
-DO $$
-BEGIN
-    -- Check if we successfully created auth users
-    IF EXISTS (
-        SELECT 1 FROM auth.users 
-        WHERE email = 'admin@guepard.run'
-    ) THEN
-        -- Check if accounts already exist (might have been created by trigger)
-        IF NOT EXISTS (SELECT 1 FROM accounts WHERE email = 'admin@guepard.run') THEN
-            -- Create accounts linked to auth users
-            INSERT INTO accounts (id, auth_user_id, email, first_name, last_name, profile_image_url, role) VALUES
-            ('550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'admin@guepard.run', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'OWNER'),
-            ('550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'hr@guepard.run', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face', 'HR'),
-            ('550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'manager@guepard.run', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'MANAGER'),
-            ('550e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'employee@guepard.run', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face', 'EMPLOYEE');
-            
-            RAISE NOTICE 'Accounts created with auth user links';
-        ELSE
-            -- Accounts already exist (created by trigger), just update them with our data
-            UPDATE accounts SET 
-                auth_user_id = '550e8400-e29b-41d4-a716-446655440001',
-                first_name = 'Ahmed',
-                last_name = 'Ben Ali',
-                profile_image_url = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-                role = 'OWNER'
-            WHERE email = 'admin@guepard.run';
-            
-            UPDATE accounts SET 
-                auth_user_id = '550e8400-e29b-41d4-a716-446655440002',
-                first_name = 'Fatma',
-                last_name = 'Trabelsi',
-                profile_image_url = 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-                role = 'HR'
-            WHERE email = 'hr@guepard.run';
-            
-            UPDATE accounts SET 
-                auth_user_id = '550e8400-e29b-41d4-a716-446655440003',
-                first_name = 'Mohamed',
-                last_name = 'Karray',
-                profile_image_url = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-                role = 'MANAGER'
-            WHERE email = 'manager@guepard.run';
-            
-            UPDATE accounts SET 
-                auth_user_id = '550e8400-e29b-41d4-a716-446655440004',
-                first_name = 'Sara',
-                last_name = 'Mansouri',
-                profile_image_url = 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-                role = 'EMPLOYEE'
-            WHERE email = 'employee@guepard.run';
-            
-            RAISE NOTICE 'Existing accounts updated with auth user links and profile data';
-        END IF;
-    ELSE
-        -- Create accounts without auth user links (for local development)
-        INSERT INTO accounts (id, auth_user_id, email, first_name, last_name, profile_image_url, role) VALUES
-        ('550e8400-e29b-41d4-a716-446655440001', NULL, 'admin@guepard.run', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'OWNER'),
-        ('550e8400-e29b-41d4-a716-446655440002', NULL, 'hr@guepard.run', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face', 'HR'),
-        ('550e8400-e29b-41d4-a716-446655440003', NULL, 'manager@guepard.run', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'MANAGER'),
-        ('550e8400-e29b-41d4-a716-446655440004', NULL, 'employee@guepard.run', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face', 'EMPLOYEE');
-        
-        RAISE NOTICE 'Accounts created without auth user links (local development mode)';
-    END IF;
-END $$;
+-- 6. Create Accounts (without auth users initially)
+-- You'll need to create these users through your app's signup process or Supabase dashboard
+INSERT INTO accounts (id, auth_user_id, email, first_name, last_name, profile_image_url, role) VALUES
+('550e8400-e29b-41d4-a716-446655440001', NULL, 'admin@guepard.run', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'OWNER'),
+('550e8400-e29b-41d4-a716-446655440002', NULL, 'hr@guepard.run', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face', 'HR'),
+('550e8400-e29b-41d4-a716-446655440003', NULL, 'manager@guepard.run', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'MANAGER'),
+('550e8400-e29b-41d4-a716-446655440004', NULL, 'employee@guepard.run', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face', 'EMPLOYEE');
 
 -- 7. Create Memberships (User-Company relationships with roles)
 INSERT INTO memberships (user_id, company_id, role)
@@ -341,21 +222,19 @@ DO $$
 BEGIN
   RAISE NOTICE 'Seed completed successfully!';
   RAISE NOTICE 'Company: Guepard';
-  
-  -- Check if auth users were created
-  IF EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@guepard.run') THEN
-    RAISE NOTICE 'Auth Users: admin@guepard.run, hr@guepard.run, manager@guepard.run, employee@guepard.run';
-    RAISE NOTICE 'Accounts: Linked to auth users with proper roles (OWNER, HR, MANAGER, EMPLOYEE)';
-    RAISE NOTICE 'Test Credentials:';
-    RAISE NOTICE 'Admin: admin@guepard.run / admin123';
-    RAISE NOTICE 'HR: hr@guepard.run / hr123';
-    RAISE NOTICE 'Manager: manager@guepard.run / manager123';
-    RAISE NOTICE 'Employee: employee@guepard.run / employee123';
-  ELSE
-    RAISE NOTICE 'Accounts: Created without auth user links (local development mode)';
-    RAISE NOTICE 'Note: Auth users not available - using local development setup';
-  END IF;
-  
+  RAISE NOTICE 'Accounts: Created without auth user links (local development mode)';
+  RAISE NOTICE 'Note: You need to create auth users manually through your app or Supabase dashboard';
+  RAISE NOTICE 'Test Accounts Created:';
+  RAISE NOTICE 'Admin: admin@guepard.run (OWNER role)';
+  RAISE NOTICE 'HR: hr@guepard.run (HR role)';
+  RAISE NOTICE 'Manager: manager@guepard.run (MANAGER role)';
+  RAISE NOTICE 'Employee: employee@guepard.run (EMPLOYEE role)';
+  RAISE NOTICE '';
+  RAISE NOTICE 'To create auth users, you can:';
+  RAISE NOTICE '1. Use your app''s signup form with these emails';
+  RAISE NOTICE '2. Create them manually in Supabase dashboard';
+  RAISE NOTICE '3. Use the Supabase CLI to create users';
+  RAISE NOTICE '';
   RAISE NOTICE 'Locations: Tunis, Sfax';
   RAISE NOTICE 'Cost Centers: Engineering, Sales & Marketing, HR';
   RAISE NOTICE 'Work Schedules: Full Time (40h), Part Time (20h)';

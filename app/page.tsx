@@ -29,13 +29,13 @@ export default function HomePage() {
 
   // Redirect based on role
   if (userRole) {
-    if (["OWNER", "ADMIN", "HR"].includes(userRole)) {
+    if (["OWNER", "HR", "MANAGER"].includes(userRole)) {
       redirect("/admin/dashboard")
-    } else if (["MANAGER", "EMPLOYEE"].includes(userRole)) {
+    } else if (["EMPLOYEE"].includes(userRole)) {
       redirect("/employee/dashboard")
     }
   }
 
-  // Fallback to router dashboard
-  redirect("/router/dashboard")
+  // Fallback to employee dashboard
+  redirect("/employee/dashboard")
 }

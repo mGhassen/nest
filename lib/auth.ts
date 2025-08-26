@@ -36,7 +36,7 @@ export const checkUserRole = async (userId: string, requiredRole: string) => {
   const { data: userData, error } = await supabase
     .from('accounts')
     .select('role')
-    .eq('id', userId)
+    .eq('auth_user_id', userId)
     .single();
 
   if (error || !userData) return false;

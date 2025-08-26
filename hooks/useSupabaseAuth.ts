@@ -20,14 +20,31 @@ export function useAuth() {
   // Fetch user role from the database
   const fetchUserRole = async (userId: string): Promise<UserRole> => {
     try {
-      const { data, error } = await supabase
+      // First try to get role from accounts table
+      const { data: accountData, error: accountError } = await supabase
+        .from('accounts')
+        .select('role')
+        .eq('auth_user_id', userId)
+        .single()
+
+      if (!accountError && accountData?.role) {
+        // Map account roles to user roles
+        if (accountData.role === 'OWNER' || accountData.role === 'HR') {
+          return 'admin'
+        } else if (accountData.role === 'MANAGER' || accountData.role === 'EMPLOYEE') {
+          return 'employee'
+        }
+      }
+
+      // Fallback to employees table if account lookup fails
+      const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
         .select('role')
         .eq('user_id', userId)
         .single()
 
-      if (error || !data?.role) return undefined
-      return data.role === 'admin' ? 'admin' : 'employee'
+      if (employeeError || !employeeData?.role) return undefined
+      return employeeData.role === 'admin' ? 'admin' : 'employee'
     } catch (error) {
       console.error('Error fetching user role:', error)
       return undefined
@@ -99,7 +116,27 @@ export function useAuth() {
         setRole(userRole)
         
         // Redirect based on role
-        const redirectPath = userRole === 'admin' ? '/admin/dashboard' : '/employee/dashboard'
+        let redirectPath = '/employee/dashboard' // default fallback
+        
+        if (userRole === 'admin') {
+          // Check if user is OWNER or HR to determine admin dashboard
+          const { data: accountData } = await supabase
+            .from('accounts')
+            .select('role')
+            .eq('auth_user_id', data.user.id)
+            .single()
+          
+          if (accountData?.role === 'OWNER') {
+            redirectPath = '/admin/dashboard'
+          } else if (accountData?.role === 'HR') {
+            redirectPath = '/admin/dashboard'
+          } else if (accountData?.role === 'MANAGER') {
+            redirectPath = '/admin/dashboard'
+          } else {
+            redirectPath = '/employee/dashboard'
+          }
+        }
+        
         router.push(redirectPath)
         router.refresh()
       }
