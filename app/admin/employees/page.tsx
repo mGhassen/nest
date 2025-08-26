@@ -22,12 +22,25 @@ export default function AdminEmployeesPage() {
   const fetchEmployees = async () => {
     setLoadingEmployees(true)
     try {
-      const response = await fetch('/api/employees')
+      // Get the access token from localStorage
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        console.error('No access token found')
+        return
+      }
+
+      const response = await fetch('/api/employees', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
       if (response.ok) {
         const data = await response.json()
-        setEmployees(data)
+        setEmployees(data.employees || [])
       } else {
-        console.error('Failed to fetch employees')
+        console.error('Failed to fetch employees:', response.status)
       }
     } catch (error) {
       console.error('Error fetching employees:', error)
