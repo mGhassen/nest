@@ -93,11 +93,11 @@ CREATE TABLE memberships (
     UNIQUE(user_id, company_id)
 );
 
--- Create employees table
+-- Create employees table with optional account_id (simplified workflow)
 CREATE TABLE employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    account_id UUID REFERENCES accounts(id) ON DELETE CASCADE, -- Changed from user_id to account_id, nullable
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -112,9 +112,17 @@ CREATE TABLE employees (
     salary_period salary_period NOT NULL,
     status employee_status DEFAULT 'ACTIVE',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(company_id, user_id)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add unique constraint that only applies when account_id is not null
+-- This prevents duplicate account_id per company when an account_id is set
+CREATE UNIQUE INDEX employees_company_account_unique 
+ON employees (company_id, account_id) 
+WHERE account_id IS NOT NULL;
+
+-- Add comment explaining the optional account_id
+COMMENT ON COLUMN employees.account_id IS 'Optional reference to accounts table. Can be null for employees without user accounts yet.';
 
 -- Create leave_policies table
 CREATE TABLE leave_policies (
@@ -211,7 +219,7 @@ CREATE INDEX idx_accounts_is_active ON accounts(is_active);
 CREATE INDEX idx_memberships_user_id ON memberships(user_id);
 CREATE INDEX idx_memberships_company_id ON memberships(company_id);
 CREATE INDEX idx_employees_company_id ON employees(company_id);
-CREATE INDEX idx_employees_user_id ON employees(user_id);
+CREATE INDEX idx_employees_account_id ON employees(account_id);
 CREATE INDEX idx_employees_manager_id ON employees(manager_id);
 CREATE INDEX idx_leave_policies_company_id ON leave_policies(company_id);
 CREATE INDEX idx_payroll_cycles_company_id ON payroll_cycles(company_id);
@@ -264,30 +272,33 @@ ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for accounts table
--- These policies work with both local development and production environments
+-- Simplified policies that work with the new workflow
 CREATE POLICY "Users can view their own account" ON accounts
     FOR SELECT USING (
-        auth.uid() = auth_user_id OR 
-        (auth_user_id IS NULL AND auth.uid()::text = id::text)
+        auth.uid() = auth_user_id
     );
 
 CREATE POLICY "Users can update their own account" ON accounts
     FOR UPDATE USING (
-        auth.uid() = auth_user_id OR 
-        (auth_user_id IS NULL AND auth.uid()::text = id::text)
+        auth.uid() = auth_user_id
+    );
+
+CREATE POLICY "Allow account creation for new users" ON accounts
+    FOR INSERT WITH CHECK (
+        -- Allow the trigger function to create accounts
+        auth_user_id IS NOT NULL
     );
 
 CREATE POLICY "HR and managers can view all accounts" ON accounts
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM memberships m 
-            WHERE (m.user_id = auth.uid() OR m.user_id::text = auth.uid()::text)
+            WHERE m.user_id = auth.uid()
             AND m.role IN ('HR', 'MANAGER', 'OWNER')
         )
     );
 
--- Create a function to automatically create an account when a user signs up
--- This function works in both local development and production environments
+-- Create a simple function to automatically create an account when a user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN

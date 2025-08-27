@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  'http://127.0.0.1:54421',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+);
 
 export interface User {
   id: string;
@@ -118,36 +124,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Check for existing session on mount
+  // Check for existing session on mount - DISABLED to fix login flow
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const user = await fetchSession(token);
-        if (!user) {
-          // Session was invalid, tokens already cleared in fetchSession
-          console.log('Session check failed - no user returned');
-        }
-      } catch (error) {
-        console.error('Session check failed:', error);
-        // Fallback cleanup in case fetchSession didn't handle it
-        localStorage.removeItem('access_token');
-        if (typeof window !== 'undefined') {
-          delete window.__authToken;
-        }
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    // Don't auto-check session on mount - let login handle it
+    setIsLoading(false);
+  }, []);
 
   // Refresh the current session
   const refreshSession = async () => {
@@ -160,78 +141,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      // 1. Login request
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
+      // Use Supabase client authentication directly
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
-      
-      console.log('Login API response:', data);
-      console.log('Session object:', data.session);
-      
-      if (!response.ok || !data.success) {
-        // Handle specific status codes
-        if (response.status === 403) {
-          if (data.error && data.error.toLowerCase().includes('archived')) {
-            // User is archived (pending admin approval)
-            localStorage.setItem('account_status_email', email);
-            router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-            return;
-          }
-          if (data.error && data.error.toLowerCase().includes('pending')) {
-            // User is pending (needs to confirm invitation)
-            localStorage.setItem('account_status_email', email);
-            router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-            return;
-          }
-          if (data.error && data.error.toLowerCase().includes('suspended')) {
-            // User is suspended
-            localStorage.setItem('account_status_email', email);
-            router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-            return;
-          }
-          setLoginError(new Error(data.error || 'Account access denied'));
-          return;
-        }
-        
-        // Handle 401 errors (invalid credentials or user not found)
-        if (response.status === 401) {
-          // Check if it's a status-related error that should redirect
-          if (data.error && (data.error.toLowerCase().includes('pending') || data.error.toLowerCase().includes('archived'))) {
-            // This shouldn't happen with 401, but handle it gracefully
-            if (data.error.toLowerCase().includes('archived')) {
-              localStorage.setItem('account_status_email', email);
-              router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-              return;
-            }
-            if (data.error.toLowerCase().includes('pending')) {
-              localStorage.setItem('account_status_email', email);
-              router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
-              return;
-            }
-          }
-          setLoginError(new Error(data.error || 'Invalid email or password'));
-          return;
-        }
-        
-        setLoginError(new Error(data.error || 'Login failed'));
+      if (error) {
+        console.error('Supabase auth error:', error);
+        setLoginError(new Error(error.message));
         return;
       }
 
-      if (!data.session || !data.session.access_token) {
-        console.log('Session structure:', JSON.stringify(data.session, null, 2));
-        setLoginError(new Error('No access token received'));
+      if (!data.session || !data.user) {
+        setLoginError(new Error('No session or user data received'));
         return;
       }
 
-      // 2. Store tokens
+      console.log('Supabase login successful:', data.user.email);
+      console.log('Session:', data.session);
+
+      // Store tokens
       localStorage.setItem('access_token', data.session.access_token);
       if (data.session.refresh_token) {
         localStorage.setItem('refresh_token', data.session.refresh_token);
@@ -245,29 +175,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('pending_approval_email');
       localStorage.removeItem('account_status_email');
 
-      // 3. Set user data from response
-      if (!data.user) {
-        setLoginError(new Error('Failed to load user profile'));
+      // Get user profile from accounts table to determine role
+      const { data: userProfile, error: profileError } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('auth_user_id', data.user.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        console.error('Profile fetch error:', profileError);
+        setLoginError(new Error('User profile not found'));
         return;
       }
-      setUser(data.user);
-      setLoginError(null); // Clear any previous errors
+
+      if (!userProfile.is_active) {
+        setLoginError(new Error('Account is not active'));
+        return;
+      }
+
+      const isAdmin = ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role);
       
-      // 4. Redirect based on user role
-      if (data.user.isAdmin) {
+      // Set user data
+      setUser({
+        id: userProfile.id,
+        email: userProfile.email,
+        firstName: userProfile.first_name,
+        lastName: userProfile.last_name,
+        isAdmin: isAdmin,
+        role: userProfile.role,
+        status: userProfile.is_active ? 'active' : 'inactive'
+      });
+
+      setLoginError(null);
+
+      // Redirect based on role
+      if (isAdmin) {
         router.push('/admin/dashboard');
       } else {
         router.push('/employee/dashboard');
       }
+
     } catch (error) {
       console.error('Login error:', error);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      if (typeof window !== 'undefined') {
-        delete window.__authToken;
-      }
-      setUser(null);
-      setLoginError(error instanceof Error ? error : new Error(String(error)));
+      setLoginError(new Error('Login failed'));
     } finally {
       setIsLoggingIn(false);
     }

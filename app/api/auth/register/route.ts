@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
     const { data: authData, error: authError } = await supabaseServer().auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName || '',
+        }
+      }
     });
 
     if (authError || !authData.user) {
@@ -25,39 +31,28 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 2. Create user profile with 'archived' status (waiting for admin approval)
+    // 2. Update the existing account with auth_user_id
     const { error: profileError } = await supabaseServer()
-      .from('users')
-      .insert([
-        {
-          auth_user_id: authData.user.id,
-          email,
-          first_name: firstName,
-          last_name: lastName || '',
-          is_admin: false,
-          is_member: true,
-          status: 'archived', // Users with passwords start with 'archived' status
-          subscription_status: 'inactive',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single();
+      .from('accounts')
+      .update({
+        auth_user_id: authData.user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('email', email);
 
     if (profileError) {
-      // Clean up auth user if profile creation fails
+      // Clean up auth user if profile update fails
       await supabaseServer().auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({
         success: false,
-        error: 'Failed to create user profile',
+        error: 'Failed to link account to auth user',
         details: profileError.message,
       }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      message: 'User registered successfully. Your account is pending admin approval.',
+      message: 'User registered successfully. You can now login.',
       userId: authData.user.id,
     });
   } catch (error: any) {

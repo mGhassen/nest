@@ -2,16 +2,17 @@
 
 /**
  * Script to create test users in Supabase
- * Run this after seeding your database to create the auth users
+ * Simple version: Create users, then link to existing accounts
  */
 
 const { createClient } = require('@supabase/supabase-js');
 
 // Supabase configuration
 const supabaseUrl = 'http://127.0.0.1:54421';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nk0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+// Use anon key instead of service role key to avoid JWT issues
+const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 
-const supabase = createClient(supabaseUrl, serviceRoleKey);
+const supabase = createClient(supabaseUrl, anonKey);
 
 // Test users to create
 const testUsers = [
@@ -23,7 +24,7 @@ const testUsers = [
   },
   {
     email: 'hr@guepard.run',
-    password: 'hr123',
+    password: 'hr12345',
     firstName: 'Fatma',
     lastName: 'Trabelsi'
   },
@@ -42,52 +43,72 @@ const testUsers = [
 ];
 
 async function createTestUsers() {
-  console.log('Creating test users in Supabase auth...');
+  console.log('Creating test users in Supabase auth...\n');
   
   for (const user of testUsers) {
     try {
-      console.log(`Creating user: ${user.email}`);
+      console.log(`Processing user: ${user.email}`);
       
-      // Create user in Supabase auth
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      // Step 1: Create user in Supabase auth
+      console.log('  Creating auth user...');
+      const { data: authUser, error: authError } = await supabase.auth.signUp({
         email: user.email,
         password: user.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: user.firstName,
-          last_name: user.lastName
+        options: {
+          data: {
+            first_name: user.firstName,
+            last_name: user.lastName
+          }
         }
       });
       
       if (authError) {
-        console.error(`Error creating auth user ${user.email}:`, authError.message);
+        console.error(`❌ Error creating auth user:`, authError.message);
         continue;
       }
       
-      console.log(`✅ Created auth user: ${user.email} (ID: ${authUser.user.id})`);
+      if (!authUser.user) {
+        console.error(`❌ No user returned for ${user.email}`);
+        continue;
+      }
       
-      // Update the accounts table to link the auth_user_id
+      console.log(`✅ Auth user created: ${user.email} (ID: ${authUser.user.id})`);
+      
+      // Step 2: Update the existing account with auth_user_id
+      console.log('  Linking to existing account...');
       const { error: updateError } = await supabase
         .from('accounts')
-        .update({ auth_user_id: authUser.user.id })
+        .update({ 
+          auth_user_id: authUser.user.id,
+          updated_at: new Date().toISOString()
+        })
         .eq('email', user.email);
       
       if (updateError) {
-        console.error(`Error updating account ${user.email}:`, updateError.message);
-      } else {
-        console.log(`✅ Linked account ${user.email} to auth user`);
+        console.error(`❌ Error linking account:`, updateError.message);
+        continue;
       }
       
+      console.log(`✅ Account linked with auth_user_id: ${authUser.user.id}`);
+      
+      console.log(`🎉 User ${user.email} completed successfully!\n`);
+      
     } catch (error) {
-      console.error(`Error processing user ${user.email}:`, error.message);
+      console.error(`❌ Error processing user ${user.email}:`, error.message);
     }
   }
   
-  console.log('\n🎉 Test users creation completed!');
+  console.log('\n🎉 All test users creation completed!');
   console.log('\nYou can now login with these credentials:');
   testUsers.forEach(user => {
     console.log(`${user.email} / ${user.password}`);
   });
+  
+  console.log('\n📋 Summary:');
+  console.log('- Auth users created in Supabase');
+  console.log('- Existing accounts linked with auth_user_id');
+  console.log('- Employees already created in seed file with account_id links');
+  console.log('- Ready for login and testing!');
 }
 
 createTestUsers().catch(console.error);

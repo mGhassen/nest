@@ -3,21 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/auth";
-import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -33,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
 import { z } from "zod";
 import type { InsertEmployee } from "@/types/schema";
 
@@ -54,7 +42,6 @@ const employeeFormSchema = z.object({
   base_salary: z.number().min(0, "Base salary must be positive"),
   salary_period: z.enum(["HOURLY", "WEEKLY", "BIWEEKLY", "MONTHLY", "YEARLY"]),
   status: z.enum(["ACTIVE", "INACTIVE", "TERMINATED", "ON_LEAVE"]).default("ACTIVE"),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
 });
 
 type EmployeeFormData = z.infer<typeof employeeFormSchema>;
@@ -64,7 +51,6 @@ interface EmployeeFormProps {
 }
 
 export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
-  const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<EmployeeFormData>({
@@ -75,40 +61,51 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
       email: "",
       employment_type: "FULL_TIME",
       hire_date: new Date().toISOString().split('T')[0],
+      position_title: "",
+      base_salary: 0,
+      salary_period: "MONTHLY",
+      status: "ACTIVE",
+      company_id: "", // Will be set from user's company
+      user_id: "", // Will be generated
     },
   });
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: EmployeeFormData) => {
-      return await apiRequest('/employees', {
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        throw new Error('No access token found')
+      }
+
+      const response = await fetch('/api/employees', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(data),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Success",
         description: "Employee created successfully",
       });
       form.reset();
-      setOpen(false);
       onSuccess?.();
     },
     onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+      console.error('Employee creation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create employee",
+        description: error.message || "Failed to create employee",
         variant: "destructive",
       });
     },
@@ -119,23 +116,13 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button data-testid="button-add-employee">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Employee
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl" data-testid="dialog-employee-form">
-        <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
-          <DialogDescription>
-            Create a new employee record with basic information and access credentials.
-          </DialogDescription>
-        </DialogHeader>
-        
+    <Card>
+      <CardHeader>
+        <CardTitle>Employee Information</CardTitle>
+      </CardHeader>
+      <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -171,16 +158,19 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input 
                       type="email" 
-                      placeholder="john.doe@company.com" 
+                      placeholder="employee@company.com" 
                       {...field} 
                       data-testid="input-email"
                     />
                   </FormControl>
                   <FormMessage />
+                  <p className="text-sm text-muted-foreground">
+                    Employee email address (no password required)
+                  </p>
                 </FormItem>
               )}
             />
@@ -247,45 +237,63 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Portal Password (Optional)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="Leave empty to create without portal access" 
-                      {...field} 
-                      data-testid="input-password"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="base_salary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Base Salary</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="5000" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        data-testid="input-base-salary"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setOpen(false)}
-                data-testid="button-cancel"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={createEmployeeMutation.isPending}
-                data-testid="button-submit"
-              >
-                {createEmployeeMutation.isPending ? "Creating..." : "Create Employee"}
-              </Button>
-            </DialogFooter>
+              <FormField
+                control={form.control}
+                name="salary_period"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Salary Period</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-salary-period">
+                          <SelectValue placeholder="Select salary period" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="HOURLY">Hourly</SelectItem>
+                        <SelectItem value="WEEKLY">Weekly</SelectItem>
+                        <SelectItem value="BIWEEKLY">Bi-weekly</SelectItem>
+                        <SelectItem value="MONTHLY">Monthly</SelectItem>
+                        <SelectItem value="YEARLY">Yearly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Button 
+              type="submit" 
+              disabled={createEmployeeMutation.isPending}
+              data-testid="button-submit"
+            >
+              {createEmployeeMutation.isPending ? "Creating..." : "Create Employee"}
+            </Button>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 }

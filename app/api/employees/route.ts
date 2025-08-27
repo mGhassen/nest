@@ -78,19 +78,34 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = supabaseServer()
-    const { data: { session } } = await supabase.auth.getSession()
     
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // Get user from auth header instead of session
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: "No token provided" }, { status: 401 })
+    }
+    
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Verify the token and get user info
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const user = await getUserWithRole(session.user.id)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    // Get user profile from accounts table
+    const { data: userProfile, error: profileError } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    if (profileError || !userProfile) {
+      return NextResponse.json({ error: "User profile not found" }, { status: 404 })
     }
 
     // Check permissions
-    if (!can(user.role, "write", "employee")) {
+    if (!['OWNER', 'HR', 'MANAGER'].includes(userProfile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -101,19 +116,19 @@ export async function POST(request: NextRequest) {
     const { data: membership } = await supabase
       .from('memberships')
       .select('company_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userProfile.id)
       .single()
 
     if (!membership) {
       return NextResponse.json({ error: "No company found" }, { status: 404 })
     }
 
-    // Ensure companyId is set to user's company
+    // Create the employee record - user_id will be null (optional now)
     const employeeData = { 
       ...validatedData, 
       company_id: membership.company_id,
       hire_date: validatedData.hire_date.toISOString().split('T')[0],
-      user_id: session.user.id, // Set the current user as the employee
+      // user_id is optional and will be null by default
     }
 
     const { data: newEmployee, error } = await supabase
@@ -130,7 +145,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(newEmployee, { status: 201 })
+    return NextResponse.json({
+      success: true,
+      employee: newEmployee
+    }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

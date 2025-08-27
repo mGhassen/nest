@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase'
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Login API called');
     
-    const { email, password } = await req.json();
+    const { email, password } = await request.json();
     
     if (!email || !password) {
       return NextResponse.json({
@@ -14,19 +14,18 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = supabaseServer()
+    const supabase = supabaseServer();
     
-    // Simple authentication
-    const { data: { session, user }, error } = await supabase.auth.signInWithPassword({
+    // Authenticate with Supabase
+    const { data: { session, user }, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error || !session || !user) {
+    if (authError || !session || !user) {
       return NextResponse.json({
         success: false,
         error: 'Invalid email or password',
-        details: error?.message,
       }, { status: 401 });
     }
 
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Get user profile from accounts table to determine role
     const { data: userProfile, error: profileError } = await supabase
       .from('accounts')
-      .select('role, is_active')
+      .select('*')
       .eq('auth_user_id', user.id)
       .single();
 
@@ -60,22 +59,21 @@ export async function POST(req: NextRequest) {
       success: true,
       session,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.user_metadata?.first_name || 'User',
-        lastName: user.user_metadata?.last_name || '',
+        id: userProfile.id,
+        email: userProfile.email,
+        firstName: userProfile.first_name,
+        lastName: userProfile.last_name,
         isAdmin: isAdmin,
         role: userProfile.role,
         status: userProfile.is_active ? 'active' : 'inactive'
       }
     });
     
-  } catch (error: any) {
-    console.error('💥 Login error:', error);
+  } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json({
       success: false,
-      error: 'An unexpected error occurred during login',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Internal server error',
     }, { status: 500 });
   }
 } 

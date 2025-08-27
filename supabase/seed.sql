@@ -1,6 +1,6 @@
 -- Seed data for HR system
 -- This file populates the database with initial test data
--- Note: For local development, we'll create accounts without auth.users dependency
+-- Using the new workflow: create accounts first, then employees with account_id
 
 -- 1. Create Company
 INSERT INTO companies (name, country_code, currency) VALUES 
@@ -26,20 +26,14 @@ SELECT id, 'Full Time (40h)', 40 FROM companies WHERE name = 'Guepard'
 UNION ALL
 SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'Guepard';
 
--- 5. Create test users in auth.users table for testing
--- Note: These users should be created through Supabase's auth API, not directly in SQL
--- For now, we'll create accounts without auth user links and you can create the auth users manually
--- or through your application's signup process
+-- 5. Create Accounts (without auth users initially - they'll be created by the script)
+INSERT INTO accounts (id, auth_user_id, email, first_name, last_name, profile_image_url, role, is_active) VALUES
+('550e8400-e29b-41d4-a716-446655440001', NULL, 'admin@guepard.run', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'OWNER', true),
+('550e8400-e29b-41d4-a716-446655440002', NULL, 'hr@guepard.run', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face', 'HR', true),
+('550e8400-e29b-41d4-a716-446655440003', NULL, 'manager@guepard.run', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'MANAGER', true),
+('550e8400-e29b-41d4-a716-446655440004', NULL, 'employee@guepard.run', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face', 'EMPLOYEE', true);
 
--- 6. Create Accounts (without auth users initially)
--- You'll need to create these users through your app's signup process or Supabase dashboard
-INSERT INTO accounts (id, auth_user_id, email, first_name, last_name, profile_image_url, role) VALUES
-('550e8400-e29b-41d4-a716-446655440001', NULL, 'admin@guepard.run', 'Ahmed', 'Ben Ali', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'OWNER'),
-('550e8400-e29b-41d4-a716-446655440002', NULL, 'hr@guepard.run', 'Fatma', 'Trabelsi', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face', 'HR'),
-('550e8400-e29b-41d4-a716-446655440003', NULL, 'manager@guepard.run', 'Mohamed', 'Karray', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'MANAGER'),
-('550e8400-e29b-41d4-a716-446655440004', NULL, 'employee@guepard.run', 'Sara', 'Mansouri', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face', 'EMPLOYEE');
-
--- 7. Create Memberships (User-Company relationships with roles)
+-- 6. Create Memberships (User-Company relationships with roles)
 INSERT INTO memberships (user_id, company_id, role)
 SELECT a.id, c.id, 'OWNER'::user_role FROM accounts a, companies c WHERE a.email = 'admin@guepard.run' AND c.name = 'Guepard'
 UNION ALL
@@ -49,9 +43,9 @@ SELECT a.id, c.id, 'MANAGER'::user_role FROM accounts a, companies c WHERE a.ema
 UNION ALL
 SELECT a.id, c.id, 'EMPLOYEE'::user_role FROM accounts a, companies c WHERE a.email = 'employee@guepard.run' AND c.name = 'Guepard';
 
--- 8. Create Employees
+-- 7. Create Employees with account_id (new workflow)
 INSERT INTO employees (
-  company_id, user_id, first_name, last_name, email, 
+  company_id, account_id, first_name, last_name, email, 
   hire_date, employment_type, position_title, location_id, 
   cost_center_id, work_schedule_id, base_salary, salary_period, status
 )
@@ -101,12 +95,12 @@ SELECT
 FROM accounts a, companies c 
 WHERE a.email = 'employee@guepard.run' AND c.name = 'Guepard';
 
--- 9. Update employee manager relationship
+-- 8. Update employee manager relationship
 UPDATE employees 
 SET manager_id = (SELECT id FROM employees WHERE email = 'manager@guepard.run')
 WHERE email = 'employee@guepard.run';
 
--- 10. Create Leave Policies
+-- 9. Create Leave Policies
 INSERT INTO leave_policies (company_id, code, name, accrual_rule, unit, carry_over_max)
 SELECT 
   c.id, 'ANNUAL', 'Annual Leave', 
@@ -122,7 +116,7 @@ SELECT
   'DAYS', 0
 FROM companies c WHERE c.name = 'Guepard';
 
--- 11. Create Sample Payroll Cycles
+-- 10. Create Sample Payroll Cycles
 INSERT INTO payroll_cycles (company_id, month, year, document_url, notes, status)
 SELECT 
   c.id, 
@@ -144,7 +138,7 @@ SELECT
   'UPLOADED'::payroll_status
 FROM companies c WHERE c.name = 'Guepard';
 
--- 12. Create some sample timesheets
+-- 11. Create some sample timesheets
 INSERT INTO timesheets (employee_id, week_start, status)
 SELECT 
   e.id, 
@@ -162,7 +156,7 @@ SELECT
 FROM employees e 
 WHERE e.email = 'employee@guepard.run';
 
--- 13. Create sample timesheet entries
+-- 12. Create sample timesheet entries
 INSERT INTO timesheet_entries (timesheet_id, date, project, hours, notes)
 SELECT 
   t.id,
@@ -222,18 +216,19 @@ DO $$
 BEGIN
   RAISE NOTICE 'Seed completed successfully!';
   RAISE NOTICE 'Company: Guepard';
-  RAISE NOTICE 'Accounts: Created without auth user links (local development mode)';
-  RAISE NOTICE 'Note: You need to create auth users manually through your app or Supabase dashboard';
-  RAISE NOTICE 'Test Accounts Created:';
-  RAISE NOTICE 'Admin: admin@guepard.run (OWNER role)';
-  RAISE NOTICE 'HR: hr@guepard.run (HR role)';
-  RAISE NOTICE 'Manager: manager@guepard.run (MANAGER role)';
-  RAISE NOTICE 'Employee: employee@guepard.run (EMPLOYEE role)';
+  RAISE NOTICE 'Accounts: Created with NULL auth_user_id (ready for linking)';
+  RAISE NOTICE 'Employees: Created with account_id linked to accounts';
   RAISE NOTICE '';
-  RAISE NOTICE 'To create auth users, you can:';
-  RAISE NOTICE '1. Use your app''s signup form with these emails';
-  RAISE NOTICE '2. Create them manually in Supabase dashboard';
-  RAISE NOTICE '3. Use the Supabase CLI to create users';
+  RAISE NOTICE 'Test Data Created:';
+  RAISE NOTICE 'Admin: admin@guepard.run (OWNER role) - CEO & Founder';
+  RAISE NOTICE 'HR: hr@guepard.run (HR role) - HR Manager';
+  RAISE NOTICE 'Manager: manager@guepard.run (MANAGER role) - Engineering Manager';
+  RAISE NOTICE 'Employee: employee@guepard.run (EMPLOYEE role) - Software Developer';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Next Steps:';
+  RAISE NOTICE '1. Run the create-test-users.js script to create auth users';
+  RAISE NOTICE '2. The script will update auth_user_id in accounts table';
+  RAISE NOTICE '3. Employees are already linked via account_id';
   RAISE NOTICE '';
   RAISE NOTICE 'Locations: Tunis, Sfax';
   RAISE NOTICE 'Cost Centers: Engineering, Sales & Marketing, HR';
