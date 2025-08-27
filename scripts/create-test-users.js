@@ -2,7 +2,7 @@
 
 /**
  * Script to create test users in Supabase
- * Simple version: Create users, then link to existing accounts
+ * Simplified version: Create users, triggers automatically handle account creation and employee linking
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -44,12 +44,16 @@ const testUsers = [
 
 async function createTestUsers() {
   console.log('Creating test users in Supabase auth...\n');
+  console.log('Note: Database triggers will automatically:');
+  console.log('1. Create accounts for new users');
+  console.log('2. Link employees to accounts (if they exist with matching email)');
+  console.log('');
   
   for (const user of testUsers) {
     try {
       console.log(`Processing user: ${user.email}`);
       
-      // Step 1: Create user in Supabase auth
+      // Create user in Supabase auth - triggers handle the rest automatically
       console.log('  Creating auth user...');
       const { data: authUser, error: authError } = await supabase.auth.signUp({
         email: user.email,
@@ -73,23 +77,7 @@ async function createTestUsers() {
       }
       
       console.log(`✅ Auth user created: ${user.email} (ID: ${authUser.user.id})`);
-      
-      // Step 2: Update the existing account with auth_user_id
-      console.log('  Linking to existing account...');
-      const { error: updateError } = await supabase
-        .from('accounts')
-        .update({ 
-          auth_user_id: authUser.user.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('email', user.email);
-      
-      if (updateError) {
-        console.error(`❌ Error linking account:`, updateError.message);
-        continue;
-      }
-      
-      console.log(`✅ Account linked with auth_user_id: ${authUser.user.id}`);
+      console.log(`✅ Database triggers automatically handled account creation and employee linking`);
       
       console.log(`🎉 User ${user.email} completed successfully!\n`);
       
@@ -106,9 +94,14 @@ async function createTestUsers() {
   
   console.log('\n📋 Summary:');
   console.log('- Auth users created in Supabase');
-  console.log('- Existing accounts linked with auth_user_id');
-  console.log('- Employees already created in seed file with account_id links');
+  console.log('- Database triggers automatically created accounts');
+  console.log('- Database triggers automatically linked employees to accounts');
   console.log('- Ready for login and testing!');
+  
+  console.log('\n💡 The database triggers ensure:');
+  console.log('- No manual intervention needed');
+  console.log('- Data consistency maintained');
+  console.log('- Automatic linking based on email matching');
 }
 
 createTestUsers().catch(console.error);

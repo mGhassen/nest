@@ -301,6 +301,8 @@ CREATE POLICY "HR and managers can view all accounts" ON accounts
 -- Create a simple function to automatically create an account when a user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    new_account_id UUID;
 BEGIN
     -- Check if auth.users table exists (for local development compatibility)
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users') THEN
@@ -309,6 +311,7 @@ BEGIN
             SELECT 1 FROM public.accounts 
             WHERE auth_user_id = NEW.id OR email = NEW.email
         ) THEN
+            -- Create the account
             INSERT INTO public.accounts (id, auth_user_id, email, first_name, last_name)
             VALUES (
                 uuid_generate_v4(), -- Generate local UUID
@@ -316,7 +319,22 @@ BEGIN
                 NEW.email,
                 COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
                 COALESCE(NEW.raw_user_meta_data->>'last_name', '')
-            );
+            )
+            RETURNING id INTO new_account_id;
+            
+            -- Now automatically link any existing employee with the same email
+            IF new_account_id IS NOT NULL THEN
+                UPDATE public.employees 
+                SET account_id = new_account_id,
+                    updated_at = NOW()
+                WHERE email = NEW.email 
+                AND account_id IS NULL;
+                
+                -- Log the linking for debugging
+                IF FOUND THEN
+                    RAISE NOTICE 'Automatically linked employee with email % to new account %', NEW.email, new_account_id;
+                END IF;
+            END IF;
         END IF;
     END IF;
     RETURN NEW;
@@ -328,6 +346,33 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create a function to handle linking existing employees when accounts are created manually
+CREATE OR REPLACE FUNCTION public.link_employee_to_account()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If this is a new account, try to link it to an existing employee
+    IF TG_OP = 'INSERT' AND NEW.auth_user_id IS NOT NULL THEN
+        UPDATE public.employees 
+        SET account_id = NEW.id,
+            updated_at = NOW()
+        WHERE email = NEW.email 
+        AND account_id IS NULL;
+        
+        -- Log the linking for debugging
+        IF FOUND THEN
+            RAISE NOTICE 'Automatically linked existing employee with email % to new account %', NEW.email, NEW.id;
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to automatically link employees when accounts are created
+CREATE TRIGGER on_account_created
+    AFTER INSERT ON public.accounts
+    FOR EACH ROW EXECUTE FUNCTION public.link_employee_to_account();
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated;
