@@ -1,10 +1,22 @@
 -- Complete HR System Database Schema
 -- This migration creates all necessary tables with improved structure and Supabase auth integration
 -- Includes both local development and production-ready configurations
-
--- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+--
+-- MANUAL ACCOUNT CREATION SYSTEM:
+-- 1. No triggers - manual control over account creation
+-- 2. When testing, use create-test-users.js script to:
+--    - Create auth users
+--    - Manually create accounts
+--    - Manually link employees
+-- 3. Clean, predictable, no permission issues
+--
+-- SYSTEM BEHAVIOR:
+-- After running this migration:
+-- 1. The accounts table will be EMPTY (no accounts created during migration)
+-- 2. No triggers are created - manual control only
+-- 3. When testing, manually create accounts and link employees
+-- 4. Clean separation between authentication (auth.users), user accounts (accounts),
+--    and employee records (employees) while maintaining proper relationships.
 
 -- Create custom types
 CREATE TYPE user_role AS ENUM ('OWNER', 'HR', 'MANAGER', 'EMPLOYEE');
@@ -62,7 +74,7 @@ CREATE TABLE work_schedules (
 );
 
 -- Create accounts table (linked to Supabase auth)
--- This table has both a local UUID for development and a reference to Supabase auth users
+-- This table is just for auth connection, not business logic
 CREATE TABLE accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -70,37 +82,26 @@ CREATE TABLE accounts (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     profile_image_url TEXT,
-    role user_role DEFAULT 'EMPLOYEE',
     is_active BOOLEAN DEFAULT true,
     last_login TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add comment explaining the dual-column approach
-COMMENT ON TABLE accounts IS 'User accounts table with dual ID approach: id (local UUID) and auth_user_id (Supabase auth reference)';
+-- Add comment explaining the purpose
+COMMENT ON TABLE accounts IS 'User accounts table for auth connection only';
 COMMENT ON COLUMN accounts.id IS 'Local primary key for development and internal references';
 COMMENT ON COLUMN accounts.auth_user_id IS 'Reference to Supabase auth.users(id) for production authentication';
 
--- Create memberships table (User-Company relationships with roles)
-CREATE TABLE memberships (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    role user_role NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id, company_id)
-);
-
--- Create employees table with optional account_id (simplified workflow)
+-- Create employees table with role and company_id (main business entity)
 CREATE TABLE employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    account_id UUID REFERENCES accounts(id) ON DELETE CASCADE, -- Changed from user_id to account_id, nullable
+    account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    role user_role DEFAULT 'EMPLOYEE',
     hire_date DATE NOT NULL,
     employment_type employment_type NOT NULL,
     position_title VARCHAR(255) NOT NULL,
@@ -115,11 +116,8 @@ CREATE TABLE employees (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add unique constraint that only applies when account_id is not null
--- This prevents duplicate account_id per company when an account_id is set
-CREATE UNIQUE INDEX employees_company_account_unique 
-ON employees (company_id, account_id) 
-WHERE account_id IS NOT NULL;
+-- Note: Removed unique constraint on account_id since employees are primary entities
+-- and accounts can be null. This allows flexibility in the linking process.
 
 -- Add comment explaining the optional account_id
 COMMENT ON COLUMN employees.account_id IS 'Optional reference to accounts table. Can be null for employees without user accounts yet.';
@@ -214,13 +212,12 @@ CREATE INDEX idx_locations_company_id ON locations(company_id);
 CREATE INDEX idx_cost_centers_company_id ON cost_centers(company_id);
 CREATE INDEX idx_work_schedules_company_id ON work_schedules(company_id);
 CREATE INDEX idx_accounts_email ON accounts(email);
-CREATE INDEX idx_accounts_role ON accounts(role);
 CREATE INDEX idx_accounts_is_active ON accounts(is_active);
-CREATE INDEX idx_memberships_user_id ON memberships(user_id);
-CREATE INDEX idx_memberships_company_id ON memberships(company_id);
+CREATE INDEX idx_accounts_auth_user_id ON accounts(auth_user_id);
 CREATE INDEX idx_employees_company_id ON employees(company_id);
 CREATE INDEX idx_employees_account_id ON employees(account_id);
 CREATE INDEX idx_employees_manager_id ON employees(manager_id);
+CREATE INDEX idx_employees_role ON employees(role);
 CREATE INDEX idx_leave_policies_company_id ON leave_policies(company_id);
 CREATE INDEX idx_payroll_cycles_company_id ON payroll_cycles(company_id);
 CREATE INDEX idx_timesheets_employee_id ON timesheets(employee_id);
@@ -248,7 +245,6 @@ CREATE TRIGGER update_locations_updated_at BEFORE UPDATE ON locations FOR EACH R
 CREATE TRIGGER update_cost_centers_updated_at BEFORE UPDATE ON cost_centers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_work_schedules_updated_at BEFORE UPDATE ON work_schedules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_memberships_updated_at BEFORE UPDATE ON memberships FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON employees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_leave_policies_updated_at BEFORE UPDATE ON leave_policies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_payroll_cycles_updated_at BEFORE UPDATE ON payroll_cycles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -262,7 +258,6 @@ ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cost_centers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payroll_cycles ENABLE ROW LEVEL SECURITY;
@@ -285,103 +280,51 @@ CREATE POLICY "Users can update their own account" ON accounts
 
 CREATE POLICY "Allow account creation for new users" ON accounts
     FOR INSERT WITH CHECK (
-        -- Allow the trigger function to create accounts
-        auth_user_id IS NOT NULL
+        -- Allow manual account creation
+        true
     );
 
-CREATE POLICY "HR and managers can view all accounts" ON accounts
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM memberships m 
-            WHERE m.user_id = auth.uid()
-            AND m.role IN ('HR', 'MANAGER', 'OWNER')
-        )
-    );
+-- Create RLS policies for other tables
+CREATE POLICY "Allow all operations for testing" ON employees
+    FOR ALL USING (true);
 
--- Create a simple function to automatically create an account when a user signs up
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-DECLARE
-    new_account_id UUID;
-BEGIN
-    -- Check if auth.users table exists (for local development compatibility)
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users') THEN
-        -- Check if account already exists for this user (by email or auth_user_id)
-        IF NOT EXISTS (
-            SELECT 1 FROM public.accounts 
-            WHERE auth_user_id = NEW.id OR email = NEW.email
-        ) THEN
-            -- Create the account
-            INSERT INTO public.accounts (id, auth_user_id, email, first_name, last_name)
-            VALUES (
-                uuid_generate_v4(), -- Generate local UUID
-                NEW.id, -- Reference to Supabase auth user
-                NEW.email,
-                COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
-                COALESCE(NEW.raw_user_meta_data->>'last_name', '')
-            )
-            RETURNING id INTO new_account_id;
-            
-            -- Now automatically link any existing employee with the same email
-            IF new_account_id IS NOT NULL THEN
-                UPDATE public.employees 
-                SET account_id = new_account_id,
-                    updated_at = NOW()
-                WHERE email = NEW.email 
-                AND account_id IS NULL;
-                
-                -- Log the linking for debugging
-                IF FOUND THEN
-                    RAISE NOTICE 'Automatically linked employee with email % to new account %', NEW.email, new_account_id;
-                END IF;
-            END IF;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+CREATE POLICY "Allow all operations for testing" ON companies
+    FOR ALL USING (true);
 
--- Create trigger to automatically create account on user signup
--- Note: This trigger will only fire in production where auth.users table exists
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+CREATE POLICY "Allow all operations for testing" ON locations
+    FOR ALL USING (true);
 
--- Create a function to handle linking existing employees when accounts are created manually
-CREATE OR REPLACE FUNCTION public.link_employee_to_account()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- If this is a new account, try to link it to an existing employee
-    IF TG_OP = 'INSERT' AND NEW.auth_user_id IS NOT NULL THEN
-        UPDATE public.employees 
-        SET account_id = NEW.id,
-            updated_at = NOW()
-        WHERE email = NEW.email 
-        AND account_id IS NULL;
-        
-        -- Log the linking for debugging
-        IF FOUND THEN
-            RAISE NOTICE 'Automatically linked existing employee with email % to new account %', NEW.email, NEW.id;
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+CREATE POLICY "Allow all operations for testing" ON cost_centers
+    FOR ALL USING (true);
 
--- Create trigger to automatically link employees when accounts are created
-CREATE TRIGGER on_account_created
-    AFTER INSERT ON public.accounts
-    FOR EACH ROW EXECUTE FUNCTION public.link_employee_to_account();
+CREATE POLICY "Allow all operations for testing" ON work_schedules
+    FOR ALL USING (true);
 
--- Grant necessary permissions
+CREATE POLICY "Allow all operations for testing" ON leave_policies
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow all operations for testing" ON payroll_cycles
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow all operations for testing" ON timesheets
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow all operations for testing" ON timesheet_entries
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow all operations for testing" ON leave_requests
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow all operations for testing" ON audit_logs
+    FOR ALL USING (true);
+
+-- Grant necessary permissions to authenticated users
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT ALL ON public.companies TO authenticated;
 GRANT ALL ON public.locations TO authenticated;
 GRANT ALL ON public.cost_centers TO authenticated;
 GRANT ALL ON public.work_schedules TO authenticated;
 GRANT ALL ON public.accounts TO authenticated;
-GRANT ALL ON public.memberships TO authenticated;
 GRANT ALL ON public.employees TO authenticated;
 GRANT ALL ON public.leave_policies TO authenticated;
 GRANT ALL ON public.payroll_cycles TO authenticated;
@@ -393,39 +336,50 @@ GRANT ALL ON public.audit_logs TO authenticated;
 -- Grant sequence permissions
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 
--- Production-ready foreign key constraint (optional)
--- This section adds production constraints when auth.users table exists
--- For local development, these constraints are not enforced
+-- Grant necessary permissions to anon role for testing
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT SELECT ON public.companies TO anon;
+GRANT INSERT ON public.accounts TO anon;
+GRANT INSERT ON public.employees TO anon;
+GRANT SELECT, UPDATE ON public.employees TO anon;
 
--- Function to safely add production constraints
-CREATE OR REPLACE FUNCTION add_production_constraints()
-RETURNS void AS $$
-BEGIN
-    -- Only add constraints if auth.users table exists (production environment)
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users') THEN
-        -- The foreign key constraint is already added in the table creation
-        -- auth_user_id column references auth.users(id) ON DELETE CASCADE
-        RAISE NOTICE 'Production constraints already in place - auth_user_id references auth.users(id)';
-        
-        -- Create index on auth_user_id for better performance in production
-        IF NOT EXISTS (
-            SELECT 1 FROM pg_indexes 
-            WHERE indexname = 'idx_accounts_auth_user_id'
-        ) THEN
-            CREATE INDEX idx_accounts_auth_user_id ON accounts(auth_user_id);
-            RAISE NOTICE 'Production index on auth_user_id created successfully';
-        ELSE
-            RAISE NOTICE 'Production index on auth_user_id already exists';
-        END IF;
-    ELSE
-        RAISE NOTICE 'Skipping production constraints - auth.users table not found (local development)';
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+-- We remove all default privileges from public schema on functions to
+--   prevent public access to them
+alter default privileges
+revoke
+execute on functions
+from
+  public;
 
--- Automatically attempt to add production constraints
--- This will succeed in production and gracefully skip in local development
-SELECT add_production_constraints();
+revoke all on schema public
+from
+  public;
 
--- Clean up the helper function
-DROP FUNCTION add_production_constraints();
+revoke all PRIVILEGES on database "postgres"
+from
+  "anon";
+
+revoke all PRIVILEGES on schema "storage"
+from
+  "anon";
+
+revoke all PRIVILEGES on all SEQUENCES in schema "storage"
+from
+  "anon";
+
+revoke all PRIVILEGES on all FUNCTIONS in schema "storage"
+from
+  "anon";
+
+revoke all PRIVILEGES on all TABLES in schema "storage"
+from
+  "anon";
+
+-- We remove all default privileges from public schema on functions to
+--   prevent public access to them by default
+alter default privileges in schema public
+revoke
+execute on functions
+from
+  anon,
+  authenticated;
