@@ -74,26 +74,29 @@ CREATE TABLE work_schedules (
 );
 
 -- Create accounts table (linked to Supabase auth)
--- This table is just for auth connection, not business logic
+-- This table contains user authentication and role information
 CREATE TABLE accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
+    role user_role NOT NULL DEFAULT 'EMPLOYEE',
     profile_image_url TEXT,
     is_active BOOLEAN DEFAULT true,
     last_login TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT valid_account_role CHECK (role IN ('OWNER', 'HR', 'MANAGER', 'EMPLOYEE'))
 );
 
 -- Add comment explaining the purpose
-COMMENT ON TABLE accounts IS 'User accounts table for auth connection only';
+COMMENT ON TABLE accounts IS 'User accounts table for authentication and role management';
 COMMENT ON COLUMN accounts.id IS 'Local primary key for development and internal references';
 COMMENT ON COLUMN accounts.auth_user_id IS 'Reference to Supabase auth.users(id) for production authentication';
+COMMENT ON COLUMN accounts.role IS 'User role for access control and permissions';
 
--- Create employees table with role and company_id (main business entity)
+-- Create employees table with company_id (main business entity)
 CREATE TABLE employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -101,7 +104,6 @@ CREATE TABLE employees (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    role user_role DEFAULT 'EMPLOYEE',
     hire_date DATE NOT NULL,
     employment_type employment_type NOT NULL,
     position_title VARCHAR(255) NOT NULL,
@@ -121,6 +123,10 @@ CREATE TABLE employees (
 
 -- Add comment explaining the optional account_id
 COMMENT ON COLUMN employees.account_id IS 'Optional reference to accounts table. Can be null for employees without user accounts yet.';
+
+-- Add comment explaining the role system
+COMMENT ON TABLE employees IS 'Employee business records with optional user account linking. Role is managed in accounts table for access control and permissions.';
+COMMENT ON COLUMN accounts.role IS 'User role for access control and permissions (OWNER, HR, MANAGER, EMPLOYEE)';
 
 -- Create leave_policies table
 CREATE TABLE leave_policies (
@@ -214,10 +220,10 @@ CREATE INDEX idx_work_schedules_company_id ON work_schedules(company_id);
 CREATE INDEX idx_accounts_email ON accounts(email);
 CREATE INDEX idx_accounts_is_active ON accounts(is_active);
 CREATE INDEX idx_accounts_auth_user_id ON accounts(auth_user_id);
+CREATE INDEX idx_accounts_role ON accounts(role);
 CREATE INDEX idx_employees_company_id ON employees(company_id);
 CREATE INDEX idx_employees_account_id ON employees(account_id);
 CREATE INDEX idx_employees_manager_id ON employees(manager_id);
-CREATE INDEX idx_employees_role ON employees(role);
 CREATE INDEX idx_leave_policies_company_id ON leave_policies(company_id);
 CREATE INDEX idx_payroll_cycles_company_id ON payroll_cycles(company_id);
 CREATE INDEX idx_timesheets_employee_id ON timesheets(employee_id);
@@ -267,7 +273,7 @@ ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for accounts table
--- Simplified policies that work with the new workflow
+-- Simple policies that avoid recursion
 CREATE POLICY "Users can view their own account" ON accounts
     FOR SELECT USING (
         auth.uid() = auth_user_id
@@ -280,9 +286,12 @@ CREATE POLICY "Users can update their own account" ON accounts
 
 CREATE POLICY "Allow account creation for new users" ON accounts
     FOR INSERT WITH CHECK (
-        -- Allow manual account creation
+        -- Allow manual account creation during setup
         true
     );
+
+-- For now, use simple policies to avoid recursion issues
+-- Role-based policies can be added later after testing
 
 -- Create RLS policies for other tables
 CREATE POLICY "Allow all operations for testing" ON employees

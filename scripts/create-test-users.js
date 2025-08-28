@@ -2,7 +2,8 @@
 
 /**
  * Script to create test users in Supabase
- * Creates auth users, then manually creates accounts and links employees
+ * Creates auth users, then manually creates accounts with roles and links employees
+ * Roles are now managed in the accounts table for access control
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -80,7 +81,7 @@ async function createTestUsers() {
       
       console.log(`✅ Auth user created: ${user.email} (ID: ${authUser.user.id})`);
       
-      // Step 2: Create account
+      // Step 2: Create account with role
       const { data: account, error: accountError } = await supabase
         .from('accounts')
         .insert({
@@ -88,6 +89,7 @@ async function createTestUsers() {
           email: user.email,
           first_name: user.firstName,
           last_name: user.lastName,
+          role: user.role,
           is_active: true
         })
         .select()
@@ -129,9 +131,9 @@ async function createTestUsers() {
   
   console.log('\n💡 What was created:');
   console.log('1. Auth users in Supabase auth');
-  console.log('2. Accounts in accounts table (auth connection only)');
-  console.log('3. Employees linked to accounts with roles and company info');
-  console.log('4. Users can now login and access the system');
+  console.log('2. Accounts in accounts table with roles for access control');
+  console.log('3. Employees linked to accounts (roles managed in accounts table)');
+  console.log('4. Users can now login and access the system based on their role');
 }
 
 // Helper function to get company ID
