@@ -3,9 +3,12 @@ import { supabaseServer } from '@/lib/supabase';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params to access the id
+    const { id } = await params;
+    
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.split(' ')[1];
@@ -86,7 +89,7 @@ export async function GET(
           weekly_hours
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (employeeError) {

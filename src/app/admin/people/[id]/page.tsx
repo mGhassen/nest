@@ -15,13 +15,21 @@ import EmployeePayroll from "@/components/employees/employee-payroll"
 import EmployeeDocuments from "@/components/employees/employee-documents"
 import type { EmployeeDetail, PayrollRecord } from "@/types/employee"
 
-export default function EmployeeDetailPage({ params: { id } }: { params: { id: string } }) {
+export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+
+  // Await params to get the id
+  useEffect(() => {
+    params.then(({ id }) => {
+      setEmployeeId(id);
+    });
+  }, [params]);
 
   // Fetch employee data from API
-  const { data: employee, isLoading: employeeLoading, error: employeeError } = usePerson(id);
+  const { data: employee, isLoading: employeeLoading, error: employeeError } = usePerson(employeeId || '');
 
   useEffect(() => {
     if (isLoading) return;
@@ -52,7 +60,7 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
     contracts: employee.contracts || []
   } : null;
 
-  if (isLoading || employeeLoading) {
+  if (isLoading || employeeLoading || !employeeId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <span className="text-lg text-muted-foreground">Loading...</span>
