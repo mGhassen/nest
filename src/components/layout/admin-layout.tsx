@@ -18,13 +18,26 @@ import {
   ChevronDown,
   Settings,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Network,
+  Building2,
+  Calendar,
+  Star
 } from "lucide-react";
 import { getInitials } from "@/lib/auth";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 import Link from "next/link";
 import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,40 +74,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     },
     { 
       name: "People", 
-      href: "/admin/people", 
+      href: "/admin/people/list", 
       icon: Users,
       description: "Manage team members and organization",
       submenu: [
-        { name: "List", href: "/admin/people/list", description: "Employee directory" },
-        { name: "Teams", href: "/admin/people/teams", description: "Team management" },
-        { name: "Org Chart", href: "/admin/people/org-chart", description: "Organization structure" }
+        { name: "List", href: "/admin/people/list", description: "Employee directory", icon: Users },
+        { name: "Teams", href: "/admin/people/teams", description: "Team management", icon: Building2 },
+        { name: "Org Chart", href: "/admin/people/org-chart", description: "Organization structure", icon: Network }
       ]
     },
     { 
       name: "Workload", 
-      href: "/admin/workload", 
+      href: "/admin/workload/leave", 
       icon: Clock,
       description: "Leave and timesheet management",
       submenu: [
-        { name: "Leave/Absence", href: "/admin/workload/leave", description: "Leave requests and approvals" },
-        { name: "Timesheet", href: "/admin/workload/timesheet", description: "Timesheet validation and management" }
+        { name: "Leave/Absence", href: "/admin/workload/leave", description: "Leave requests and approvals", icon: Calendar },
+        { name: "Timesheet", href: "/admin/workload/timesheet", description: "Timesheet validation and management", icon: Clock }
       ]
     },
     { 
       name: "Engage", 
-      href: "/admin/engage", 
+      href: "/admin/engage/meetings", 
       icon: MessageSquare,
       description: "Meetings and performance reviews",
       submenu: [
-        { name: "Meetings", href: "/admin/engage/meetings", description: "Meeting management" },
-        { name: "Review Cycle", href: "/admin/engage/reviews", description: "Performance reviews" }
+        { name: "Meetings", href: "/admin/engage/meetings", description: "Meeting management", icon: MessageSquare },
+        { name: "Review Cycle", href: "/admin/engage/reviews", description: "Performance reviews", icon: Star }
       ]
-    },
-    { 
-      name: "Payroll", 
-      href: "/admin/payroll", 
-      icon: CreditCard,
-      description: "Salary and payments"
     },
     { 
       name: "Settings", 
@@ -135,25 +142,52 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link key={item.name} href={item.href}>
-                    <div
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer group ${
-                        isActive(item.href)
-                          ? "bg-primary text-primary-foreground shadow-md"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 ${isActive(item.href) ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                      <span>{item.name}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </nav>
+            <NavigationMenu className="hidden lg:flex">
+              <NavigationMenuList>
+                {navigation.map((item) => (
+                  <NavigationMenuItem key={item.name}>
+                    {item.submenu ? (
+                      <>
+                        <NavigationMenuTrigger className={cn(
+                          "h-10 px-3 py-2 bg-transparent hover:bg-muted data-[active]:bg-primary data-[active]:text-primary-foreground",
+                          isActive(item.href) && "bg-primary text-primary-foreground"
+                        )}>
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {item.name}
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent>
+                          <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                            {item.submenu.map((subItem) => (
+                              <ListItem
+                                key={subItem.href}
+                                href={subItem.href}
+                                title={subItem.name}
+                                icon={subItem.icon}
+                              >
+                                {subItem.description}
+                              </ListItem>
+                            ))}
+                          </ul>
+                        </NavigationMenuContent>
+                      </>
+                    ) : (
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                            isActive(item.href) && "bg-primary text-primary-foreground hover:bg-primary/90"
+                          )}
+                        >
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {item.name}
+                        </Link>
+                      </NavigationMenuLink>
+                    )}
+                  </NavigationMenuItem>
+                ))}
+              </NavigationMenuList>
+            </NavigationMenu>
             
             {/* User Section */}
             <div className="flex items-center space-x-3">
@@ -319,3 +353,35 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </div>
   );
 }
+
+const ListItem = React.forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a"> & {
+    title: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
+>(({ className, title, icon: Icon, children, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <a
+          ref={ref}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+            className
+          )}
+          {...props}
+        >
+          <div className="flex items-center space-x-2">
+            <Icon className="h-4 w-4" />
+            <div className="text-sm font-medium leading-none">{title}</div>
+          </div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </a>
+      </NavigationMenuLink>
+    </li>
+  );
+});
+ListItem.displayName = "ListItem";

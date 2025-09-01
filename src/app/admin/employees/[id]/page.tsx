@@ -178,6 +178,10 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
               <FileSignature className="h-4 w-4" />
               <span>Contracts</span>
             </TabsTrigger>
+            <TabsTrigger value="payroll" className="flex items-center space-x-2">
+              <DollarSign className="h-4 w-4" />
+              <span>Payroll</span>
+            </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />
               <span>Documents</span>
@@ -356,6 +360,124 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payroll" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Payroll Management</CardTitle>
+                    <CardDescription>
+                      Manage employee payroll and salary information
+                    </CardDescription>
+                  </div>
+                  <Button>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Payroll
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Current Salary Information */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Current Salary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Base Salary:</span>
+                            <span className="font-medium">${employee.salary.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Period:</span>
+                            <span className="font-medium">Annual</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Last Updated:</span>
+                            <span className="font-medium">Dec 1, 2024</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Payroll History</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Total Payments:</span>
+                            <span className="font-medium">12</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Last Payment:</span>
+                            <span className="font-medium">Nov 30, 2024</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Next Payment:</span>
+                            <span className="font-medium">Dec 31, 2024</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Payroll Actions */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                      <DollarSign className="h-6 w-6 mb-2" />
+                      <span>Adjust Salary</span>
+                    </Button>
+                    <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                      <Calendar className="h-6 w-6 mb-2" />
+                      <span>Payment History</span>
+                    </Button>
+                    <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                      <FileText className="h-6 w-6 mb-2" />
+                      <span>Generate Payslip</span>
+                    </Button>
+                  </div>
+
+                  {/* Recent Payroll Documents */}
+                  <div>
+                    <h4 className="font-medium mb-3">Recent Payroll Documents</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">November 2024 Payslip</p>
+                            <p className="text-xs text-muted-foreground">Generated: Nov 30, 2024</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">October 2024 Payslip</p>
+                            <p className="text-xs text-muted-foreground">Generated: Oct 31, 2024</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

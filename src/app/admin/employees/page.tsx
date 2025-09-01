@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import AdminLayout from "@/components/layout/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Plus, Search, Filter } from "lucide-react"
@@ -13,8 +14,6 @@ import type { Employee } from "@/types/schema"
 export default function AdminEmployeesPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [loadingEmployees, setLoadingEmployees] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
@@ -26,19 +25,13 @@ export default function AdminEmployeesPage() {
     }
   }, [user, isLoading, router]);
 
-  // Fetch employees when component mounts
-  useEffect(() => {
-    fetchEmployees()
-  }, [])
-
-  const fetchEmployees = async () => {
-    setLoadingEmployees(true)
-    try {
-      // Get the access token from localStorage
-      const token = localStorage.getItem('access_token')
+  // Fetch employees using React Query
+  const { data: employees = [], isLoading: loadingEmployees, error } = useQuery<Employee[]>({
+    queryKey: ['/api/employees'],
+    queryFn: async () => {
+      const token = localStorage.getItem('access_token');
       if (!token) {
-        console.error('No access token found')
-        return
+        throw new Error('No access token found');
       }
 
       const response = await fetch('/api/employees', {
@@ -46,20 +39,17 @@ export default function AdminEmployeesPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      })
+      });
       
-      if (response.ok) {
-        const data = await response.json()
-        setEmployees(data.employees || [])
-      } else {
-        console.error('Failed to fetch employees:', response.status)
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees');
       }
-    } catch (error) {
-      console.error('Error fetching employees:', error)
-    } finally {
-      setLoadingEmployees(false)
-    }
-  }
+      
+      const data = await response.json();
+      return data.employees || [];
+    },
+    enabled: !!user && user.isAdmin,
+  });
 
   if (isLoading) {
     return (

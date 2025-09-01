@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,23 @@ import {
   Moon,
   Sun,
   Clock,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  Network,
+  Calendar,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "@/components/auth/user-profile";
 import { useTheme } from "@/components/theme-provider";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 export default function AdminHeader() {
   const pathname = usePathname() || '';
@@ -29,14 +41,51 @@ export default function AdminHeader() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
 
-  // Admin navigation items
+  // Admin navigation items with submenus
   const navigationItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: Home, active: pathname === "/admin/dashboard" },
-    { href: "/admin/people", label: "People", icon: Users, active: pathname.startsWith("/admin/people") },
-    { href: "/admin/workload", label: "Workload", icon: Clock, active: pathname.startsWith("/admin/workload") },
-    { href: "/admin/engage", label: "Engage", icon: MessageSquare, active: pathname.startsWith("/admin/engage") },
-    { href: "/admin/payroll", label: "Payroll", icon: DollarSign, active: pathname.startsWith("/admin/payroll") },
-    { href: "/admin/settings", label: "Settings", icon: Settings, active: pathname.startsWith("/admin/settings") },
+    { 
+      href: "/admin/dashboard", 
+      label: "Dashboard", 
+      icon: Home, 
+      active: pathname === "/admin/dashboard" 
+    },
+    { 
+      href: "/admin/people/list", 
+      label: "People", 
+      icon: Users, 
+      active: pathname.startsWith("/admin/people"),
+      submenu: [
+        { href: "/admin/people/list", label: "List", icon: Users },
+        { href: "/admin/people/teams", label: "Teams", icon: Building2 },
+        { href: "/admin/people/org-chart", label: "Org Chart", icon: Network }
+      ]
+    },
+    { 
+      href: "/admin/workload/leave", 
+      label: "Workload", 
+      icon: Clock, 
+      active: pathname.startsWith("/admin/workload"),
+      submenu: [
+        { href: "/admin/workload/leave", label: "Leave/Absence", icon: Calendar },
+        { href: "/admin/workload/timesheet", label: "Timesheet", icon: Clock }
+      ]
+    },
+    { 
+      href: "/admin/engage/meetings", 
+      label: "Engage", 
+      icon: MessageSquare, 
+      active: pathname.startsWith("/admin/engage"),
+      submenu: [
+        { href: "/admin/engage/meetings", label: "Meetings", icon: MessageSquare },
+        { href: "/admin/engage/reviews", label: "Review Cycle", icon: Star }
+      ]
+    },
+    { 
+      href: "/admin/settings", 
+      label: "Settings", 
+      icon: Settings, 
+      active: pathname.startsWith("/admin/settings") 
+    },
   ];
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,42 +128,54 @@ export default function AdminHeader() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1 ml-8">
-            {navigationItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <div className="group relative">
-                  <Button 
-                    variant="ghost" 
-                    className={cn(
-                      "w-10 h-10 p-0 rounded-lg transition-all duration-200 group-hover:w-auto group-hover:px-3",
-                      item.active 
-                        ? "w-auto px-3 bg-primary text-primary-foreground hover:bg-primary/90" 
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    )}
-                    data-testid={`nav-${item.href.slice(1).replace(/\//g, '-')}`}
-                  >
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
-                    <span className={cn(
-                      "ml-2 text-sm font-medium transition-all duration-200 whitespace-nowrap overflow-hidden",
-                      item.active 
-                        ? "inline-block w-auto" 
-                        : "w-0 group-hover:w-auto group-hover:inline-block"
-                    )}>
-                      {item.label}
-                    </span>
-                  </Button>
-                  
-                  {/* Tooltip for non-active items */}
-                  {!item.active && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                      {item.label}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                    </div>
+          <div className="flex ml-8">
+            <NavigationMenu>
+              <NavigationMenuList>
+              {navigationItems.map((item) => (
+                <NavigationMenuItem key={item.href}>
+                  {item.submenu ? (
+                    <>
+                      <NavigationMenuTrigger className={cn(
+                        "h-10 px-3 py-2 bg-transparent hover:bg-muted data-[active]:bg-primary data-[active]:text-primary-foreground",
+                        item.active && "bg-primary text-primary-foreground"
+                      )}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                          {item.submenu.map((subItem) => (
+                            <ListItem
+                              key={subItem.href}
+                              href={subItem.href}
+                              title={subItem.label}
+                              icon={subItem.icon}
+                            >
+                              Navigate to {subItem.label}
+                            </ListItem>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </>
+                  ) : (
+                    <NavigationMenuLink asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                          item.active && "bg-primary text-primary-foreground hover:bg-primary/90"
+                        )}
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    </NavigationMenuLink>
                   )}
-                </div>
-              </Link>
-            ))}
-          </nav>
+                </NavigationMenuItem>
+              ))}
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -188,3 +249,35 @@ export default function AdminHeader() {
     </header>
   );
 }
+
+const ListItem = React.forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a"> & {
+    title: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
+>(({ className, title, icon: Icon, children, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <a
+          ref={ref}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+            className
+          )}
+          {...props}
+        >
+          <div className="flex items-center space-x-2">
+            <Icon className="h-4 w-4" />
+            <div className="text-sm font-medium leading-none">{title}</div>
+          </div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </a>
+      </NavigationMenuLink>
+    </li>
+  );
+});
+ListItem.displayName = "ListItem";

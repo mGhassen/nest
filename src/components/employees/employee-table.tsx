@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, UserX } from "lucide-react";
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
 
@@ -8,9 +15,23 @@ interface EmployeeTableProps {
   employees: Employee[];
   onEdit?: (employee: Employee) => void;
   onDelete?: (id: string) => void;
+  onSetPassword?: (employee: Employee) => void;
+  onResetPassword?: (employee: Employee) => void;
+  onResendInvitation?: (employee: Employee) => void;
+  onArchive?: (employee: Employee) => void;
+  onSuspend?: (employee: Employee) => void;
 }
 
-export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeTableProps) {
+export default function EmployeeTable({ 
+  employees, 
+  onEdit, 
+  onDelete, 
+  onSetPassword, 
+  onResetPassword, 
+  onResendInvitation, 
+  onArchive, 
+  onSuspend 
+}: EmployeeTableProps) {
   // Default handlers if not provided
   const handleEdit = onEdit || ((employee: Employee) => {
     window.location.href = `/admin/employees/${employee.id}`;
@@ -21,6 +42,26 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
       // Default delete behavior - could be enhanced later
       console.log('Delete employee:', id);
     }
+  });
+
+  const handleSetPassword = onSetPassword || ((employee: Employee) => {
+    console.log('Set password for:', employee.email);
+  });
+
+  const handleResetPassword = onResetPassword || ((employee: Employee) => {
+    console.log('Reset password for:', employee.email);
+  });
+
+  const handleResendInvitation = onResendInvitation || ((employee: Employee) => {
+    console.log('Resend invitation for:', employee.email);
+  });
+
+  const handleArchive = onArchive || ((employee: Employee) => {
+    console.log('Archive employee:', employee.email);
+  });
+
+  const handleSuspend = onSuspend || ((employee: Employee) => {
+    console.log('Suspend employee:', employee.email);
   });
   const getInitials = (firstName: string | null, lastName: string | null) => {
     if (!firstName || !lastName) return '??';
@@ -103,7 +144,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                       </span>
                     </div>
                     <div className="ml-3">
-                      <Link href={`/employees/${employee.id}`} className="hover:underline">
+                      <Link href={`/admin/employees/${employee.id}`} className="hover:underline">
                         <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
                           {employee.first_name} {employee.last_name}
                         </div>
@@ -137,27 +178,58 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                   {employee.id?.slice(0, 3).toUpperCase() || 'N/A'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                  <div className="flex items-center space-x-2">
-                    <Link href={`/admin/employees/${employee.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit(employee)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDelete(employee.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => handleEdit(employee)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem onClick={() => handleSetPassword(employee)}>
+                        <Key className="mr-2 h-4 w-4" />
+                        Set Password
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem onClick={() => handleResetPassword(employee)}>
+                        <Key className="mr-2 h-4 w-4" />
+                        Reset Password
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem onClick={() => handleResendInvitation(employee)}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Resend Invitation
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem onClick={() => handleArchive(employee)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Archive
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem onClick={() => handleSuspend(employee)}>
+                        <Ban className="mr-2 h-4 w-4" />
+                        Suspend
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(employee.id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}

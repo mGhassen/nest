@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Clock, Calendar, DollarSign } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 interface StatsCardsProps {
   stats?: {
@@ -11,6 +13,33 @@ interface StatsCardsProps {
 }
 
 export default function StatsCards({ stats }: StatsCardsProps) {
+  const { user } = useAuth();
+  
+  // Fetch analytics data using React Query
+  const { data: analyticsData, isLoading } = useQuery({
+    queryKey: ['/api/analytics'],
+    queryFn: async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No access token found');
+      }
+
+      const response = await fetch('/api/analytics', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics');
+      }
+      
+      return response.json();
+    },
+    enabled: !!user && user.isAdmin,
+  });
+
   const defaultStats = {
     totalEmployees: 0,
     pendingTimesheets: 0,
@@ -18,7 +47,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
     payrollStatus: 'Ready'
   };
 
-  const data = stats || defaultStats;
+  const data = stats || analyticsData || defaultStats;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="stats-cards">
