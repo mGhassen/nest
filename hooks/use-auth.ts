@@ -11,7 +11,7 @@ export interface User {
   lastName?: string;
   isAdmin: boolean;
   status?: string;
-  role?: 'admin' | 'member';
+  role?: 'admin' | 'employee';
 }
 
 interface AuthState {
@@ -50,11 +50,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // Set mounted state to prevent hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Capture current URL for redirect after login
   useEffect(() => {
-    if (!user && !isLoading && typeof window !== 'undefined') {
+    if (mounted && !user && !isLoading) {
       const currentPath = window.location.pathname;
       // Don't capture auth pages or root
       if (!currentPath.startsWith('/auth') && currentPath !== '/') {
@@ -62,7 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setRedirectUrl(currentPath);
       }
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, mounted]);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -77,7 +83,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('Checking for existing session...');
         
         // Check if localStorage has the session data
-        const storedSession = typeof window !== 'undefined' ? 
+        const storedSession = mounted ? 
           window.localStorage.getItem('nest.auth.token') : null;
         console.log('Stored session in localStorage:', storedSession ? 'Present' : 'Not found');
         
@@ -91,38 +97,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
             console.log('Current time:', now, 'Session expires at:', sessionData.expires_at);
             
             if (sessionData.expires_at && sessionData.expires_at > now) {
-              console.log('Session is valid, reducing loading time...');
-              // Reduce loading time by setting loading to false early
-              setIsLoading(false);
-              console.log('Session is valid, checking with API...');
+              console.log('Session is valid, validating with API...');
               
               // Validate with our API
-              try {
-                const response = await fetch('/api/auth/session', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${sessionData.access_token}`
-                  }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success && result.user) {
-                  console.log('Session validated with API, setting user data...', result.user);
-                  setUser(result.user);
-                  setAuthError(null);
-                  setSessionChecked(true);
-                  setIsLoading(false);
-                  console.log('User state set successfully:', result.user.email);
-                  return;
-                } else {
-                  console.log('Session validation failed with API:', result.error);
-                  localStorage.removeItem('nest.auth.token');
-                  // Don't return here, continue to check Supabase client
+              const response = await fetch('/api/auth/session', {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${sessionData.access_token}`
                 }
-              } catch (apiError) {
-                console.error('Error validating session with API:', apiError);
+              });
+              const result = await response.json();
+              console.log('API validation result:', result);
+              
+              if (result.success && result.user) {
+                console.log('Session validated with API, setting user data...', result.user);
+                setUser(result.user);
+                setAuthError(null);
+                setSessionChecked(true);
+                setIsLoading(false);
+                console.log('User state set successfully:', result.user.email);
+                return;
+              } else {
+                console.log('Session validation failed with API:', result.error);
                 localStorage.removeItem('nest.auth.token');
+                // Don't return here, continue to check Supabase client
               }
             } else {
               console.log('Session expired, removing from localStorage');
@@ -157,12 +155,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setAuthError('Failed to check session');
         setUser(null);
         setSessionChecked(true);
-      } finally {
         setIsLoading(false);
       }
     };
 
-    // Run session check
+    // Run session check immediately
     checkSession();
 
     // Listen for auth state changes
@@ -225,15 +222,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      const isAdmin = ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role);
+      // Simplified: Only admin or employee
+      const isAdmin = userProfile.role === 'ADMIN';
       
-      const userData = {
+      const userData: User = {
         id: userProfile.id,
         email: userProfile.email,
         firstName: userProfile.first_name,
         lastName: userProfile.last_name,
         isAdmin: isAdmin,
-        role: userProfile.role,
+        role: isAdmin ? 'admin' : 'employee',
         status: userProfile.is_active ? 'active' : 'inactive'
       };
 
@@ -341,7 +339,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await supabaseClient.auth.signOut();
       
       // Clear all localStorage tokens
-      if (typeof window !== 'undefined') {
+      if (mounted) {
         console.log('🧹 Clearing all tokens from localStorage...');
         localStorage.removeItem('nest.auth.token');
         console.log('✅ All tokens cleared');
@@ -392,7 +390,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('Attempting manual session recovery...');
       
       // Check localStorage first
-      const storedSession = typeof window !== 'undefined' ? 
+      const storedSession = mounted ? 
         window.localStorage.getItem('nest.auth.token') : null;
       
       if (storedSession) {
@@ -451,7 +449,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Manual cleanup function for duplicate tokens
   const cleanupTokens = () => {
-    if (typeof window !== 'undefined') {
+    if (mounted) {
       console.log('🧹 Manual token cleanup...');
       localStorage.removeItem('sb-127-auth-token');
       localStorage.removeItem('access_token');
@@ -462,7 +460,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const value: AuthState = {
-    user: user ? { ...user, role: user.isAdmin ? 'admin' : 'member' } as User & { role: 'admin' | 'member' } : null,
+    user: user ? { ...user, role: user.isAdmin ? 'admin' : 'employee' } as User & { role: 'admin' | 'employee' } : null,
     isLoading,
     isAuthenticated: !!user,
     isLoggingIn,

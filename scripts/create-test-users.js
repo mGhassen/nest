@@ -14,28 +14,28 @@ const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW
 
 const supabase = createClient(supabaseUrl, anonKey);
 
-// Test users to create with their roles
+// Test users to create with their roles (simplified: only ADMIN and EMPLOYEE)
 const testUsers = [
   {
     email: 'admin@guepard.run',
     password: 'admin123',
     firstName: 'Ahmed',
     lastName: 'Ben Ali',
-    role: 'OWNER'
+    role: 'ADMIN'
   },
   {
     email: 'hr@guepard.run',
     password: 'hr12345',
     firstName: 'Fatma',
     lastName: 'Trabelsi',
-    role: 'HR'
+    role: 'ADMIN'
   },
   {
     email: 'manager@guepard.run',
     password: 'manager123',
     firstName: 'Mohamed',
     lastName: 'Karray',
-    role: 'MANAGER'
+    role: 'EMPLOYEE'
   },
   {
     email: 'employee@guepard.run',
@@ -131,9 +131,12 @@ async function createTestUsers() {
   
   console.log('\n💡 What was created:');
   console.log('1. Auth users in Supabase auth');
-  console.log('2. Accounts in accounts table with roles for access control');
+  console.log('2. Accounts in accounts table with simplified roles (ADMIN/EMPLOYEE)');
   console.log('3. Employees linked to accounts (roles managed in accounts table)');
   console.log('4. Users can now login and access the system based on their role');
+  console.log('\n🔐 Role System:');
+  console.log('- ADMIN: Can access everything (employees, payroll, settings, etc.)');
+  console.log('- EMPLOYEE: Can access dashboard, timesheets, leave, profile only');
 }
 
 // Helper function to get company ID

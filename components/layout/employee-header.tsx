@@ -8,35 +8,35 @@ import {
   Bell, 
   Settings,
   Plus,
-  ChevronDown,
-  User,
-  LogOut,
   Menu,
   X,
   Users,
   Clock,
-  Shield,
   FileText,
   Home,
   CalendarDays,
-  DollarSign
+  DollarSign,
+  Moon,
+  Sun
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "@/components/auth/user-profile";
+import { useTheme } from "@/components/theme-provider";
 
-interface HeaderProps {
+interface EmployeeHeaderProps {
   onToggleSidebar?: () => void;
 }
 
-export default function Header({ onToggleSidebar }: HeaderProps) {
+export default function EmployeeHeader({ onToggleSidebar }: EmployeeHeaderProps) {
   const pathname = usePathname() || '';
   const [searchQuery, setSearchQuery] = useState("");
   const [notificationCount] = useState(3);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const { theme, toggleTheme } = useTheme();
 
-  // Navigation items with better grouping
+  // Employee navigation items
   const navigationItems = [
     {
       group: "Core",
@@ -57,14 +57,6 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     }
   ];
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part.charAt(0).toUpperCase())
-      .join('')
-      .slice(0, 2);
-  };
-
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     // TODO: Implement search functionality
@@ -75,8 +67,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   };
 
   const handleDarkMode = () => {
-    document.documentElement.classList.toggle('dark');
-    // TODO: Persist dark mode preference
+    toggleTheme();
   };
 
   const handleUserMenu = () => {
@@ -103,7 +94,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-background border-b h-16 sticky top-0 z-40" data-testid="header">
+      <header className="bg-background border-b h-16 sticky top-0 z-40" data-testid="employee-header">
         <div className="flex items-center justify-between h-full px-4 lg:px-6">
           <div className="flex items-center space-x-4">
             {/* Mobile menu button */}
@@ -201,6 +192,17 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             >
               <Plus className="w-4 h-4" />
               <span className="text-sm font-medium">Add</span>
+            </Button>
+
+            {/* Theme Toggle */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleDarkMode}
+              className="p-2 text-gray-400 hover:text-gray-600 h-9 w-9"
+              data-testid="button-theme-toggle"
+            >
+              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
 
             {/* Notifications */}

@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, Loader2, ArrowLeft, Clock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, ArrowLeft, Clock, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
+import { useTheme } from '@/components/theme-provider';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -170,7 +172,18 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 relative">
+        {/* Theme Toggle */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleTheme}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+          data-testid="button-theme-toggle"
+        >
+          {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </Button>
+        
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -231,7 +244,18 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 relative">
+      {/* Theme Toggle */}
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+        data-testid="button-theme-toggle"
+      >
+        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </Button>
+      
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">

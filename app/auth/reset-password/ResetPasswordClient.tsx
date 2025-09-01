@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { AlertCircle, CheckCircle, Loader2, Clock, Dumbbell } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, Clock, Dumbbell, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/components/theme-provider';
 
 export default function ResetPasswordClient({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Unwrap searchParams Promise (Next.js 15+)
@@ -22,6 +23,7 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
   const router = useRouter();
   const { toast } = useToast();
   const { login } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +85,18 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
   if (!isClient) {
     // Always render a Card skeleton to prevent hydration errors
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4 relative">
+        {/* Theme Toggle */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleTheme}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+          data-testid="button-theme-toggle"
+        >
+          {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </Button>
+        
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-4" />
@@ -100,7 +113,18 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
   // Show error if no valid tokens
   if (!hasValidTokens) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4 relative">
+        {/* Theme Toggle */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleTheme}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+          data-testid="button-theme-toggle"
+        >
+          {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </Button>
+        
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4">
@@ -296,7 +320,18 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4 relative">
+        {/* Theme Toggle */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleTheme}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+          data-testid="button-theme-toggle"
+        >
+          {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </Button>
+        
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
@@ -317,7 +352,18 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4 relative">
+      {/* Theme Toggle */}
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+        data-testid="button-theme-toggle"
+      >
+        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </Button>
+      
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4">

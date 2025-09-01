@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import ClientLayout from "./ClientLayout";
 import { Providers } from "./providers";
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Inter } from "next/font/google";
@@ -23,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <TooltipProvider>
-            <ClientLayout>{children}</ClientLayout>
+            {children}
             <SessionDebug />
           </TooltipProvider>
         </Providers>

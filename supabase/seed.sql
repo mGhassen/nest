@@ -32,7 +32,7 @@ SELECT id, 'Full Time (40h)', 40 FROM companies WHERE name = 'Guepard'
 UNION ALL
 SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'Guepard';
 
--- 5. Create Employees WITHOUT accounts (triggers will link them when users sign up)
+-- 5. Create Employees WITHOUT accounts (accounts will be created by create-test-users.js script)
 INSERT INTO employees (
   company_id, first_name, last_name, email, 
   hire_date, employment_type, position_title, location_id, 
@@ -153,12 +153,13 @@ BEGIN
   RAISE NOTICE 'Sara: employee@guepard.run - Software Developer';
   RAISE NOTICE '';
   RAISE NOTICE 'Next Steps:';
-  RAISE NOTICE '1. Run create-test-users.js to create auth users';
-  RAISE NOTICE '2. Triggers will automatically create accounts and link employees';
-  RAISE NOTICE '3. Users can then login and access the system';
+  RAISE NOTICE '1. Run create-test-users.js to create auth users with simplified roles';
+  RAISE NOTICE '2. Script will create accounts with ADMIN/EMPLOYEE roles and link employees';
+  RAISE NOTICE '3. Users can then login and access the system based on their role';
   RAISE NOTICE '';
-  RAISE NOTICE 'Manager Hierarchy:';
-  RAISE NOTICE 'CEO (Ahmed) → HR Manager (Fatma)';
-  RAISE NOTICE 'CEO (Ahmed) → Engineering Manager (Mohamed)';
-  RAISE NOTICE 'Engineering Manager (Mohamed) → Software Developer (Sara)';
+  RAISE NOTICE 'Role Assignment:';
+  RAISE NOTICE 'CEO (Ahmed) → ADMIN role';
+  RAISE NOTICE 'HR Manager (Fatma) → ADMIN role';
+  RAISE NOTICE 'Engineering Manager (Mohamed) → EMPLOYEE role';
+  RAISE NOTICE 'Software Developer (Sara) → EMPLOYEE role';
 END $$;

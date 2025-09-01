@@ -20,14 +20,15 @@ export default function ProtectedRoute({
   const router = useRouter()
 
   useEffect(() => {
-    // Only redirect if we're sure the user is not authenticated
+    // Only redirect if we're sure the user is not authenticated AND loading is complete
     if (!isLoading && !isAuthenticated) {
       console.log('ProtectedRoute: User not authenticated, redirecting to login');
       router.push("/auth/login")
       return
     }
 
-    if (user && !isLoading) {
+    // Only check permissions after loading is complete and user is authenticated
+    if (!isLoading && user && isAuthenticated) {
       // Check admin requirements
       if (requireAdmin && !user.isAdmin) {
         console.log('ProtectedRoute: Admin required but user is not admin');
@@ -41,6 +42,8 @@ export default function ProtectedRoute({
         router.push("/admin/dashboard")
         return
       }
+      
+      console.log('ProtectedRoute: User is authenticated and authorized');
     }
   }, [user, isLoading, isAuthenticated, requireAdmin, requireEmployee, router])
 

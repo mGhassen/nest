@@ -19,7 +19,7 @@
 --    and employee records (employees) while maintaining proper relationships.
 
 -- Create custom types
-CREATE TYPE user_role AS ENUM ('OWNER', 'HR', 'MANAGER', 'EMPLOYEE');
+CREATE TYPE user_role AS ENUM ('ADMIN', 'EMPLOYEE');
 CREATE TYPE employment_type AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'INTERN');
 CREATE TYPE salary_period AS ENUM ('HOURLY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY');
 CREATE TYPE employee_status AS ENUM ('ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE');
@@ -87,7 +87,7 @@ CREATE TABLE accounts (
     last_login TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT valid_account_role CHECK (role IN ('OWNER', 'HR', 'MANAGER', 'EMPLOYEE'))
+    CONSTRAINT valid_account_role CHECK (role IN ('ADMIN', 'EMPLOYEE'))
 );
 
 -- Add comment explaining the purpose
@@ -126,7 +126,7 @@ COMMENT ON COLUMN employees.account_id IS 'Optional reference to accounts table.
 
 -- Add comment explaining the role system
 COMMENT ON TABLE employees IS 'Employee business records with optional user account linking. Role is managed in accounts table for access control and permissions.';
-COMMENT ON COLUMN accounts.role IS 'User role for access control and permissions (OWNER, HR, MANAGER, EMPLOYEE)';
+COMMENT ON COLUMN accounts.role IS 'Simplified user role: ADMIN (can access everything) or EMPLOYEE (limited access)';
 
 -- Create leave_policies table
 CREATE TABLE leave_policies (

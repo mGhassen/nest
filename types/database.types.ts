@@ -630,7 +630,7 @@ export type Database = {
       payroll_status: "DRAFT" | "UPLOADED" | "APPROVED" | "PROCESSED"
       salary_period: "HOURLY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "YEARLY"
       timesheet_status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED"
-      user_role: "OWNER" | "HR" | "MANAGER" | "EMPLOYEE"
+      user_role: "ADMIN" | "EMPLOYEE"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1287,7 +1287,7 @@ export const Constants = {
       payroll_status: ["DRAFT", "UPLOADED", "APPROVED", "PROCESSED"],
       salary_period: ["HOURLY", "WEEKLY", "BIWEEKLY", "MONTHLY", "YEARLY"],
       timesheet_status: ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"],
-      user_role: ["OWNER", "HR", "MANAGER", "EMPLOYEE"],
+      user_role: ["ADMIN", "EMPLOYEE"],
     },
   },
   storage: {
