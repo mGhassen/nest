@@ -1,7 +1,8 @@
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { usePeopleCreate } from "@/hooks/use-people";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,46 +69,30 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
     },
   });
 
-  const createEmployeeMutation = useMutation({
-    mutationFn: async (data: EmployeeFormData) => {
-      const token = localStorage.getItem('access_token')
-      if (!token) {
-        throw new Error('No access token found')
-      }
+  const createEmployeeMutation = usePeopleCreate();
 
-      const response = await fetch('/api/employees', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
+  // Handle success and error in useEffect to avoid stale closures
+  React.useEffect(() => {
+    if (createEmployeeMutation.isSuccess) {
       toast({
         title: "Success",
         description: "Employee created successfully",
       });
       form.reset();
       onSuccess?.();
-    },
-    onError: (error: Error) => {
-      console.error('Employee creation error:', error);
+    }
+  }, [createEmployeeMutation.isSuccess, toast, form, onSuccess]);
+
+  React.useEffect(() => {
+    if (createEmployeeMutation.isError) {
+      console.error('Employee creation error:', createEmployeeMutation.error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create employee",
+        description: createEmployeeMutation.error?.message || "Failed to create employee",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [createEmployeeMutation.isError, createEmployeeMutation.error, toast]);
 
   const onSubmit = (data: EmployeeFormData) => {
     createEmployeeMutation.mutate(data);

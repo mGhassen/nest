@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { supabaseServer } from '@/lib/supabase'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('🔍 Debug endpoint called');
     
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Test Supabase auth directly
-    let authTest: { success: boolean; error: string | null; details: any } = { success: false, error: null, details: null };
+    let authTest: { success: boolean; error: string | null; details: unknown } = { success: false, error: null, details: null };
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: 'admin@guepard.run',

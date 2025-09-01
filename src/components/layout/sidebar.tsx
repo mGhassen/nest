@@ -28,7 +28,7 @@ const menuItems = [
     id: 'employees',
     label: 'Employees',
     icon: Users,
-    path: '/admin/employees',
+    path: '/admin/people/list',
     shortcut: 'G E',
     roles: ['OWNER', 'ADMIN', 'HR']
   },
@@ -60,7 +60,7 @@ const menuItems = [
     id: 'payroll',
     label: 'Payroll',
     icon: DollarSign,
-    path: '/admin/payroll',
+    path: '/admin/people/payroll',
     shortcut: 'G P',
     roles: ['OWNER', 'ADMIN', 'HR']
   },
@@ -97,7 +97,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   useEffect(() => {
     if (user) {
-      setUserRole(user.role);
+      setUserRole(user.role || null);
     }
   }, [user]);
 
@@ -169,12 +169,12 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
               <span className="text-primary-foreground font-medium text-sm">
-                {user?.name?.charAt(0) || "U"}
+                {user?.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">
-                {user?.name || "User"}
+                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || "User"}
               </p>
               <p className="text-xs text-muted-foreground" data-testid="text-user-role">
                 {user?.isAdmin ? "Administrator" : "Employee"}

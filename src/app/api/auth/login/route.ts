@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         role: userProfile.role,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       success: false,
       error: 'An unexpected error occurred during login',

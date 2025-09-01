@@ -3,12 +3,12 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, Bug } from "lucide-react";
+import { ChevronDown, Bug } from "lucide-react";
 
 export default function SessionDebug() {
   const { user, isLoading, isAuthenticated, authError, logout } = useAuth();
   const [sessionInfo, setSessionInfo] = useState<{ expires_at: number } | null>(null);
-  const [localStorageInfo, setLocalStorageInfo] = useState<string>("");
+
   const [allStorageKeys, setAllStorageKeys] = useState<string[]>([]);
   const [accessTokenStatus, setAccessTokenStatus] = useState<string>("");
   const [refreshTokenStatus, setRefreshTokenStatus] = useState<string>("");
@@ -27,14 +27,11 @@ export default function SessionDebug() {
           // Try to decode JWT to get expiration
           const payload = JSON.parse(atob(accessToken.split('.')[1]));
           const expiresAt = payload.exp * 1000; // Convert to milliseconds
-          setLocalStorageInfo(`Present (expires: ${new Date(expiresAt).toLocaleTimeString()})`);
           setSessionInfo({ expires_at: payload.exp });
         } catch {
-          setLocalStorageInfo('Present (invalid format)');
           setSessionInfo(null);
         }
       } else {
-        setLocalStorageInfo('Not found');
         setSessionInfo(null);
       }
       

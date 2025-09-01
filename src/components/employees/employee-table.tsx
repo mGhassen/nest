@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, UserX } from "lucide-react";
+import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban } from "lucide-react";
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
 
@@ -34,7 +34,7 @@ export default function EmployeeTable({
 }: EmployeeTableProps) {
   // Default handlers if not provided
   const handleEdit = onEdit || ((employee: Employee) => {
-    window.location.href = `/admin/employees/${employee.id}`;
+    window.location.href = `/admin/people/${employee.id}`;
   });
   
   const handleDelete = onDelete || ((id: string) => {
@@ -83,12 +83,7 @@ export default function EmployeeTable({
     );
   };
 
-  const formatSalary = (baseSalary: string | null, salaryPeriod: string | null) => {
-    if (!baseSalary) return 'Not set';
-    const amount = parseFloat(baseSalary);
-    const period = salaryPeriod === 'YEARLY' ? '/year' : '/month';
-    return `€${amount.toLocaleString()}${period}`;
-  };
+
 
   if (employees.length === 0) {
     return (
@@ -144,7 +139,7 @@ export default function EmployeeTable({
                       </span>
                     </div>
                     <div className="ml-3">
-                      <Link href={`/admin/employees/${employee.id}`} className="hover:underline">
+                      <Link href={`/admin/people/${employee.id}`} className="hover:underline">
                         <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
                           {employee.first_name} {employee.last_name}
                         </div>

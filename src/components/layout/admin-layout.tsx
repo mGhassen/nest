@@ -9,8 +9,6 @@ import {
   Dumbbell, 
   LayoutDashboard, 
   Users, 
-  UserCheck, 
-  CreditCard, 
   LogOut,
   Menu,
   Sun,
@@ -22,7 +20,8 @@ import {
   Network,
   Building2,
   Calendar,
-  Star
+  Star,
+  DollarSign
 } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import React, { useState } from "react";
@@ -42,7 +41,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -79,6 +77,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       description: "Manage team members and organization",
       submenu: [
         { name: "List", href: "/admin/people/list", description: "Employee directory", icon: Users },
+        { name: "Create", href: "/admin/people/create", description: "Add new employee", icon: Users },
+        { name: "Payroll", href: "/admin/people/payroll", description: "Payroll management", icon: DollarSign },
         { name: "Teams", href: "/admin/people/teams", description: "Team management", icon: Building2 },
         { name: "Org Chart", href: "/admin/people/org-chart", description: "Organization structure", icon: Network }
       ]

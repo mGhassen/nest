@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      employees: transformedEmployees,
+      people: transformedEmployees,
       count: transformedEmployees.length
     });
 

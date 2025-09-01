@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
         role: userData.role,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Session API error:', error);
     return NextResponse.json({
       success: false,

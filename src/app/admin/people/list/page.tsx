@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
 import AdminLayout from "@/components/layout/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Plus, Search, Filter } from "lucide-react"
 import Link from "next/link"
 import EmployeeTable from "@/components/employees/employee-table"
-import type { Employee } from "@/types/schema"
+import { usePeopleList } from "@/hooks/use-people"
 
 export default function PeopleListPage() {
   const router = useRouter();
@@ -25,31 +24,8 @@ export default function PeopleListPage() {
     }
   }, [user, isLoading, router]);
 
-  // Fetch employees using React Query
-  const { data: employees = [], isLoading: loadingEmployees, error } = useQuery<Employee[]>({
-    queryKey: ['/api/employees'],
-    queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('No access token found');
-      }
-
-      const response = await fetch('/api/employees', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch employees');
-      }
-      
-      const data = await response.json();
-      return data.employees || [];
-    },
-    enabled: !!user && user.isAdmin,
-  });
+  // Fetch people using custom hook
+  const { data: people = [], isLoading: loadingPeople } = usePeopleList();
 
   if (isLoading) {
     return (
@@ -78,7 +54,7 @@ export default function PeopleListPage() {
               <Filter className="mr-2 h-4 w-4" />
               Filter
             </Button>
-            <Link href="/admin/people/list/create">
+            <Link href="/admin/people/create">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Employee
@@ -92,7 +68,7 @@ export default function PeopleListPage() {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search employees..."
+                              placeholder="Search people..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 pr-4 py-2 w-full border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
@@ -101,13 +77,13 @@ export default function PeopleListPage() {
         </div>
 
         <div className="rounded-md border">
-          {loadingEmployees ? (
+          {loadingPeople ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-lg">Loading employees...</div>
+              <div className="text-lg">Loading people...</div>
             </div>
           ) : (
             <EmployeeTable 
-              employees={employees} 
+              employees={people} 
             />
           )}
         </div>

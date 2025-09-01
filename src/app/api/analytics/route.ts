@@ -44,11 +44,11 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Calculate department stats
-    const departmentStats = departments?.reduce((acc: any, profile: any) => {
+    const departmentStats = departments?.reduce((acc: Record<string, number>, profile: { department?: string }) => {
       const dept = profile.department || 'Unassigned';
       acc[dept] = (acc[dept] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {} as Record<string, number>) || {};
 
     const analytics = {
       totalEmployees: totalEmployees || 0,

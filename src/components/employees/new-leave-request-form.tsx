@@ -90,8 +90,8 @@ export default function NewLeaveRequestForm({ employeeId, onSuccess, onCancel }:
       return await apiRequest('POST', '/api/leave-requests', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/employees', employeeId, 'leave-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/employees', employeeId, 'leave-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/people', employeeId, 'leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/people', employeeId, 'leave-balance'] });
       queryClient.invalidateQueries({ queryKey: ['/api/leave-requests'] });
       toast({
         title: "Success",

@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { usePendingLeaveRequests } from "@/hooks/use-leave";
+import { usePendingTimesheets } from "@/hooks/use-timesheets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LeaveRequest, Timesheet } from "@/types/leave-request";
 import {
   Clock,
   Calendar,
@@ -21,39 +21,13 @@ export default function PendingActions() {
   // TODO: Add companyId to User interface or get it from a different source
   const companyId = user?.id; // Using user ID as fallback
 
-  // Fetch pending leave requests
-  const { data: leaveRequests = [] } = useQuery<LeaveRequest[]>({
-    queryKey: ['/api/leave'],
-    queryFn: async () => {
-      const response = await fetch('/api/leave');
-      if (!response.ok) {
-        throw new Error('Failed to fetch leave requests');
-      }
-      return response.json();
-    },
-    enabled: !!companyId,
-  });
+  // Fetch pending leave requests and timesheets using custom hooks
+  const { data: leaveRequests = [] } = usePendingLeaveRequests(companyId);
+  const { data: timesheets = [] } = usePendingTimesheets(companyId);
 
-  // Fetch pending timesheets  
-  const { data: timesheets = [] } = useQuery<Timesheet[]>({
-    queryKey: ['/api/timesheets'],
-    queryFn: async () => {
-      const response = await fetch('/api/timesheets');
-      if (!response.ok) {
-        throw new Error('Failed to fetch timesheets');
-      }
-      return response.json();
-    },
-    enabled: !!companyId,
-  });
-
-  const pendingLeaveRequests = leaveRequests.filter((request) =>
-    request.status === 'SUBMITTED'
-  );
-
-  const pendingTimesheets = timesheets.filter((timesheet) =>
-    timesheet.status === 'SUBMITTED'
-  );
+  // Data is already filtered by the custom hooks
+  const pendingLeaveRequests = leaveRequests;
+  const pendingTimesheets = timesheets;
 
   const totalPendingActions = pendingLeaveRequests.length + pendingTimesheets.length;
 

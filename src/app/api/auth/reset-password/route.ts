@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Password reset API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

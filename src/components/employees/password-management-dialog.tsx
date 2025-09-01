@@ -63,7 +63,7 @@ export default function PasswordManagementDialog({
 
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: { password: string }) => {
-      return await apiRequest('PATCH', `/api/employees/${employeeId}/password`, data);
+      return await apiRequest('PATCH', `/api/admin/people/${employeeId}/password`, data);
     },
     onSuccess: () => {
       toast({

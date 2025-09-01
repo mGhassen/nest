@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,12 @@ import {
   Settings,
   Plus,
   Users,
-  DollarSign,
   Home,
   Building2,
   Moon,
   Sun,
   Clock,
   MessageSquare,
-  ChevronDown,
   Network,
   Calendar,
   Star
@@ -37,8 +35,7 @@ export default function AdminHeader() {
   const pathname = usePathname() || '';
   const [searchQuery, setSearchQuery] = useState("");
   const [notificationCount] = useState(3);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
+
   const { theme, toggleTheme } = useTheme();
 
   // Admin navigation items with submenus
@@ -96,20 +93,6 @@ export default function AdminHeader() {
   const handleNotifications = () => {
     // TODO: Implement notifications panel
   };
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   return (
     <header className="bg-background border-b h-16 sticky top-0 z-40" data-testid="admin-header">
@@ -241,7 +224,7 @@ export default function AdminHeader() {
           </div>
 
           {/* User Menu */}
-          <div className="relative" ref={userMenuRef}>
+          <div className="relative">
             <UserProfile />
           </div>
         </div>

@@ -86,7 +86,7 @@ export default function AccountTable({ accounts, onEdit, onDelete }: AccountTabl
                       </span>
                     </div>
                     <div className="ml-3">
-                      <Link href={`/admin/employees/${account.id}`} className="hover:underline">
+                      <Link href={`/admin/people/${account.id}`} className="hover:underline">
                         <div className="text-sm font-medium text-blue-600" data-testid={`text-account-name-${account.id}`}>
                           {account.first_name} {account.last_name}
                         </div>

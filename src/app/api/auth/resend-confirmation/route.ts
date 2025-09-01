@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       message: 'Confirmation email sent successfully. Please check your inbox.',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Resend confirmation error:', error);
     return NextResponse.json({
       success: false,

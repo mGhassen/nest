@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       message: 'User registered successfully. Your account is pending admin approval.',
       userId: authData.user.id,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       success: false,
       error: 'An unexpected error occurred during registration',

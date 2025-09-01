@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       message: getStatusMessage(userProfile.status, authStatus),
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       success: false,
       error: 'An unexpected error occurred',
