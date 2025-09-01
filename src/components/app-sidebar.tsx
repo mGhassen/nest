@@ -1,0 +1,159 @@
+import * as React from "react"
+import {
+  Dumbbell,
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  DollarSign,
+  Building2,
+  Network,
+  Clock,
+  Calendar,
+  MessageSquare,
+  Star,
+  Settings,
+  LifeBuoy,
+  Send,
+} from "lucide-react"
+
+import { NavMain } from "@/components/nav-main"
+import { NavSecondary } from "@/components/nav-secondary"
+import { NavUser } from "@/components/nav-user"
+import { useAuth } from "@/hooks/use-auth"
+import { getInitials } from "@/lib/auth"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuth()
+
+  const data = {
+    user: {
+      name: user ? `${user.firstName} ${user.lastName}` : "Admin",
+      email: user?.email || "admin@example.com",
+      avatar: "",
+    },
+    navMain: [
+      {
+        title: "Dashboard",
+        url: "/admin/dashboard",
+        icon: LayoutDashboard,
+        isActive: false,
+      },
+      {
+        title: "People",
+        url: "/admin/people/list",
+        icon: Users,
+        isActive: true,
+        items: [
+          {
+            title: "List",
+            url: "/admin/people/list",
+          },
+          {
+            title: "Create",
+            url: "/admin/people/create",
+          },
+          {
+            title: "Payroll",
+            url: "/admin/people/payroll",
+          },
+          {
+            title: "Teams",
+            url: "/admin/people/teams",
+          },
+          {
+            title: "Org Chart",
+            url: "/admin/people/org-chart",
+          },
+        ],
+      },
+      {
+        title: "Workload",
+        url: "/admin/workload/leave",
+        icon: Clock,
+        isActive: false,
+        items: [
+          {
+            title: "Leave/Absence",
+            url: "/admin/workload/leave",
+          },
+          {
+            title: "Timesheet",
+            url: "/admin/workload/timesheet",
+          },
+        ],
+      },
+      {
+        title: "Engage",
+        url: "/admin/engage/meetings",
+        icon: MessageSquare,
+        isActive: false,
+        items: [
+          {
+            title: "Meetings",
+            url: "/admin/engage/meetings",
+          },
+          {
+            title: "Review Cycle",
+            url: "/admin/engage/reviews",
+          },
+        ],
+      },
+      {
+        title: "Settings",
+        url: "/admin/settings",
+        icon: Settings,
+        isActive: false,
+      },
+    ],
+    navSecondary: [
+      {
+        title: "Support",
+        url: "#",
+        icon: LifeBuoy,
+      },
+      {
+        title: "Feedback",
+        url: "#",
+        icon: Send,
+      },
+    ],
+  }
+
+  return (
+    <Sidebar variant="inset" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/admin/dashboard">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Dumbbell className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Nest HR</span>
+                  <span className="truncate text-xs">Admin Portal</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={data.navMain} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" />
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={data.user} />
+      </SidebarFooter>
+    </Sidebar>
+  )
+}
