@@ -3,26 +3,22 @@
 import { usePathname } from 'next/navigation';
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { 
   Dumbbell, 
   LayoutDashboard, 
   Users, 
   UserCheck, 
-  Tags,
-  Calendar, 
-  Clock, 
-  Package, 
   CreditCard, 
-  QrCode, 
   LogOut,
   Menu,
   Sun,
   Moon,
-  User,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen
+  ChevronDown,
+  Settings
 } from "lucide-react";
+import { getInitials } from "@/lib/auth";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Link from "next/link";
@@ -35,7 +31,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -44,9 +39,8 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { theme, setTheme } = useTheme();
   
   const handleLogout = async () => {
     try {
@@ -57,10 +51,30 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const navigation = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Employees", href: "/admin/employees", icon: Users },
-    { name: "Payroll", href: "/admin/payroll", icon: CreditCard },
-    { name: "Settings", href: "/admin/settings", icon: UserCheck },
+    { 
+      name: "Dashboard", 
+      href: "/admin/dashboard", 
+      icon: LayoutDashboard,
+      description: "Overview and analytics"
+    },
+    { 
+      name: "Employees", 
+      href: "/admin/employees", 
+      icon: Users,
+      description: "Manage team members"
+    },
+    { 
+      name: "Payroll", 
+      href: "/admin/payroll", 
+      icon: CreditCard,
+      description: "Salary and payments"
+    },
+    { 
+      name: "Settings", 
+      href: "/admin/settings", 
+      icon: Settings,
+      description: "System configuration"
+    },
   ];
 
   const isActive = (href: string) => {
@@ -75,184 +89,206 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <div className={`hidden md:flex bg-card border-r border-border flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
-        <div className="p-6">
-          <Link href="/admin/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Dumbbell className="w-4 h-4 text-primary-foreground" />
-            </div>
-            {!sidebarCollapsed && (
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">WildEnergy</h1>
-              </div>
-            )}
-          </Link>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.name} href={item.href}>
-                <div
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                    isActive(item.href)
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                  title={sidebarCollapsed ? item.name : undefined}
-                >
-                  <Icon className={sidebarCollapsed ? "w-7 h-7" : "w-5 h-5"} />
-                  {!sidebarCollapsed && <span>{item.name}</span>}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Header */}
+      <header className="bg-card/80 backdrop-blur-sm shadow-sm border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo and Brand */}
+            <div className="flex items-center space-x-4">
+              <Link href="/admin/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-all duration-200 group">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Dumbbell className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">WildEnergy</h1>
+                  <p className="text-xs text-muted-foreground -mt-1">Admin Portal</p>
                 </div>
               </Link>
-            );
-          })}
-        </nav>
-        {/* Collapse/expand button at the bottom of the sidebar */}
-        <div className="p-2 border-t border-border flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="w-7 h-7" />
-            ) : (
-              <ChevronLeft className="w-7 h-7" />
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-card border-b border-border px-4 sm:px-6 py-4">
-          <div className="flex items-center w-full">
-            {/* Mobile logo and title */}
-            <Link href="/admin/dashboard" className="md:hidden flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Dumbbell className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">WildEnergy Admin</h1>
-                <p className="text-xs text-muted-foreground">Management Portal</p>
-              </div>
-            </Link>
-
-            {/* Spacer to push right content */}
-            <div className="flex-1" />
-
-            {/* Desktop theme toggle and user menu */}
-            <div className="hidden md:flex items-center space-x-4 ml-auto">
-              {/* Theme toggle */}
-              <ToggleGroup type="single" value={theme} onValueChange={(value) => value && setTheme(value as "light" | "dark")}>
-                <ToggleGroupItem value="light" size="sm" className="px-3">
-                  <Sun className="w-4 h-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="dark" size="sm" className="px-3">
-                  <Moon className="w-4 h-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
-
-              {/* User dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <User className="w-5 h-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user?.firstName || user?.email || "Account"}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-1">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <div
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer group ${
+                        isActive(item.href)
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive(item.href) ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                      <span>{item.name}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </nav>
+            
+            {/* User Section */}
+            <div className="flex items-center space-x-3">
+              {/* Theme toggle button - visible on all screens */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
+                {theme === "light" ? (
+                  <Moon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                ) : (
+                  <Sun className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                )}
+              </Button>
 
-            {/* Mobile menu button (right side on mobile only) */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden ml-2">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] sm:w-[350px] p-0">
-                <SheetHeader className="p-6 border-b border-border">
-                  <SheetTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                      <Dumbbell className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <span className="text-lg font-semibold">WildEnergy Admin</span>
-                      <p className="text-sm text-muted-foreground">Management Portal</p>
-                    </div>
-                  </SheetTitle>
-                </SheetHeader>
-                
-                <div className="flex-1 p-4 space-y-2">
-                  {navigation.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link key={item.name} href={item.href} onClick={handleNavigationClick}>
-                        <div
-                          className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                            isActive(item.href)
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                          }`}
-                        >
-                          <Icon className="w-5 h-5" />
-                          <span>{item.name}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-                
-                {/* User info at bottom of mobile menu */}
-                <div className="p-4 border-t border-border">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-primary-foreground">A</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Admin User</p>
-                      <p className="text-xs text-muted-foreground">Administrator</p>
+              {/* Mobile menu button */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden">
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader className="pb-6">
+                    <SheetTitle className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center">
+                        <Dumbbell className="w-5 h-5 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <span className="text-lg font-bold">WildEnergy</span>
+                        <p className="text-xs text-muted-foreground">Admin Portal</p>
+                      </div>
+                    </SheetTitle>
+                  </SheetHeader>
+                  
+                  {/* User Profile in Mobile Menu */}
+                  <div className="flex items-center space-x-3 p-4 bg-muted/50 rounded-lg mb-6">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user ? getInitials(user.firstName || "A", user.lastName || "") : "A"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">
+                        {user ? `${user.firstName} ${user.lastName}` : "Admin"}
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="text-xs">Admin</Badge>
+                        <span className="text-xs text-muted-foreground">Administrator</span>
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <LogOut className="w-4 h-4 mr-3" />
-                    Logout
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
+                  <div className="space-y-2">
+                    {navigation.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link key={item.name} href={item.href} onClick={handleNavigationClick}>
+                          <div
+                            className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                              isActive(item.href)
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                            <div className="flex-1">
+                              <div>{item.name}</div>
+                              <div className="text-xs opacity-70">{item.description}</div>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="absolute bottom-4 left-4 right-4 space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-red-600 hover:text-red-700"
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-3" />
+                      Logout
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {/* Desktop user profile */}
+              <div className="hidden lg:flex items-center space-x-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-3 p-2 hover:bg-accent/50">
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                          {user ? getInitials(user.firstName || "A", user.lastName || "") : "A"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-foreground">
+                          {user ? `${user.firstName} ${user.lastName}` : "Admin"}
+                        </p>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary" className="text-xs">Admin</Badge>
+                          <span className="text-xs text-muted-foreground">Administrator</span>
+                        </div>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-3 py-2">
+                      <p className="text-sm font-medium">{user ? `${user.firstName} ${user.lastName}` : "Admin"}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email || "admin@example.com"}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/settings">
+                        <Settings className="w-4 h-4 mr-3" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={toggleTheme}>
+                      {theme === "light" ? (
+                        <>
+                          <Moon className="w-4 h-4 mr-3" />
+                          Dark Mode
+                        </>
+                      ) : (
+                        <>
+                          <Sun className="w-4 h-4 mr-3" />
+                          Light Mode
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                      <LogOut className="w-4 h-4 mr-3" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
-      </div>
     </div>
   );
 }

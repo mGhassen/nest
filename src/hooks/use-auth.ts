@@ -252,6 +252,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       setUser(data.user);
       setLoginError(null); // Clear any previous errors
+
+      // Redirect based on user role
+      console.log('Login successful, redirecting user:', data.user);
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        if (data.user.isAdmin) {
+          console.log('Redirecting admin to /admin/dashboard');
+          router.push('/admin/dashboard');
+        } else {
+          console.log('Redirecting employee to /employee/dashboard');
+          router.push('/employee/dashboard');
+        }
+      }, 100);
     } catch (error) {
       console.error('Login error:', error);
       localStorage.removeItem('access_token');
