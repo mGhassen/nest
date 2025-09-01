@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth"
 import { useEffect } from "react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ReactNode } from "react"
 
 interface ProtectedRouteProps {
@@ -17,27 +17,32 @@ export default function ProtectedRoute({
   requireEmployee = false 
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
+    // Only redirect if we're sure the user is not authenticated
     if (!isLoading && !isAuthenticated) {
-      redirect("/auth/login")
+      console.log('ProtectedRoute: User not authenticated, redirecting to login');
+      router.push("/auth/login")
       return
     }
 
     if (user && !isLoading) {
       // Check admin requirements
       if (requireAdmin && !user.isAdmin) {
-        redirect("/unauthorized")
+        console.log('ProtectedRoute: Admin required but user is not admin');
+        router.push("/unauthorized")
         return
       }
 
       // Check employee requirements
       if (requireEmployee && user.isAdmin) {
-        redirect("/admin/dashboard")
+        console.log('ProtectedRoute: Employee required but user is admin');
+        router.push("/admin/dashboard")
         return
       }
     }
-  }, [user, isLoading, isAuthenticated, requireAdmin, requireEmployee])
+  }, [user, isLoading, isAuthenticated, requireAdmin, requireEmployee, router])
 
   if (isLoading) {
     return (

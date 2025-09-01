@@ -68,6 +68,13 @@ export default function NewLeaveRequestForm({ employeeId, onSuccess, onCancel }:
   // Fetch available leave policies
   const { data: leavePolicies = [] } = useQuery<any[]>({
     queryKey: ['/api/leave-policies'],
+    queryFn: async () => {
+      const response = await fetch('/api/leave-policies');
+      if (!response.ok) {
+        throw new Error('Failed to fetch leave policies');
+      }
+      return response.json();
+    },
     retry: false,
   });
 

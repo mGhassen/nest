@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "./ClientLayout";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "./providers";
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Inter } from "next/font/google";
+import SessionDebug from "@/components/debug/session-debug";
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,11 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <TooltipProvider>
-          <ThemeProvider>
+        <Providers>
+          <TooltipProvider>
             <ClientLayout>{children}</ClientLayout>
-          </ThemeProvider>
-        </TooltipProvider>
+            <SessionDebug />
+          </TooltipProvider>
+        </Providers>
       </body>
     </html>
   );

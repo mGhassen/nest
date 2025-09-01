@@ -14,6 +14,13 @@ import {
 export default function AdvancedAnalytics() {
   const { data: analytics } = useQuery({
     queryKey: ['/api/analytics/advanced'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/advanced');
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data');
+      }
+      return response.json();
+    },
     retry: false,
   });
 

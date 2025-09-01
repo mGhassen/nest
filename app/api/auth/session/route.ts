@@ -3,39 +3,58 @@ import { supabaseServer } from '@/lib/supabase';
 
 export async function GET(req: NextRequest) {
   try {
+    // Check for Authorization header first
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.split(' ')[1];
     
-    console.log('Session API called with token:', token ? 'present' : 'missing');
+    console.log('Session API called, token:', token ? 'present' : 'missing');
     
-    if (!token) {
-      console.log('No token provided in session API');
+    const supabase = supabaseServer();
+    let session = null;
+    let sessionError = null;
+    
+    if (token) {
+      // Validate token directly
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (userError || !user) {
+        console.log('Token validation failed:', userError);
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid token',
+        }, { status: 401 });
+      }
+      
+      // Create a mock session object for consistency
+      session = { user };
+    } else {
+      // Fallback to cookie-based session
+      const { data: { session: cookieSession }, error: cookieError } = await supabase.auth.getSession();
+      session = cookieSession;
+      sessionError = cookieError;
+    }
+    
+    if (sessionError) {
+      console.log('Session error:', sessionError);
       return NextResponse.json({
         success: false,
-        error: 'No token provided',
+        error: 'Session error',
+      }, { status: 401 });
+    }
+    
+    if (!session?.user) {
+      console.log('No valid session found');
+      return NextResponse.json({
+        success: false,
+        error: 'No valid session',
       }, { status: 401 });
     }
 
-    // Get user from token
-    console.log('Validating token with Supabase...');
-    const { data: { user }, error: userError } = await supabaseServer().auth.getUser(token);
-    
-    if (userError) {
-      console.log('Token validation error:', userError);
-    }
-    
-    if (userError || !user) {
-      console.log('Invalid or expired token');
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid or expired token',
-      }, { status: 401 });
-    }
-
-    console.log('Token validated, user ID:', user.id);
+    const user = session.user;
+    console.log('Session validated, user ID:', user.id);
 
     // Get user profile
-    const { data: userData, error: dbError } = await supabaseServer()
+    const { data: userData, error: dbError } = await supabase
       .from('accounts')
       .select('*')
       .eq('auth_user_id', user.id)

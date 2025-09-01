@@ -25,17 +25,15 @@ export const createSupabaseClient = () => {
     throw new Error('Missing Supabase client environment variables');
   }
   
-  if (typeof window === 'undefined') {
-    // Server-side - use service role key
-    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseServiceRoleKey) {
-      throw new Error('Missing Supabase service role key for server-side operations');
+  // Configure client without automatic session persistence
+  // We'll handle session storage manually to avoid duplicate tokens
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false, // Disable automatic refresh
+      persistSession: false,   // Disable automatic persistence
+      flowType: 'pkce'
     }
-    return createClient(supabaseUrl, supabaseServiceRoleKey);
-  }
-  
-  // Client-side
-  return createClient(supabaseUrl, supabaseAnonKey);
+  });
 };
 
 // For backward compatibility - create only when needed

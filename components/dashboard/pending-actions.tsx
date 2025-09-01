@@ -19,17 +19,33 @@ import Link from "next/link";
 
 export default function PendingActions() {
   const { user } = useAuth();
-  const companyId = user?.companyId;
+  // For now, we'll use a default company ID or get it from user context
+  // TODO: Add companyId to User interface or get it from a different source
+  const companyId = user?.id; // Using user ID as fallback
 
   // Fetch pending leave requests
   const { data: leaveRequests = [] } = useQuery<LeaveRequest[]>({
     queryKey: ['/api/leave-requests'],
+    queryFn: async () => {
+      const response = await fetch('/api/leave-requests');
+      if (!response.ok) {
+        throw new Error('Failed to fetch leave requests');
+      }
+      return response.json();
+    },
     enabled: !!companyId,
   });
 
   // Fetch pending timesheets  
   const { data: timesheets = [] } = useQuery<Timesheet[]>({
     queryKey: ['/api/companies', companyId, 'timesheets'],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${companyId}/timesheets`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch timesheets');
+      }
+      return response.json();
+    },
     enabled: !!companyId,
   });
 

@@ -2,12 +2,7 @@
 
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  'http://127.0.0.1:54421',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-);
+import { supabase } from '@/lib/supabase';
 
 export interface User {
   id: string;
@@ -28,7 +23,9 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  recoverSession: () => Promise<boolean>;
   authError: string | null; // <-- Added
+  cleanupTokens: () => void; // <-- Added
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -50,153 +47,186 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<Error | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null); // NEW
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // Fetch user session
-  const fetchSession = async (token: string) => {
-    try {
-      console.log('Fetching session with token:', token ? 'present' : 'missing');
-      
-      const response = await fetch('/api/auth/session', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      console.log('Session API response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('Session API error response:', errorData);
-        
-        // Handle specific status codes
-        if (response.status === 403) {
-          // User is archived, suspended, or pending
-          if (errorData.status === 'archived') {
-            // Redirect to waiting approval page
-            router.push('/auth/waiting-approval');
-            setAuthError(errorData.error || 'Account pending approval');
-            return null;
-          }
-          setAuthError(errorData.error || 'Account access denied');
-          return null;
-        }
-        
-        if (response.status === 401) {
-          console.log('401 error - clearing tokens and redirecting to login');
-          // Clear invalid token
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          if (typeof window !== 'undefined') {
-            delete window.__authToken;
-          }
-          setUser(null);
-          router.push('/login');
-          setAuthError('Your session has expired or is invalid. Please log in again.');
-          return null;
-        }
-        
-        setAuthError(errorData.error || 'Failed to fetch session');
-        return null;
-      }
-
-      const data = await response.json();
-      console.log('Session API success response:', data);
-      
-      if (data.success && data.user) {
-        setUser(data.user);
-        setAuthError(null); // Clear any previous errors
-        return data.user;
-      }
-      return null;
-    } catch (error) {
-      console.error('Session fetch error:', error);
-      setAuthError(
-        error instanceof Error && error.message.includes('expired')
-          ? 'Your session has expired. Please log in again.'
-          : 'An unexpected authentication error occurred. Please try again.'
-      );
-      return null;
-    }
-  };
-
-  // Check for existing session on mount - DISABLED to fix login flow
+  // Capture current URL for redirect after login
   useEffect(() => {
-    // Don't auto-check session on mount - let login handle it
-    setIsLoading(false);
+    if (!user && !isLoading && typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      // Don't capture auth pages or root
+      if (!currentPath.startsWith('/auth') && currentPath !== '/') {
+        console.log('Capturing redirect URL:', currentPath);
+        setRedirectUrl(currentPath);
+      }
+    }
+  }, [user, isLoading]);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // Only run once per session
+        if (sessionChecked) {
+          console.log('Session already checked, skipping...');
+          return;
+        }
+        
+        console.log('Checking for existing session...');
+        
+        // Check if localStorage has the session data
+        const storedSession = typeof window !== 'undefined' ? 
+          window.localStorage.getItem('nest.auth.token') : null;
+        console.log('Stored session in localStorage:', storedSession ? 'Present' : 'Not found');
+        
+        if (storedSession) {
+          try {
+            const sessionData = JSON.parse(storedSession);
+            console.log('Parsed session data:', sessionData);
+            
+            // Check if session is still valid (not expired)
+            const now = Math.floor(Date.now() / 1000);
+            console.log('Current time:', now, 'Session expires at:', sessionData.expires_at);
+            
+            if (sessionData.expires_at && sessionData.expires_at > now) {
+              console.log('Session is valid, reducing loading time...');
+              // Reduce loading time by setting loading to false early
+              setIsLoading(false);
+              console.log('Session is valid, checking with API...');
+              
+              // Validate with our API
+              try {
+                const response = await fetch('/api/auth/session', {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${sessionData.access_token}`
+                  }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.user) {
+                  console.log('Session validated with API, setting user data...');
+                  setUser(result.user);
+                  setAuthError(null);
+                  setSessionChecked(true);
+                  setIsLoading(false);
+                  return;
+                } else {
+                  console.log('Session validation failed with API:', result.error);
+                  localStorage.removeItem('nest.auth.token');
+                  // Don't return here, continue to check Supabase client
+                }
+              } catch (apiError) {
+                console.error('Error validating session with API:', apiError);
+                localStorage.removeItem('nest.auth.token');
+              }
+            } else {
+              console.log('Session expired, removing from localStorage');
+              localStorage.removeItem('nest.auth.token');
+            }
+          } catch (error) {
+            console.error('Error parsing stored session:', error);
+            localStorage.removeItem('nest.auth.token');
+          }
+        }
+        
+        // If no valid session found, check Supabase client as fallback
+        const supabaseClient = supabase();
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        
+        if (error) {
+          console.error('Session check error:', error);
+          setAuthError('Session validation failed');
+        } else if (session?.user) {
+          console.log('User found in Supabase session:', session.user.email);
+          await fetchUserProfile(session.user.id);
+        } else {
+          console.log('No user in session');
+          setUser(null);
+        }
+        
+        // Mark session as checked and stop loading
+        setSessionChecked(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Session check error:', error);
+        setAuthError('Failed to check session');
+        setUser(null);
+        setSessionChecked(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Run session check
+    checkSession();
+
+    // Listen for auth state changes
+    const supabaseClient = supabase();
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+      async (event: string, session: any) => {
+        console.log('Auth state change:', event, session?.user?.id, 'Current user:', user?.email);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Only fetch profile if we don't already have a user (avoid conflicts during login)
+          if (!user) {
+            console.log('No user in state, fetching profile for SIGNED_IN event');
+            await fetchUserProfile(session.user.id);
+          } else {
+            console.log('User already exists, ignoring SIGNED_IN event to avoid conflicts');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log('SIGNED_OUT event, clearing user state');
+          setUser(null);
+          setAuthError(null);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed, updating user profile');
+          await fetchUserProfile(session.user.id);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Refresh the current session
-  const refreshSession = async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return null;
-    return fetchSession(token);
-  };
-
-  const login = async (email: string, password: string) => {
-    setIsLoggingIn(true);
-    setLoginError(null);
+  const fetchUserProfile = async (userId: string) => {
     try {
-      // Use Supabase client authentication directly
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Supabase auth error:', error);
-        setLoginError(new Error(error.message));
-        return;
-      }
-
-      if (!data.session || !data.user) {
-        setLoginError(new Error('No session or user data received'));
-        return;
-      }
-
-      console.log('Supabase login successful:', data.user.email);
-      console.log('Session:', data.session);
-
-      // Store tokens
-      localStorage.setItem('access_token', data.session.access_token);
-      if (data.session.refresh_token) {
-        localStorage.setItem('refresh_token', data.session.refresh_token);
-      }
-      if (typeof window !== 'undefined') {
-        window.__authToken = data.session.access_token;
-      }
-
-      // Clean up any pending email
-      localStorage.removeItem('pending_email');
-      localStorage.removeItem('pending_approval_email');
-      localStorage.removeItem('account_status_email');
-
-      // Get user profile from accounts table to determine role
-      const { data: userProfile, error: profileError } = await supabase
+      console.log('Fetching user profile for ID:', userId);
+      const supabaseClient = supabase();
+      const { data: userProfile, error: profileError } = await supabaseClient
         .from('accounts')
         .select('*')
-        .eq('auth_user_id', data.user.id)
+        .eq('auth_user_id', userId)
         .single();
 
-      if (profileError || !userProfile) {
+      if (profileError) {
         console.error('Profile fetch error:', profileError);
-        setLoginError(new Error('User profile not found'));
+        setUser(null);
+        setAuthError('Failed to fetch user profile');
+        return;
+      }
+
+      if (!userProfile) {
+        console.error('No user profile found');
+        setUser(null);
+        setAuthError('User profile not found');
         return;
       }
 
       if (!userProfile.is_active) {
-        setLoginError(new Error('Account is not active'));
+        setUser(null);
+        setAuthError('Account is not active');
         return;
       }
 
       const isAdmin = ['OWNER', 'HR', 'MANAGER'].includes(userProfile.role);
       
-      // Set user data
-      setUser({
+      const userData = {
         id: userProfile.id,
         email: userProfile.email,
         firstName: userProfile.first_name,
@@ -204,20 +234,100 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAdmin: isAdmin,
         role: userProfile.role,
         status: userProfile.is_active ? 'active' : 'inactive'
+      };
+
+      setUser(userData);
+      setAuthError(null);
+      console.log('User profile loaded successfully:', userData.email);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setUser(null);
+      setAuthError('Failed to load user profile');
+    }
+  };
+
+  // Refresh the current session
+  const refreshSession = async () => {
+    try {
+      console.log('Refreshing session...');
+      const supabaseClient = supabase();
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      
+      if (error) {
+        console.error('Session refresh error:', error);
+        setAuthError('Failed to refresh session');
+        return;
+      }
+      
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setAuthError('No valid session found');
+      }
+    } catch (error) {
+      console.error('Session refresh error:', error);
+      setAuthError('Failed to refresh session');
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    console.log('Login function called for:', email);
+    setIsLoggingIn(true);
+    setLoginError(null);
+    setAuthError(null);
+    
+    try {
+      // Use the API endpoint for authentication
+      console.log('Attempting login via API...');
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      setLoginError(null);
+      const result = await response.json();
 
-      // Redirect based on role
-      if (isAdmin) {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/employee/dashboard');
+      if (!response.ok || !result.success) {
+        console.error('Login API error:', result.error);
+        const loginError = new Error(result.error || 'Login failed');
+        setLoginError(loginError);
+        setIsLoggingIn(false);
+        throw loginError;
       }
+
+      console.log('Login API successful:', result.user.email);
+
+      // Clean up any pending email
+      localStorage.removeItem('pending_email');
+      localStorage.removeItem('pending_approval_email');
+      localStorage.removeItem('account_status_email');
+
+      // The API already returned the user profile data
+      const userData = result.user;
+      console.log('User data from API:', userData);
+      
+      // Store session data in localStorage for persistence
+      console.log('Storing session in localStorage...');
+      console.log('Session data to store:', result.session);
+      localStorage.setItem('nest.auth.token', JSON.stringify(result.session));
+      
+      // Set user data
+      console.log('Setting user data in state...');
+      setUser(userData);
+      setLoginError(null);
+      setIsLoggingIn(false);
+      console.log('Login completed successfully - user state updated');
+      // The useEffect will handle the redirect based on user role
 
     } catch (error) {
       console.error('Login error:', error);
-      setLoginError(new Error('Login failed'));
+      const loginError = new Error('Login failed');
+      setLoginError(loginError);
+      throw loginError;
     } finally {
       setIsLoggingIn(false);
     }
@@ -225,32 +335,95 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        await fetch('/api/auth/logout', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include'
-        });
+      console.log('Logging out...');
+      const supabaseClient = supabase();
+      await supabaseClient.auth.signOut();
+      
+      // Clear all localStorage tokens
+      if (typeof window !== 'undefined') {
+        console.log('🧹 Clearing all tokens from localStorage...');
+        localStorage.removeItem('nest.auth.token');
+        localStorage.removeItem('sb-127-auth-token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        console.log('✅ All tokens cleared');
       }
+      
+      // Clear user state
+      setUser(null);
+      setAuthError(null);
+      console.log('Logout completed');
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      // Clear all auth-related data regardless of API call success
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      if (typeof window !== 'undefined') {
-        delete window.__authToken;
+    }
+  };
+
+  // Watch for user changes to handle redirects
+  useEffect(() => {
+    console.log('Redirect useEffect triggered - user:', user, 'isLoading:', isLoading, 'isLoggingIn:', isLoggingIn, 'redirectUrl:', redirectUrl);
+    
+    if (user && !isLoading) {
+      // If user just logged in, redirect to intended page or default dashboard
+      if (isLoggingIn) {
+        console.log('User just logged in, redirecting...', 'isAdmin:', user.isAdmin);
+        
+        // Check if there's a stored redirect URL
+        if (redirectUrl) {
+          console.log('Redirecting to stored URL:', redirectUrl);
+          router.push(redirectUrl);
+          setRedirectUrl(null); // Clear the redirect URL
+        } else {
+          // Default redirect based on role
+          if (user.isAdmin) {
+            console.log('Redirecting to admin dashboard...');
+            router.push('/admin/dashboard');
+          } else {
+            console.log('Redirecting to employee dashboard...');
+            router.push('/employee/dashboard');
+          }
+        }
+      }
+      // If user is already authenticated (page reload), don't redirect
+      // This prevents the redirect loop issue
+    }
+  }, [user, isLoading, isLoggingIn, redirectUrl, router]);
+
+  // Manual session recovery function
+  const recoverSession = async () => {
+    try {
+      console.log('Attempting manual session recovery...');
+      const supabaseClient = supabase();
+      
+      // Try to get session again
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      
+      if (error) {
+        console.error('Session recovery error:', error);
+        return false;
       }
       
-      // Clear user state immediately
-      setUser(null);
+      if (session?.user) {
+        console.log('Session recovered successfully');
+        await fetchUserProfile(session.user.id);
+        return true;
+      }
       
-      // Redirect to login page
-      router.push('/login');
+      return false;
+    } catch (error) {
+      console.error('Session recovery failed:', error);
+      return false;
+    }
+  };
+
+  // Manual cleanup function for duplicate tokens
+  const cleanupTokens = () => {
+    if (typeof window !== 'undefined') {
+      console.log('🧹 Manual token cleanup...');
+      localStorage.removeItem('sb-127-auth-token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('supabase.auth.token'); // Clean up old key
+      console.log('✅ Manual cleanup completed');
     }
   };
 
@@ -263,7 +436,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     refreshSession,
+    recoverSession,
     authError, // <-- Added
+    cleanupTokens,
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);
