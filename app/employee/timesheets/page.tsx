@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfWeek, addWeeks, subWeeks } from "date-fns";
-import ProtectedRoute from "@/components/auth/protected-route";
+import AuthGuard from "@/components/auth/auth-guard";
 import MainLayout from "@/components/layout/main-layout";
 
 export default function TimesheetsPage() {
@@ -87,18 +87,18 @@ export default function TimesheetsPage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute requireEmployee>
+      <AuthGuard requireEmployee={true}>
         <MainLayout>
           <div className="flex items-center justify-center min-h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </MainLayout>
-      </ProtectedRoute>
+      </AuthGuard>
     );
   }
 
   return (
-    <ProtectedRoute requireEmployee>
+    <AuthGuard requireEmployee={true}>
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           {/* Header */}
@@ -207,6 +207,6 @@ export default function TimesheetsPage() {
           </Card>
         </div>
       </MainLayout>
-    </ProtectedRoute>
+    </AuthGuard>
   );
 }

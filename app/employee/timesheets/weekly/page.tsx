@@ -1,12 +1,12 @@
 "use client"
 
-import ProtectedRoute from "@/components/auth/protected-route"
+import AuthGuard from "@/components/auth/auth-guard"
 import MainLayout from "@/components/layout/main-layout"
 
 export default function WeeklyTimesheetPage() {
 
   return (
-    <ProtectedRoute requireEmployee>
+    <AuthGuard requireEmployee={true}>
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
@@ -33,6 +33,6 @@ export default function WeeklyTimesheetPage() {
         </div>
       </div>
       </MainLayout>
-    </ProtectedRoute>
+    </AuthGuard>
   )
 }

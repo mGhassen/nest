@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ProtectedRoute from "@/components/auth/protected-route";
+import AuthGuard from "@/components/auth/auth-guard";
 import AdminLayout from "@/components/layout/admin-layout";
 
 export default function PayrollPage() {
@@ -32,7 +32,7 @@ export default function PayrollPage() {
   };
 
   return (
-    <ProtectedRoute requireAdmin>
+    <AuthGuard requireAdmin={true}>
       <AdminLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="mb-6">
@@ -168,7 +168,7 @@ export default function PayrollPage() {
           </Card>
         </div>
       </AdminLayout>
-    </ProtectedRoute>
+    </AuthGuard>
   );
 }
 

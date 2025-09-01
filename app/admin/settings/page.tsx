@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import ProtectedRoute from "@/components/auth/protected-route"
+import AuthGuard from "@/components/auth/auth-guard"
 import AdminLayout from "@/components/layout/admin-layout"
 import { Button } from "@/components/ui/button"
 
@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const [industry, setIndustry] = useState("Technology")
 
   return (
-    <ProtectedRoute requireAdmin>
+    <AuthGuard requireAdmin={true}>
       <AdminLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
@@ -65,7 +65,7 @@ export default function SettingsPage() {
         </div>
       </div>
       </AdminLayout>
-    </ProtectedRoute>
+    </AuthGuard>
   )
 }
 

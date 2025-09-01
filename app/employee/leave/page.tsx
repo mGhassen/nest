@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import NewPolicyDialog from "@/components/leave/new-policy-dialog";
 import { format, differenceInDays, isBefore } from "date-fns";
-import ProtectedRoute from "@/components/auth/protected-route";
+import AuthGuard from "@/components/auth/auth-guard";
 import MainLayout from "@/components/layout/main-layout";
 
 export default function LeavePage() {
@@ -137,18 +137,18 @@ export default function LeavePage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute requireEmployee>
+      <AuthGuard requireEmployee={true}>
         <MainLayout>
           <div className="flex items-center justify-center min-h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </MainLayout>
-      </ProtectedRoute>
+      </AuthGuard>
     );
   }
 
   return (
-    <ProtectedRoute requireEmployee>
+    <AuthGuard requireEmployee={true}>
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
@@ -312,6 +312,6 @@ export default function LeavePage() {
           <NewPolicyDialog open={showNewPolicy} onOpenChange={setShowNewPolicy} />
       </div>
       </MainLayout>
-    </ProtectedRoute>
+    </AuthGuard>
   );
 }

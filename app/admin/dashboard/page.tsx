@@ -1,7 +1,9 @@
 "use client"
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import AdminLayout from "@/components/layout/admin-layout"
-import ProtectedRoute from "@/components/auth/protected-route"
 import { Button } from "@/components/ui/button"
 import { Calendar, Plus } from "lucide-react"
 import StatsCards from "@/components/dashboard/stats-cards"
@@ -10,9 +12,32 @@ import RecentActivity from "@/components/dashboard/recent-activity"
 import PendingActions from "@/components/dashboard/pending-actions"
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (!user.isAdmin) {
+      router.replace("/unauthorized");
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="text-lg text-muted-foreground">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!user || !user.isAdmin) {
+    return null;
+  }
+
   return (
-    <ProtectedRoute requireAdmin>
-      <AdminLayout>
+    <AdminLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-between space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">
@@ -48,7 +73,6 @@ export default function AdminDashboardPage() {
           {/* Pending Actions */}
           <PendingActions />
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
-  )
+    </AdminLayout>
+  );
 }

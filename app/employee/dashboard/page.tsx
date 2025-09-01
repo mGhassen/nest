@@ -1,13 +1,35 @@
 "use client"
 
-import ProtectedRoute from "@/components/auth/protected-route"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import MainLayout from "@/components/layout/main-layout"
 
 export default function EmployeeDashboardPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (user.isAdmin) {
+      router.replace("/admin/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="text-lg text-muted-foreground">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!user || user.isAdmin) return null;
 
   return (
-    <ProtectedRoute requireEmployee>
-      <MainLayout>
+    <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-between space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">
@@ -86,8 +108,7 @@ export default function EmployeeDashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-      </MainLayout>
-    </ProtectedRoute>
-  )
+              </div>
+    </MainLayout>
+  );
 }

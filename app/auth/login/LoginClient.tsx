@@ -17,11 +17,13 @@ import { AlertCircle, Loader2, CheckCircle, Moon, Sun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
+import { useRouter } from "next/navigation";
 
 export default function LoginClient({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const { toast } = useToast();
-  const { login, authError, isLoggingIn } = useAuth();
+  const { login, authError, isLoggingIn, user, isLoading } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -38,20 +40,30 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
     }
   }, [searchParams]);
 
+  // Handle redirect after successful login
+  useEffect(() => {
+    console.log('Login useEffect triggered:', { user, isLoading });
+    if (!isLoading && user) {
+      console.log('User logged in, redirecting to dashboard...', user);
+      if (user.isAdmin) {
+        console.log('Redirecting to admin dashboard');
+        router.replace("/admin/dashboard");
+      } else {
+        console.log('Redirecting to employee dashboard');
+        router.replace("/employee/dashboard");
+      }
+    }
+  }, [user, isLoading, router]);
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     
     try {
+      console.log('Starting login process...');
       await login(email, password);
-      
-      // Show success message
-      toast({
-        title: "Login successful!",
-        description: "Redirecting you to your dashboard...",
-        variant: "default",
-      });
-      
+      console.log('Login function completed successfully');
+      // Redirect will be handled by useEffect
     } catch (err: unknown) {
       console.error('Login error:', err);
       let errorMessage = 'An error occurred during login';

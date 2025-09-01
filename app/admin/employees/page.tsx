@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import ProtectedRoute from "@/components/auth/protected-route"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import AdminLayout from "@/components/layout/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Plus, Search, Filter } from "lucide-react"
@@ -10,9 +11,20 @@ import EmployeeTable from "@/components/employees/employee-table"
 import type { Employee } from "@/types/schema"
 
 export default function AdminEmployeesPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loadingEmployees, setLoadingEmployees] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (!user.isAdmin) {
+      router.replace("/unauthorized");
+    }
+  }, [user, isLoading, router]);
 
   // Fetch employees when component mounts
   useEffect(() => {
@@ -49,9 +61,18 @@ export default function AdminEmployeesPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="text-lg text-muted-foreground">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!user || !user.isAdmin) return null;
+
   return (
-    <ProtectedRoute requireAdmin>
-      <AdminLayout>
+    <AdminLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-between space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">Employees</h2>
@@ -93,7 +114,6 @@ export default function AdminEmployeesPage() {
             <EmployeeTable employees={employees} />
           )}
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
-  )
+    </AdminLayout>
+  );
 }
