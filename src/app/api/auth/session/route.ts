@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
         lastName: userData.last_name || '',
         status: userData.is_active ? 'active' : 'inactive',
         role: userData.role,
+        companyId: userData.company_id,
       },
     });
   } catch (error: unknown) {

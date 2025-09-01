@@ -5,33 +5,27 @@ import { apiFetch } from "@/lib/api";
 interface AnalyticsData {
   totalEmployees: number;
   pendingTimesheets: number;
-  leaveRequests: number;
-  totalPayroll: number;
-  departments: Array<{
+  pendingLeaveRequests: number;
+  departmentStats: Array<{
     name: string;
-    count: number;
-  }>;
-  recentHires: Array<{
-    id: string;
-    name: string;
-    department: string;
-    hireDate: string;
+    employeeCount: number;
+    completionRate: number;
   }>;
 }
 
 interface DashboardStats {
   totalEmployees: number;
   pendingTimesheets: number;
-  leaveRequests: number;
+  pendingLeaveRequests: number;
   totalPayroll: number;
 }
 
 // Hook for fetching analytics data
 export function useAnalytics() {
   return useQuery<AnalyticsData>({
-    queryKey: ['/api/admin/analytics'],
+    queryKey: ['/api/analytics'],
     queryFn: async () => {
-      return await apiFetch<AnalyticsData>('/api/admin/analytics');
+      return await apiFetch<AnalyticsData>('/api/analytics');
     },
   });
 }
@@ -39,14 +33,14 @@ export function useAnalytics() {
 // Hook for fetching dashboard stats (simplified version)
 export function useDashboardStats() {
   return useQuery<DashboardStats>({
-    queryKey: ['/api/admin/analytics'],
+    queryKey: ['/api/analytics'],
     queryFn: async () => {
-      const data = await apiFetch<AnalyticsData>('/api/admin/analytics');
+      const data = await apiFetch<AnalyticsData>('/api/analytics');
       return {
         totalEmployees: data.totalEmployees,
         pendingTimesheets: data.pendingTimesheets,
-        leaveRequests: data.leaveRequests,
-        totalPayroll: data.totalPayroll,
+        pendingLeaveRequests: data.pendingLeaveRequests,
+        totalPayroll: 0, // API doesn't provide this, using default
       };
     },
   });

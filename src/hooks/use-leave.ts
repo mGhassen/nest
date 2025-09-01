@@ -25,9 +25,9 @@ interface LeaveRequestResponse {
 // Hook for fetching leave requests
 export function useLeaveRequests(companyId?: string) {
   return useQuery<LeaveRequest[]>({
-    queryKey: ['/api/admin/leave'],
+    queryKey: ['/api/leave'],
     queryFn: async () => {
-      return await apiFetch<LeaveRequest[]>('/api/admin/leave');
+      return await apiFetch<LeaveRequest[]>('/api/leave');
     },
     enabled: !!companyId,
   });
@@ -53,16 +53,16 @@ export function useLeaveRequestCreate() {
 
   return useMutation<LeaveRequestResponse, Error, Omit<LeaveRequest, 'id' | 'createdAt' | 'updatedAt'> & { employeeId: string }>({
     mutationFn: async (data) => {
-      return await apiFetch<LeaveRequestResponse>('/api/admin/leave', {
+      return await apiFetch<LeaveRequestResponse>('/api/leave', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
     onSuccess: (_, variables) => {
       // Invalidate leave requests and leave balance
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/leave'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leave'] });
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/admin/people', variables.employeeId, 'leave-balance'] 
+        queryKey: ['/api/people', variables.employeeId, 'leave-balance'] 
       });
     },
   });
@@ -74,16 +74,16 @@ export function useLeaveRequestUpdate() {
 
   return useMutation<LeaveRequestResponse, Error, { id: string; status: 'APPROVED' | 'REJECTED'; reason?: string }>({
     mutationFn: async ({ id, status, reason }) => {
-      return await apiFetch<LeaveRequestResponse>(`/api/admin/leave/${id}`, {
+      return await apiFetch<LeaveRequestResponse>(`/api/leave/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ status, reason }),
       });
     },
     onSuccess: (data) => {
       // Invalidate leave requests and leave balance
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/leave'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leave'] });
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/admin/people', data.employeeId, 'leave-balance'] 
+        queryKey: ['/api/people', data.employeeId, 'leave-balance'] 
       });
     },
   });
@@ -92,9 +92,9 @@ export function useLeaveRequestUpdate() {
 // Hook for fetching leave balance for a specific employee
 export function useLeaveBalance(employeeId: string) {
   return useQuery<LeaveBalance>({
-    queryKey: ['/api/admin/people', employeeId, 'leave-balance'],
+    queryKey: ['/api/people', employeeId, 'leave-balance'],
     queryFn: async () => {
-      return await apiFetch<LeaveBalance>(`/api/admin/people/${employeeId}/leave-balance`);
+      return await apiFetch<LeaveBalance>(`/api/people/${employeeId}/leave-balance`);
     },
     enabled: !!employeeId,
   });

@@ -35,9 +35,9 @@ interface CreateTimesheetRequest {
 // Hook for fetching timesheets
 export function useTimesheets(companyId?: string) {
   return useQuery<Timesheet[]>({
-    queryKey: ['/api/admin/timesheets'],
+    queryKey: ['/api/timesheets'],
     queryFn: async () => {
-      return await apiFetch<Timesheet[]>('/api/admin/timesheets');
+      return await apiFetch<Timesheet[]>('/api/timesheets');
     },
     enabled: !!companyId,
   });
@@ -63,14 +63,14 @@ export function useTimesheetCreate() {
 
   return useMutation<TimesheetResponse, Error, CreateTimesheetRequest>({
     mutationFn: async (data) => {
-      return await apiFetch<TimesheetResponse>('/api/admin/timesheets', {
+      return await apiFetch<TimesheetResponse>('/api/timesheets', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
     onSuccess: () => {
       // Invalidate timesheets list
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/timesheets'] });
     },
   });
 }
@@ -81,14 +81,14 @@ export function useTimesheetUpdate() {
 
   return useMutation<TimesheetResponse, Error, { id: string; status: 'APPROVED' | 'REJECTED'; reason?: string }>({
     mutationFn: async ({ id, status, reason }) => {
-      return await apiFetch<TimesheetResponse>(`/api/admin/timesheets/${id}`, {
+      return await apiFetch<TimesheetResponse>(`/api/timesheets/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ status, reason }),
       });
     },
     onSuccess: () => {
       // Invalidate timesheets list
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/timesheets'] });
     },
   });
 }
@@ -96,9 +96,9 @@ export function useTimesheetUpdate() {
 // Hook for fetching timesheets for a specific employee
 export function useEmployeeTimesheets(employeeId: string) {
   return useQuery<Timesheet[]>({
-    queryKey: ['/api/admin/timesheets', employeeId],
+    queryKey: ['/api/timesheets', employeeId],
     queryFn: async () => {
-      return await apiFetch<Timesheet[]>(`/api/admin/timesheets?employeeId=${employeeId}`);
+      return await apiFetch<Timesheet[]>(`/api/timesheets?employeeId=${employeeId}`);
     },
     enabled: !!employeeId,
   });

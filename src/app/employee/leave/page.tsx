@@ -66,13 +66,13 @@ export default function LeavePage() {
 
   // Get employees for reference
   const { data: employees = [] } = useQuery({
-    queryKey: ['/api/admin/people'],
+    queryKey: ['/api/people'],
     retry: false,
   });
 
   // Get leave balance for selected employee
   const { data: leaveBalance = [] } = useQuery({
-    queryKey: ['/api/admin/people', selectedRequest?.employeeId, 'leave-balance'],
+    queryKey: ['/api/people', selectedRequest?.employeeId, 'leave-balance'],
     enabled: !!selectedRequest?.employeeId,
     retry: false,
   });

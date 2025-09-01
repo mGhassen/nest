@@ -148,7 +148,10 @@ export async function POST(req: NextRequest) {
       .eq('auth_user_id', user.id)
       .single();
 
+    console.log('User profile lookup result:', { userProfile, profileError });
+
     if (profileError || !userProfile) {
+      console.log('Profile error or not found:', profileError);
       return NextResponse.json({
         success: false,
         error: 'User profile not found',
@@ -163,17 +166,65 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    const body = await req.json();
+    // Get the user's employee record to find their company_id
+    const { data: userEmployee, error: employeeError } = await supabaseServer()
+      .from('employees')
+      .select('company_id')
+      .eq('account_id', userProfile.id)
+      .single();
+
+    console.log('User employee lookup result:', { userEmployee, employeeError });
+
+    let companyId;
     
-    // Validate required fields
-    const requiredFields = ['first_name', 'last_name', 'email', 'position_title', 'employment_type', 'hire_date', 'base_salary', 'salary_period', 'company_id'];
+    if (employeeError || !userEmployee) {
+      console.log('Employee record not found for user, trying to get company from first available company:', employeeError);
+      
+      // Fallback: Get the first company for admin users
+      const { data: firstCompany, error: companyError } = await supabaseServer()
+        .from('companies')
+        .select('id')
+        .limit(1)
+        .single();
+      
+      if (companyError || !firstCompany) {
+        console.log('No company found:', companyError);
+        return NextResponse.json({
+          success: false,
+          error: 'No company found. Please contact administrator.',
+          details: companyError?.message || 'No company available'
+        }, { status: 404 });
+      }
+      
+      companyId = firstCompany.id;
+      console.log('Using fallback company ID:', companyId);
+    } else {
+      companyId = userEmployee.company_id;
+      console.log('Using user company ID:', companyId);
+    }
+
+    const body = await req.json();
+    console.log('Received employee creation request:', JSON.stringify(body, null, 2));
+    
+    // Validate required fields (excluding company_id since we'll use user's company)
+    const requiredFields = ['first_name', 'last_name', 'email', 'position_title', 'employment_type', 'hire_date', 'base_salary', 'salary_period'];
     for (const field of requiredFields) {
       if (!body[field]) {
+        console.log(`Missing required field: ${field}, value:`, body[field]);
         return NextResponse.json({
           success: false,
           error: `Missing required field: ${field}`,
         }, { status: 400 });
       }
+    }
+
+    // Validate that we have a company ID
+    if (!companyId) {
+      console.log('No company ID found for user');
+      return NextResponse.json({
+        success: false,
+        error: 'User is not associated with a company',
+      }, { status: 400 });
     }
 
     // Create new employee
@@ -188,7 +239,7 @@ export async function POST(req: NextRequest) {
         hire_date: body.hire_date,
         base_salary: body.base_salary,
         salary_period: body.salary_period,
-        company_id: body.company_id,
+        company_id: companyId, // Use the user's company ID
         location_id: body.location_id || null,
         manager_id: body.manager_id || null,
         cost_center_id: body.cost_center_id || null,

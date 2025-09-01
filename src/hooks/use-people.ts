@@ -4,8 +4,6 @@ import type { Employee } from "@/types/schema";
 
 // Import the form data type from the employee form
 type EmployeeFormData = {
-  company_id: string;
-  user_id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -29,16 +27,16 @@ interface PeopleListResponse {
 
 
 interface CreatePeopleResponse {
-  id: string;
-  message: string;
+  success: boolean;
+  employee: Employee;
 }
 
 // Hook for fetching people list
 export function usePeopleList() {
   return useQuery<Employee[]>({
-    queryKey: ['/api/admin/people'],
+    queryKey: ['/api/people'],
     queryFn: async () => {
-      const data = await apiFetch<PeopleListResponse>('/api/admin/people');
+      const data = await apiFetch<PeopleListResponse>('/api/people');
       return data.people || [];
     },
   });
@@ -50,14 +48,14 @@ export function usePeopleCreate() {
 
   return useMutation<CreatePeopleResponse, Error, EmployeeFormData>({
     mutationFn: async (data: EmployeeFormData) => {
-      return await apiFetch<CreatePeopleResponse>('/api/admin/people', {
+      return await apiFetch<CreatePeopleResponse>('/api/people', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
     onSuccess: () => {
       // Invalidate and refetch people list
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/people'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
     },
   });
 }
@@ -68,15 +66,15 @@ export function usePeopleUpdate() {
 
   return useMutation<CreatePeopleResponse, Error, { id: string; data: Partial<EmployeeFormData> }>({
     mutationFn: async ({ id, data }) => {
-      return await apiFetch<CreatePeopleResponse>(`/api/admin/people/${id}`, {
+      return await apiFetch<CreatePeopleResponse>(`/api/people/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
     },
     onSuccess: (_, variables) => {
       // Invalidate people list and specific person data
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/people'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/people', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people', variables.id] });
     },
   });
 }
@@ -87,13 +85,13 @@ export function usePeopleDelete() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (id: string) => {
-      await apiFetch(`/api/admin/people/${id}`, {
+      await apiFetch(`/api/people/${id}`, {
         method: 'DELETE',
       });
     },
     onSuccess: () => {
       // Invalidate people list
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/people'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
     },
   });
 }
@@ -101,9 +99,9 @@ export function usePeopleDelete() {
 // Hook for fetching a specific person
 export function usePerson(id: string) {
   return useQuery<Employee>({
-    queryKey: ['/api/admin/people', id],
+    queryKey: ['/api/people', id],
     queryFn: async () => {
-      return await apiFetch<Employee>(`/api/admin/people/${id}`);
+      return await apiFetch<Employee>(`/api/people/${id}`);
     },
     enabled: !!id,
   });
@@ -116,8 +114,8 @@ export function usePeoplePasswordManagement() {
   return useMutation<void, Error, { id: string; action: 'set' | 'reset'; password?: string }>({
     mutationFn: async ({ id, action, password }) => {
       const endpoint = action === 'set' 
-        ? `/api/admin/people/${id}/password`
-        : `/api/admin/people/${id}/password/reset`;
+        ? `/api/people/${id}/password`
+        : `/api/people/${id}/password/reset`;
       
       await apiFetch(endpoint, {
         method: 'POST',
@@ -126,7 +124,7 @@ export function usePeoplePasswordManagement() {
     },
     onSuccess: (_, variables) => {
       // Invalidate specific person data
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/people', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people', variables.id] });
     },
   });
 }

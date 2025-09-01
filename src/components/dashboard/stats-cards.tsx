@@ -7,8 +7,8 @@ interface StatsCardsProps {
   stats?: {
     totalEmployees: number;
     pendingTimesheets: number;
-    leaveRequests: number;
-    payrollStatus: string;
+    pendingLeaveRequests: number;
+    totalPayroll: number;
   };
 }
 
@@ -21,8 +21,8 @@ export default function StatsCards({ stats }: StatsCardsProps) {
   const defaultStats = {
     totalEmployees: 0,
     pendingTimesheets: 0,
-    leaveRequests: 0,
-    payrollStatus: 'Ready'
+    pendingLeaveRequests: 0,
+    totalPayroll: 0
   };
 
   const data = stats || analyticsData || defaultStats;
@@ -75,7 +75,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Leave Requests</p>
               <p className="text-3xl font-bold text-foreground mt-2" data-testid="text-leave-requests">
-                {data.leaveRequests}
+                {data.pendingLeaveRequests}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-50 dark:bg-green-950/20 rounded-lg flex items-center justify-center">

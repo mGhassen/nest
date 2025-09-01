@@ -11,6 +11,7 @@ export interface User {
   isAdmin: boolean;
   status?: string;
   role?: 'admin' | 'member';
+  companyId?: string;
 }
 
 interface AuthState {

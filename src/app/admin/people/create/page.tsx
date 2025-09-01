@@ -19,6 +19,11 @@ export default function CreateEmployeePage() {
     }
   }, [user, isLoading, router]);
 
+  const handleEmployeeCreated = (employeeId: string) => {
+    // Redirect to the employee detail page
+    router.push(`/admin/people/${employeeId}`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -35,7 +40,7 @@ export default function CreateEmployeePage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Create Employee</h2>
         </div>
-        <EmployeeForm />
+        <EmployeeForm onSuccess={handleEmployeeCreated} />
       </div>
     </AdminLayout>
   )

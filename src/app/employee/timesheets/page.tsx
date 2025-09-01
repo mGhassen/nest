@@ -20,7 +20,7 @@ export default function TimesheetsPage() {
   const queryClient = useQueryClient();
 
   const { data: timesheets = [], isLoading } = useQuery({
-    queryKey: ['/api/admin/timesheets'],
+    queryKey: ['/api/timesheets'],
     onError: (error: Error) => {
       toast({
         title: "Error",
@@ -32,7 +32,7 @@ export default function TimesheetsPage() {
 
   const updateTimesheetMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const response = await fetch(`/api/admin/timesheets/${id}`, {
+      const response = await fetch(`/api/timesheets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -41,7 +41,7 @@ export default function TimesheetsPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/timesheets'] });
       toast({
         title: "Success",
         description: "Timesheet updated successfully",

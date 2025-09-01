@@ -26,8 +26,6 @@ import { z } from "zod";
 
 // Create a Zod schema for the employee form
 const employeeFormSchema = z.object({
-  company_id: z.string().min(1, "Company is required"),
-  user_id: z.string().min(1, "User ID is required"),
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
@@ -46,7 +44,7 @@ const employeeFormSchema = z.object({
 type EmployeeFormData = z.infer<typeof employeeFormSchema>;
 
 interface EmployeeFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (employeeId: string) => void;
 }
 
 export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
@@ -64,8 +62,6 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
       base_salary: 0,
       salary_period: "MONTHLY",
       status: "ACTIVE",
-      company_id: "", // Will be set from user's company
-      user_id: "", // Will be generated
     },
   });
 
@@ -73,15 +69,16 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
 
   // Handle success and error in useEffect to avoid stale closures
   React.useEffect(() => {
-    if (createEmployeeMutation.isSuccess) {
+    if (createEmployeeMutation.isSuccess && createEmployeeMutation.data) {
       toast({
         title: "Success",
         description: "Employee created successfully",
       });
       form.reset();
-      onSuccess?.();
+      // Pass the employee ID to the onSuccess callback
+      onSuccess?.(createEmployeeMutation.data.employee.id);
     }
-  }, [createEmployeeMutation.isSuccess, toast, form, onSuccess]);
+  }, [createEmployeeMutation.isSuccess, createEmployeeMutation.data, toast, form, onSuccess]);
 
   React.useEffect(() => {
     if (createEmployeeMutation.isError) {
