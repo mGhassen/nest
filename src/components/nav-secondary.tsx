@@ -1,5 +1,6 @@
 import * as React from "react"
 import { type LucideIcon } from "lucide-react"
+import Link from "next/link"
 
 import {
   SidebarGroup,
@@ -8,6 +9,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export function NavSecondary({
   items,
@@ -25,12 +32,21 @@ export function NavSecondary({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild size="sm">
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild size="sm" tooltip={item.title}>
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="center">
+                    {item.title}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

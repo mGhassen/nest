@@ -1,6 +1,8 @@
 "use client"
 
 import { type LucideIcon } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 import {
   Collapsible,
@@ -17,7 +19,14 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { ChevronRightIcon } from "@radix-ui/react-icons"
 
 export function NavMain({
@@ -34,6 +43,16 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const pathname = usePathname()
+  const { isMobile } = useSidebar()
+
+  const isActive = (href: string) => {
+    if (href === "/admin/dashboard") {
+      return pathname === "/admin/dashboard"
+    }
+    return pathname.startsWith(href)
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -41,12 +60,25 @@ export function NavMain({
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton 
+                      asChild 
+                      tooltip={item.title}
+                      isActive={isActive(item.url)}
+                    >
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="center">
+                    {item.title}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {item.items?.length ? (
                 <>
                   <CollapsibleTrigger asChild>
@@ -59,11 +91,20 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </a>
-                          </SidebarMenuSubButton>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SidebarMenuSubButton asChild isActive={isActive(subItem.url)}>
+                                  <Link href={subItem.url}>
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" align="center">
+                                {subItem.title}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </SidebarMenuSubItem>
                       ))}
                     </SidebarMenuSub>

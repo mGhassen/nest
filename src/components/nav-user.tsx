@@ -29,6 +29,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { CaretSortIcon, ComponentPlaceholderIcon } from "@radix-ui/react-icons"
 
 export function NavUser({
@@ -55,24 +61,34 @@ export function NavUser({
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                  {getInitials(user.name.split(' ')[0] || "A", user.name.split(' ')[1] || "")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              <CaretSortIcon className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                    tooltip={user.name}
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                        {getInitials(user.name.split(' ')[0] || "A", user.name.split(' ')[1] || "")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{user.name}</span>
+                      <span className="truncate text-xs">{user.email}</span>
+                    </div>
+                    <CaretSortIcon className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                {user.name}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
