@@ -16,7 +16,6 @@ export type LeaveRequest = GetTableType<'leave_requests'>
 export type LeavePolicy = GetTableType<'leave_policies'>
 export type PayrollCycle = GetTableType<'payroll_cycles'>
 export type Account = GetTableType<'accounts'>
-export type Membership = GetTableType<'memberships'>
 export type AuditLog = GetTableType<'audit_logs'>
 
 export type InsertEmployee = Omit<Employee, 'id' | 'created_at' | 'updated_at'>
@@ -33,8 +32,5 @@ export type UpdatePayrollCycle = Partial<InsertPayrollCycle>
 
 export type InsertAccount = Omit<Account, 'id' | 'created_at' | 'updated_at'>
 export type UpdateAccount = Partial<InsertAccount>
-
-export type InsertMembership = Omit<Membership, 'id' | 'created_at' | 'updated_at'>
-export type UpdateMembership = Partial<InsertMembership>
 
 // Add other insert/update types as needed

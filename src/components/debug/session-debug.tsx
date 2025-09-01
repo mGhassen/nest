@@ -9,11 +9,16 @@ export default function SessionDebug() {
   const [sessionInfo, setSessionInfo] = useState<{ expires_at: number } | null>(null);
   const [localStorageInfo, setLocalStorageInfo] = useState<string>("");
   const [allStorageKeys, setAllStorageKeys] = useState<string[]>([]);
+  const [accessTokenStatus, setAccessTokenStatus] = useState<string>("");
+  const [refreshTokenStatus, setRefreshTokenStatus] = useState<string>("");
 
   useEffect(() => {
     const checkLocalStorage = () => {
       const accessToken = localStorage.getItem('access_token');
       const refreshToken = localStorage.getItem('refresh_token');
+      
+      setAccessTokenStatus(accessToken ? 'Present' : 'None');
+      setRefreshTokenStatus(refreshToken ? 'Present' : 'None');
       
       if (accessToken) {
         try {
@@ -59,8 +64,8 @@ export default function SessionDebug() {
         <div>Role: {user ? (user.isAdmin ? 'Admin' : 'Employee') : 'None'}</div>
         <div>Name: {user ? `${user.firstName} ${user.lastName}` : 'None'}</div>
         <div>Auth Error: {authError || 'None'}</div>
-        <div>Access Token: {localStorage.getItem('access_token') ? 'Present' : 'None'}</div>
-        <div>Refresh Token: {localStorage.getItem('refresh_token') ? 'Present' : 'None'}</div>
+        <div>Access Token: {accessTokenStatus}</div>
+        <div>Refresh Token: {refreshTokenStatus}</div>
         {sessionInfo && (
           <div>Expires: {new Date(sessionInfo.expires_at * 1000).toLocaleTimeString()}</div>
         )}
