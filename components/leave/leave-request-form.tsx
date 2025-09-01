@@ -9,7 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+
 import {
   Dialog,
   DialogContent,
@@ -34,7 +34,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Calendar, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+
+interface LeavePolicy {
+  id: string;
+  name: string;
+  maxDays: number;
+  description?: string;
+}
 
 const leaveRequestSchema = z.object({
   policyId: z.string().min(1, "Leave policy is required"),
@@ -69,7 +76,7 @@ export function LeaveRequestForm({ onSuccess }: LeaveRequestFormProps) {
   });
 
   // Get leave policies
-  const { data: leavePolicies = [] } = useQuery<any[]>({
+  const { data: leavePolicies = [] } = useQuery<LeavePolicy[]>({
     queryKey: ['/api/employee/leave-policies'],
     queryFn: async () => {
       const response = await fetch('/api/employee/leave-policies');
@@ -152,7 +159,7 @@ export function LeaveRequestForm({ onSuccess }: LeaveRequestFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {leavePolicies.map((policy: any) => (
+                        {leavePolicies.map((policy: LeavePolicy) => (
                           <SelectItem key={policy.id} value={policy.id}>
                             {policy.name}
                           </SelectItem>

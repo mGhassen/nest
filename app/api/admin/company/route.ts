@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from "@/lib/supabase"
 
 import { z } from 'zod'
-import type { Database } from '@/types/database.types'
+
 // import { getUserWithRole } from '@/lib/rbac'
 
 const updateCompanySchema = z.object({
@@ -11,7 +11,7 @@ const updateCompanySchema = z.object({
   currency: z.string().length(3).optional(),
 })
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()

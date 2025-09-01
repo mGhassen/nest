@@ -2,12 +2,11 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
 export default function SessionDebug() {
   const { user, isLoading, isAuthenticated, authError, recoverSession, cleanupTokens } = useAuth();
-  const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [sessionInfo, setSessionInfo] = useState<{ expires_at: number } | null>(null);
   const [localStorageInfo, setLocalStorageInfo] = useState<string>("");
   const [allStorageKeys, setAllStorageKeys] = useState<string[]>([]);
 

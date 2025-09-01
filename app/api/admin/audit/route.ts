@@ -3,7 +3,7 @@ import { supabaseServer } from "@/lib/supabase"
 
 
 // import { getUserWithRole, can } from "@/lib/rbac"
-import type { Database } from "@/types/database.types"
+
 
 export async function GET(request: NextRequest) {
   try {

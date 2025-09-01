@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Clock, User, FileText, Calendar } from "lucide-react";
 
 interface Activity {

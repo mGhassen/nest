@@ -50,3 +50,9 @@ export function formatTime(time: string | undefined): string {
   const [hours, minutes] = time.split(':');
   return `${hours}:${minutes}`;
 }
+
+export function isUnauthorizedError(error: Error): boolean {
+  return error.message.includes('Unauthorized') || 
+         error.message.includes('401') ||
+         error.message.includes('unauthorized');
+}

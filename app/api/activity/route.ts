@@ -3,9 +3,9 @@ import { supabaseServer } from "@/lib/supabase"
 
 
 import { getUserWithRole, can } from "@/lib/rbac"
-import type { Database } from "@/types/database.types"
 
-export async function GET(request: NextRequest) {
+
+export async function GET() {
   try {
     const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
@@ -94,7 +94,13 @@ export async function GET(request: NextRequest) {
       .limit(5)
 
     // Combine and format activities
-    const activities: any[] = []
+    const activities: Array<{
+      id: string;
+      type: string;
+      description: string;
+      timestamp: string;
+      user_name?: string;
+    }> = []
 
     // Add leave requests
     leaveRequests?.forEach(lr => {

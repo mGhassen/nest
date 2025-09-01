@@ -4,7 +4,7 @@ import ProtectedRoute from "@/components/auth/protected-route"
 import AdminLayout from "@/components/layout/admin-layout"
 import EmployeeForm from "@/components/employees/employee-form"
 
-export default function EmployeeDetailPage({ params }: { params: { id: string } }) {
+export default function EmployeeDetailPage({ params: { id } }: { params: { id: string } }) {
   return (
     <ProtectedRoute requireAdmin>
       <AdminLayout>

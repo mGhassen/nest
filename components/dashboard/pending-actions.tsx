@@ -10,8 +10,6 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  FileText,
-  Users,
   ArrowRight
 } from "lucide-react";
 import { format } from "date-fns";
@@ -157,7 +155,7 @@ export default function PendingActions() {
               </Link>
             </div>
             <div className="space-y-2">
-              {pendingTimesheets.slice(0, 3).map((timesheet: any) => (
+              {pendingTimesheets.slice(0, 3).map((timesheet: Timesheet) => (
                 <div key={timesheet.id} className="flex items-center justify-between text-sm">
                   <div className="flex-1">
                     <span className="text-blue-900 dark:text-blue-100">

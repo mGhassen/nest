@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -23,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { z } from "zod";
-import type { InsertEmployee } from "@/types/schema";
+
 
 // Create a Zod schema for the employee form
 const employeeFormSchema = z.object({
@@ -93,7 +91,7 @@ export default function EmployeeForm({ onSuccess }: EmployeeFormProps) {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Success",
         description: "Employee created successfully",

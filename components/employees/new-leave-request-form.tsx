@@ -25,8 +25,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Calendar, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { format, addDays } from "date-fns";
+
+interface LeavePolicy {
+  id: string;
+  name: string;
+  maxDays: number;
+  description?: string;
+}
 
 const newLeaveRequestSchema = z.object({
   employeeId: z.string().min(1, "Employee ID is required"),
@@ -66,7 +73,7 @@ export default function NewLeaveRequestForm({ employeeId, onSuccess, onCancel }:
   });
 
   // Fetch available leave policies
-  const { data: leavePolicies = [] } = useQuery<any[]>({
+  const { data: leavePolicies = [] } = useQuery<LeavePolicy[]>({
     queryKey: ['/api/leave-policies'],
     queryFn: async () => {
       const response = await fetch('/api/leave-policies');
@@ -154,9 +161,9 @@ export default function NewLeaveRequestForm({ employeeId, onSuccess, onCancel }:
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Array.isArray(leavePolicies) && leavePolicies.map((policy: any) => (
+                    {Array.isArray(leavePolicies) && leavePolicies.map((policy: LeavePolicy) => (
                       <SelectItem key={policy.id} value={policy.id}>
-                        {policy.name} ({policy.code})
+                        {policy.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -291,7 +298,7 @@ export default function NewLeaveRequestForm({ employeeId, onSuccess, onCancel }:
           <div className="space-y-1 text-sm text-blue-800">
             <div><span className="font-medium">Policy:</span> {
               Array.isArray(leavePolicies) ? 
-                leavePolicies.find((p: any) => p.id === form.watch("policyId"))?.name || "Not selected" :
+                leavePolicies.find((p: LeavePolicy) => p.id === form.watch("policyId"))?.name || "Not selected" :
                 "Not selected"
             }</div>
             <div><span className="font-medium">Dates:</span> {form.watch("startDate")} to {form.watch("endDate")}</div>
