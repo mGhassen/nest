@@ -1,5 +1,50 @@
 // Shared types for employee-related components
+import type { Employee as DatabaseEmployee } from './schema';
 
+// Extended Employee type for the detail page with related data
+export interface EmployeeDetail extends DatabaseEmployee {
+  account?: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    is_active: boolean;
+    profile_image_url: string | null;
+  } | null;
+  company?: {
+    id: string;
+    name: string;
+  } | null;
+  location?: {
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    country: string;
+  } | null;
+  cost_center?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  work_schedule?: {
+    id: string;
+    name: string;
+    weekly_hours: number;
+  } | null;
+  manager?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  documents: Document[];
+  contracts: Contract[];
+}
+
+// Legacy Employee interface for backward compatibility
 export interface Employee {
   id: string;
   firstName: string;

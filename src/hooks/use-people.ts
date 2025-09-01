@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { Employee } from "@/types/schema";
+import type { EmployeeDetail } from "@/types/employee";
 
 // Import the form data type from the employee form
 type EmployeeFormData = {
@@ -98,10 +99,11 @@ export function usePeopleDelete() {
 
 // Hook for fetching a specific person
 export function usePerson(id: string) {
-  return useQuery<Employee>({
+  return useQuery<EmployeeDetail>({
     queryKey: ['/api/people', id],
     queryFn: async () => {
-      return await apiFetch<Employee>(`/api/people/${id}`);
+      const data = await apiFetch<{ success: boolean; employee: EmployeeDetail }>(`/api/people/${id}`);
+      return data.employee;
     },
     enabled: !!id,
   });

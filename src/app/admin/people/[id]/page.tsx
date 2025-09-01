@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { usePerson } from "@/hooks/use-people";
 import { useEffect, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout"
@@ -12,15 +13,15 @@ import EmployeeAdministration from "@/components/employees/employee-administrati
 import EmployeeContracts from "@/components/employees/employee-contracts"
 import EmployeePayroll from "@/components/employees/employee-payroll"
 import EmployeeDocuments from "@/components/employees/employee-documents"
-import type { Employee, PayrollRecord } from "@/types/employee"
+import type { EmployeeDetail, PayrollRecord } from "@/types/employee"
 
 export default function EmployeeDetailPage({ params: { id } }: { params: { id: string } }) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
-
-  const [employee, setEmployee] = useState<Employee | null>(null);
+  // Fetch employee data from API
+  const { data: employee, isLoading: employeeLoading, error: employeeError } = usePerson(id);
 
   useEffect(() => {
     if (isLoading) return;
@@ -31,38 +32,27 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
     }
   }, [user, isLoading, router]);
 
-  // Mock employee data - replace with actual API call
-  useEffect(() => {
-    // Simulate fetching employee data
-    setEmployee({
-      id: id,
-      firstName: "John",
-      lastName: "Smith",
-      email: "john.smith@company.com",
-      phone: "+1 (555) 123-4567",
-      position: "Senior Developer",
-      department: "Engineering",
-      manager: "Sarah Chen",
-      hireDate: "2022-03-15",
-      salary: 95000,
-      status: "active",
-      avatar: null,
-      address: "123 Main St, San Francisco, CA 94105",
-      emergencyContact: "Jane Smith (Spouse) - +1 (555) 987-6543",
-      documents: [
-        { id: 1, name: "Employment Contract", type: "contract", uploadDate: "2022-03-15", status: "signed" },
-        { id: 2, name: "NDA Agreement", type: "legal", uploadDate: "2022-03-15", status: "signed" },
-        { id: 3, name: "Benefits Enrollment", type: "benefits", uploadDate: "2022-03-20", status: "completed" },
-        { id: 4, name: "Performance Review Q4 2024", type: "review", uploadDate: "2024-12-01", status: "pending" }
-      ],
-      contracts: [
-        { id: 1, type: "Employment", status: "active", startDate: "2022-03-15", endDate: null, signedDate: "2022-03-15" },
-        { id: 2, type: "NDA", status: "active", startDate: "2022-03-15", endDate: null, signedDate: "2022-03-15" }
-      ]
-    });
-  }, [id]);
+  // Transform employee data for legacy components
+  const transformedEmployee = employee ? {
+    id: employee.id,
+    firstName: employee.first_name,
+    lastName: employee.last_name,
+    email: employee.email,
+    phone: "", // Not available in current schema
+    position: employee.position_title,
+    department: employee.cost_center?.name || "Unknown",
+    manager: employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : "No Manager",
+    hireDate: employee.hire_date,
+    salary: employee.base_salary,
+    status: employee.status?.toLowerCase() || "active",
+    avatar: employee.account?.profile_image_url || null,
+    address: employee.location ? `${employee.location.address || ''} ${employee.location.city || ''} ${employee.location.state || ''} ${employee.location.country || ''}`.trim() : "No Address",
+    emergencyContact: "Not Available", // Not available in current schema
+    documents: employee.documents || [],
+    contracts: employee.contracts || []
+  } : null;
 
-  if (isLoading) {
+  if (isLoading || employeeLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <span className="text-lg text-muted-foreground">Loading...</span>
@@ -72,10 +62,12 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
 
   if (!user || !user.isAdmin) return null;
 
-  if (!employee) {
+  if (employeeError || !employee || !transformedEmployee) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Employee not found</span>
+        <span className="text-lg text-muted-foreground">
+          {employeeError ? "Error loading employee" : "Employee not found"}
+        </span>
       </div>
     );
   }
@@ -186,7 +178,7 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         {/* Header */}
         <EmployeeHeader 
-          employee={employee}
+          employee={transformedEmployee}
           onEditEmployee={handleEditEmployee}
           onViewProfile={handleViewProfile}
         />
@@ -203,13 +195,13 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
-            <EmployeeOverview employee={employee} />
+            <EmployeeOverview employee={transformedEmployee} />
           </TabsContent>
 
           {/* Administration Tab */}
           <TabsContent value="administration" className="space-y-4">
             <EmployeeAdministration 
-              employeeId={employee.id}
+              employeeId={transformedEmployee.id}
               onPasswordReset={handlePasswordReset}
               onResendInvitation={handleResendInvitation}
               onChangeRole={handleChangeRole}
@@ -222,7 +214,7 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
           {/* Contracts Tab */}
           <TabsContent value="contracts" className="space-y-4">
             <EmployeeContracts 
-              contracts={employee.contracts}
+              contracts={transformedEmployee.contracts}
               onCreateContract={handleCreateContract}
               onViewContract={handleViewContract}
               onDownloadContract={handleDownloadContract}
@@ -232,7 +224,7 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
           {/* Payroll Tab */}
           <TabsContent value="payroll" className="space-y-4">
             <EmployeePayroll 
-              salary={employee.salary}
+              salary={transformedEmployee.salary}
               payrollHistory={payrollHistory}
               onViewPayHistory={handleViewPayHistory}
               onGeneratePayStub={handleGeneratePayStub}
@@ -244,7 +236,7 @@ export default function EmployeeDetailPage({ params: { id } }: { params: { id: s
           {/* Documents Tab */}
           <TabsContent value="documents" className="space-y-4">
             <EmployeeDocuments 
-              documents={employee.documents}
+              documents={transformedEmployee.documents}
               onUploadDocument={handleUploadDocument}
               onViewDocument={handleViewDocument}
               onDownloadDocument={handleDownloadDocument}
