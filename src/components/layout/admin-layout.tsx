@@ -16,7 +16,9 @@ import {
   Sun,
   Moon,
   ChevronDown,
-  Settings
+  Settings,
+  Clock,
+  MessageSquare
 } from "lucide-react";
 import { getInitials } from "@/lib/auth";
 import { useState } from "react";
@@ -58,10 +60,35 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       description: "Overview and analytics"
     },
     { 
-      name: "Employees", 
-      href: "/admin/employees", 
+      name: "People", 
+      href: "/admin/people", 
       icon: Users,
-      description: "Manage team members"
+      description: "Manage team members and organization",
+      submenu: [
+        { name: "List", href: "/admin/people/list", description: "Employee directory" },
+        { name: "Teams", href: "/admin/people/teams", description: "Team management" },
+        { name: "Org Chart", href: "/admin/people/org-chart", description: "Organization structure" }
+      ]
+    },
+    { 
+      name: "Workload", 
+      href: "/admin/workload", 
+      icon: Clock,
+      description: "Leave and timesheet management",
+      submenu: [
+        { name: "Leave/Absence", href: "/admin/workload/leave", description: "Leave requests and approvals" },
+        { name: "Timesheet", href: "/admin/workload/timesheet", description: "Timesheet validation and management" }
+      ]
+    },
+    { 
+      name: "Engage", 
+      href: "/admin/engage", 
+      icon: MessageSquare,
+      description: "Meetings and performance reviews",
+      submenu: [
+        { name: "Meetings", href: "/admin/engage/meetings", description: "Meeting management" },
+        { name: "Review Cycle", href: "/admin/engage/reviews", description: "Performance reviews" }
+      ]
     },
     { 
       name: "Payroll", 

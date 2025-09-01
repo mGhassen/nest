@@ -13,7 +13,9 @@ import {
   Home,
   Building2,
   Moon,
-  Sun
+  Sun,
+  Clock,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfile } from "@/components/auth/user-profile";
@@ -30,7 +32,9 @@ export default function AdminHeader() {
   // Admin navigation items
   const navigationItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: Home, active: pathname === "/admin/dashboard" },
-    { href: "/admin/employees", label: "Employees", icon: Users, active: pathname.startsWith("/admin/employees") },
+    { href: "/admin/people", label: "People", icon: Users, active: pathname.startsWith("/admin/people") },
+    { href: "/admin/workload", label: "Workload", icon: Clock, active: pathname.startsWith("/admin/workload") },
+    { href: "/admin/engage", label: "Engage", icon: MessageSquare, active: pathname.startsWith("/admin/engage") },
     { href: "/admin/payroll", label: "Payroll", icon: DollarSign, active: pathname.startsWith("/admin/payroll") },
     { href: "/admin/settings", label: "Settings", icon: Settings, active: pathname.startsWith("/admin/settings") },
   ];
