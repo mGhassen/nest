@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { supabaseServer } from "@/lib/supabase"
+
 import { z } from 'zod'
 import type { Database } from '@/types/database.types'
 // import { getUserWithRole } from '@/lib/rbac'
@@ -13,7 +13,7 @@ const updateCompanySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user) {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user) {

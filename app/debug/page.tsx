@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 
 export default function DebugPage() {
   const [email, setEmail] = useState("admin@guepard.run")
@@ -10,12 +10,12 @@ export default function DebugPage() {
   const [user, setUser] = useState<any>(null)
   const [session, setSession] = useState<any>(null)
   
-  const supabase = createClientComponentClient()
+  const supabaseClient = supabase()
 
   const testSignIn = async () => {
     setStatus("Signing in...")
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
       })
@@ -53,7 +53,7 @@ export default function DebugPage() {
   const testGetUser = async () => {
     setStatus("Getting user...")
     try {
-      const { data: { user }, error } = await supabase.auth.getUser()
+      const { data: { user }, error } = await supabaseClient.auth.getUser()
       if (error) {
         setStatus(`Get user error: ${error.message}`)
       } else {
@@ -68,7 +68,7 @@ export default function DebugPage() {
   const testGetSession = async () => {
     setStatus("Getting session...")
     try {
-      const { data: { session }, error } = await supabase.auth.getSession()
+      const { data: { session }, error } = await supabaseClient.auth.getSession()
       if (error) {
         setStatus(`Get session error: ${error.message}`)
       } else {
@@ -83,7 +83,7 @@ export default function DebugPage() {
   const signOut = async () => {
     setStatus("Signing out...")
     try {
-      await supabase.auth.signOut()
+      await supabaseClient.auth.signOut()
       setStatus("Signed out")
       setUser(null)
       setSession(null)

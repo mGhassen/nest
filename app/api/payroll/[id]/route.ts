@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from 'next/headers'
+import { supabaseServer } from "@/lib/supabase"
+
+
 import { getUserWithRole } from "@/lib/rbac"
 import { z } from "zod"
 import type { Database } from "@/types/database.types"
@@ -18,7 +19,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id) {
@@ -60,7 +61,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id) {
@@ -128,7 +129,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id) {

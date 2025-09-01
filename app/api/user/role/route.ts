@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
+import { supabaseServer } from "@/lib/supabase"
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+
 import { getUserWithRole } from '@/lib/rbac'
 import type { Database } from '@/types/database.types'
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = supabaseServer()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id || session.user.id !== userId) {

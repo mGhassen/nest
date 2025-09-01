@@ -108,11 +108,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 const result = await response.json();
                 
                 if (result.success && result.user) {
-                  console.log('Session validated with API, setting user data...');
+                  console.log('Session validated with API, setting user data...', result.user);
                   setUser(result.user);
                   setAuthError(null);
                   setSessionChecked(true);
                   setIsLoading(false);
+                  console.log('User state set successfully:', result.user.email);
                   return;
                 } else {
                   console.log('Session validation failed with API:', result.error);
@@ -343,9 +344,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (typeof window !== 'undefined') {
         console.log('🧹 Clearing all tokens from localStorage...');
         localStorage.removeItem('nest.auth.token');
-        localStorage.removeItem('sb-127-auth-token');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
         console.log('✅ All tokens cleared');
       }
       
@@ -392,9 +390,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const recoverSession = async () => {
     try {
       console.log('Attempting manual session recovery...');
-      const supabaseClient = supabase();
       
-      // Try to get session again
+      // Check localStorage first
+      const storedSession = typeof window !== 'undefined' ? 
+        window.localStorage.getItem('nest.auth.token') : null;
+      
+      if (storedSession) {
+        try {
+          const sessionData = JSON.parse(storedSession);
+          const now = Math.floor(Date.now() / 1000);
+          
+          if (sessionData.expires_at && sessionData.expires_at > now) {
+            console.log('Valid session found in localStorage, validating with API...');
+            
+            // Validate with API
+            const response = await fetch('/api/auth/session', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${sessionData.access_token}`
+              }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.user) {
+              console.log('Session recovered successfully via API');
+              setUser(result.user);
+              setAuthError(null);
+              setSessionChecked(true);
+              setIsLoading(false);
+              return true;
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing stored session during recovery:', error);
+        }
+      }
+      
+      // Fallback to Supabase client
+      const supabaseClient = supabase();
       const { data: { session }, error } = await supabaseClient.auth.getSession();
       
       if (error) {
@@ -403,7 +437,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       if (session?.user) {
-        console.log('Session recovered successfully');
+        console.log('Session recovered successfully via Supabase');
         await fetchUserProfile(session.user.id);
         return true;
       }

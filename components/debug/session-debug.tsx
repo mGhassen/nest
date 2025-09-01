@@ -12,23 +12,21 @@ export default function SessionDebug() {
   const [allStorageKeys, setAllStorageKeys] = useState<string[]>([]);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const supabaseClient = supabase();
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      setSessionInfo(session);
-    };
-
     const checkLocalStorage = () => {
       const authToken = localStorage.getItem('nest.auth.token');
       if (authToken) {
         try {
           const parsed = JSON.parse(authToken);
           setLocalStorageInfo(`Present (expires: ${new Date(parsed.expires_at * 1000).toLocaleTimeString()})`);
+          // Set session info from localStorage since we're using custom auth
+          setSessionInfo(parsed);
         } catch {
           setLocalStorageInfo('Present (invalid format)');
+          setSessionInfo(null);
         }
       } else {
         setLocalStorageInfo('Not found');
+        setSessionInfo(null);
       }
       
       // Show all localStorage keys
@@ -36,11 +34,9 @@ export default function SessionDebug() {
       setAllStorageKeys(keys);
     };
 
-    checkSession();
     checkLocalStorage();
 
     const interval = setInterval(() => {
-      checkSession();
       checkLocalStorage();
     }, 5000);
 

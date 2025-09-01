@@ -25,9 +25,9 @@ export default function PendingActions() {
 
   // Fetch pending leave requests
   const { data: leaveRequests = [] } = useQuery<LeaveRequest[]>({
-    queryKey: ['/api/leave-requests'],
+    queryKey: ['/api/leave'],
     queryFn: async () => {
-      const response = await fetch('/api/leave-requests');
+      const response = await fetch('/api/leave');
       if (!response.ok) {
         throw new Error('Failed to fetch leave requests');
       }
@@ -38,9 +38,9 @@ export default function PendingActions() {
 
   // Fetch pending timesheets  
   const { data: timesheets = [] } = useQuery<Timesheet[]>({
-    queryKey: ['/api/companies', companyId, 'timesheets'],
+    queryKey: ['/api/timesheets'],
     queryFn: async () => {
-      const response = await fetch(`/api/companies/${companyId}/timesheets`);
+      const response = await fetch('/api/timesheets');
       if (!response.ok) {
         throw new Error('Failed to fetch timesheets');
       }
