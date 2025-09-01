@@ -5,20 +5,23 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function SessionDebug() {
-  const { user, isLoading, isAuthenticated, authError, recoverSession, cleanupTokens } = useAuth();
+  const { user, isLoading, isAuthenticated, authError, logout } = useAuth();
   const [sessionInfo, setSessionInfo] = useState<{ expires_at: number } | null>(null);
   const [localStorageInfo, setLocalStorageInfo] = useState<string>("");
   const [allStorageKeys, setAllStorageKeys] = useState<string[]>([]);
 
   useEffect(() => {
     const checkLocalStorage = () => {
-      const authToken = localStorage.getItem('nest.auth.token');
-      if (authToken) {
+      const accessToken = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+      
+      if (accessToken) {
         try {
-          const parsed = JSON.parse(authToken);
-          setLocalStorageInfo(`Present (expires: ${new Date(parsed.expires_at * 1000).toLocaleTimeString()})`);
-          // Set session info from localStorage since we're using custom auth
-          setSessionInfo(parsed);
+          // Try to decode JWT to get expiration
+          const payload = JSON.parse(atob(accessToken.split('.')[1]));
+          const expiresAt = payload.exp * 1000; // Convert to milliseconds
+          setLocalStorageInfo(`Present (expires: ${new Date(expiresAt).toLocaleTimeString()})`);
+          setSessionInfo({ expires_at: payload.exp });
         } catch {
           setLocalStorageInfo('Present (invalid format)');
           setSessionInfo(null);
@@ -53,10 +56,11 @@ export default function SessionDebug() {
         <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
         <div>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</div>
         <div>User: {user ? user.email : 'None'}</div>
-        <div>Role: {user ? user.role : 'None'}</div>
+        <div>Role: {user ? (user.isAdmin ? 'Admin' : 'Employee') : 'None'}</div>
+        <div>Name: {user ? `${user.firstName} ${user.lastName}` : 'None'}</div>
         <div>Auth Error: {authError || 'None'}</div>
-        <div>Session: {sessionInfo ? 'Present' : 'None'}</div>
-        <div>LocalStorage: {localStorageInfo}</div>
+        <div>Access Token: {localStorage.getItem('access_token') ? 'Present' : 'None'}</div>
+        <div>Refresh Token: {localStorage.getItem('refresh_token') ? 'Present' : 'None'}</div>
         {sessionInfo && (
           <div>Expires: {new Date(sessionInfo.expires_at * 1000).toLocaleTimeString()}</div>
         )}
@@ -71,23 +75,31 @@ export default function SessionDebug() {
           </div>
         </div>
         <div className="flex gap-2 mt-2">
-          {!isAuthenticated && localStorageInfo.includes('Present') && (
-            <Button 
-              onClick={recoverSession} 
-              size="sm" 
-              className="flex-1"
-            >
-              Recover
-            </Button>
-          )}
           <Button 
-            onClick={cleanupTokens} 
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              if (typeof window !== 'undefined') {
+                delete window.__authToken;
+              }
+              window.location.reload();
+            }} 
             size="sm" 
             variant="destructive"
             className="flex-1"
           >
             Clean Tokens
           </Button>
+          {isAuthenticated && (
+            <Button 
+              onClick={logout} 
+              size="sm" 
+              variant="outline"
+              className="flex-1"
+            >
+              Logout
+            </Button>
+          )}
         </div>
       </div>
     </div>
