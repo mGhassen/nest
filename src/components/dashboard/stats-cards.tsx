@@ -8,7 +8,8 @@ interface StatsCardsProps {
     totalEmployees: number;
     pendingTimesheets: number;
     pendingLeaveRequests: number;
-    totalPayroll: number;
+    totalPayroll?: number;
+    payrollStatus?: string;
   };
 }
 
@@ -22,7 +23,8 @@ export default function StatsCards({ stats }: StatsCardsProps) {
     totalEmployees: 0,
     pendingTimesheets: 0,
     pendingLeaveRequests: 0,
-    totalPayroll: 0
+    totalPayroll: 0,
+    payrollStatus: "Processing"
   };
 
   const data = stats || dashboardData?.stats || defaultStats;
@@ -95,7 +97,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Payroll Status</p>
               <p className="text-3xl font-bold text-foreground mt-2" data-testid="text-payroll-status">
-                {data.payrollStatus}
+                {data.payrollStatus || "Processing"}
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-50 dark:bg-purple-950/20 rounded-lg flex items-center justify-center">
