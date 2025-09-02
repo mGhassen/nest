@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api";
-import type { Employee } from "@/types/schema";
+import { employeeApi, type EmployeeWithAccount } from "@/lib/api/employees";
 import type { EmployeeDetail } from "@/types/employee";
 
 // Import the form data type from the employee form
@@ -20,26 +19,13 @@ type EmployeeFormData = {
   status: "ACTIVE" | "INACTIVE" | "TERMINATED" | "ON_LEAVE";
 };
 
-// Types for API responses
-interface PeopleListResponse {
-  people: Employee[];
-}
-
-
-
-interface CreatePeopleResponse {
-  success: boolean;
-  employee: Employee;
-}
-
 // Hook for fetching people list
 export function usePeopleList() {
-  return useQuery<Employee[]>({
-    queryKey: ['/api/people'],
-    queryFn: async () => {
-      const data = await apiFetch<PeopleListResponse>('/api/people');
-      return data.people || [];
-    },
+  return useQuery<EmployeeWithAccount[]>({
+    queryKey: ['employees'],
+    queryFn: employeeApi.getEmployees,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
 }
 
@@ -47,16 +33,11 @@ export function usePeopleList() {
 export function usePeopleCreate() {
   const queryClient = useQueryClient();
 
-  return useMutation<CreatePeopleResponse, Error, EmployeeFormData>({
-    mutationFn: async (data: EmployeeFormData) => {
-      return await apiFetch<CreatePeopleResponse>('/api/people', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
+  return useMutation({
+    mutationFn: employeeApi.createEmployee,
     onSuccess: () => {
       // Invalidate and refetch people list
-      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
@@ -65,17 +46,13 @@ export function usePeopleCreate() {
 export function usePeopleUpdate() {
   const queryClient = useQueryClient();
 
-  return useMutation<CreatePeopleResponse, Error, { id: string; data: Partial<EmployeeFormData> }>({
-    mutationFn: async ({ id, data }) => {
-      return await apiFetch<CreatePeopleResponse>(`/api/people/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-    },
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<EmployeeFormData> }) => 
+      employeeApi.updateEmployee(id, data),
     onSuccess: (_, variables) => {
       // Invalidate people list and specific person data
-      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/people', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
     },
   });
 }
@@ -84,27 +61,20 @@ export function usePeopleUpdate() {
 export function usePeopleDelete() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
-    mutationFn: async (id: string) => {
-      await apiFetch(`/api/people/${id}`, {
-        method: 'DELETE',
-      });
-    },
+  return useMutation({
+    mutationFn: employeeApi.deleteEmployee,
     onSuccess: () => {
       // Invalidate people list
-      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
 
 // Hook for fetching a specific person
 export function usePerson(id: string) {
-  return useQuery<EmployeeDetail>({
-    queryKey: ['/api/people', id],
-    queryFn: async () => {
-      const data = await apiFetch<{ success: boolean; employee: EmployeeDetail }>(`/api/people/${id}`);
-      return data.employee;
-    },
+  return useQuery<EmployeeWithAccount>({
+    queryKey: ['employee', id],
+    queryFn: () => employeeApi.getEmployee(id),
     enabled: !!id,
   });
 }
@@ -113,20 +83,18 @@ export function usePerson(id: string) {
 export function usePeoplePasswordManagement() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { id: string; action: 'set' | 'reset'; password?: string }>({
-    mutationFn: async ({ id, action, password }) => {
-      const endpoint = action === 'set' 
-        ? `/api/people/${id}/password`
-        : `/api/people/${id}/password/reset`;
-      
-      await apiFetch(endpoint, {
-        method: 'POST',
-        body: JSON.stringify({ password }),
-      });
+  return useMutation({
+    mutationFn: async ({ id, action, password }: { id: string; action: 'set' | 'reset'; password?: string }) => {
+      if (action === 'set' && password) {
+        return await employeeApi.setPassword(id, password);
+      } else if (action === 'reset') {
+        return await employeeApi.resetPassword(id);
+      }
+      throw new Error('Invalid action or missing password');
     },
     onSuccess: (_, variables) => {
       // Invalidate specific person data
-      queryClient.invalidateQueries({ queryKey: ['/api/people', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
     },
   });
 }

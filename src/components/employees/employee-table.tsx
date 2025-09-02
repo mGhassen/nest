@@ -11,12 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, ExternalLink, User, UserX } from "lucide-react";
 import Link from "next/link";
-import type { Employee, Account } from "@/types/schema";
-
-// Extended employee type that includes account information
-type EmployeeWithAccount = Employee & {
-  account?: Account | null;
-};
+import type { Employee } from "@/types/schema";
+import type { EmployeeWithAccount } from "@/lib/api/employees";
 import { usePeopleDelete, usePeopleUpdate, usePeoplePasswordManagement } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
 import SendInvitationDialog from "./send-invitation-dialog";

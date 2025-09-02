@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from "@/hooks/use-auth";
+import { useAccountsList, useAccountCreate, useAccountPasswordReset, useAccountStatusUpdate } from "@/hooks/use-accounts";
 import AdminLayout from "@/components/layout/admin-layout";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -103,22 +103,13 @@ export default function AccountManagementPage() {
     }
   }, [user, isLoading, router]);
 
-  // Fetch accounts with their status and employee info
-  const { data: accountsResponse, isLoading: accountsLoading, refetch: refetchAccounts } = useQuery({
-    queryKey: ['/api/admin/accounts'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/accounts', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch accounts');
-      return response.json();
-    },
-  });
-
-  // Extract accounts array from response
-  const accounts = accountsResponse?.data || [];
+  // Fetch accounts using proper hook
+  const { data: accounts = [], isLoading: accountsLoading, refetch: refetchAccounts } = useAccountsList();
+  
+  // Hooks for account actions
+  const createAccount = useAccountCreate();
+  const passwordReset = useAccountPasswordReset();
+  const updateStatus = useAccountStatusUpdate();
 
   // Filter and sort accounts
   const filteredAndSortedAccounts = accounts
@@ -275,72 +266,47 @@ export default function AccountManagementPage() {
     );
   };
 
-  const handlePasswordReset = async (account: Account) => {
+  const handlePasswordReset = (account: Account) => {
     if (confirm(`Send password reset email to ${account.first_name} ${account.last_name} (${account.email})?`)) {
-      try {
-        const response = await fetch(`/api/admin/accounts/${account.id}/password-reset`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
+      passwordReset.mutate(account.id, {
+        onSuccess: () => {
           toast({
             title: "Password reset email sent",
             description: `A password reset email has been sent to ${account.email}`,
           });
-          refetchAccounts();
-        } else {
-          throw new Error(data.error || 'Failed to send password reset email');
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to send password reset email",
+            variant: "destructive",
+          });
         }
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to send password reset email",
-          variant: "destructive",
-        });
-      }
+      });
     }
   };
 
-  const handleSuspendAccount = async (account: Account) => {
+  const handleSuspendAccount = (account: Account) => {
     const currentStatus = account.account_status || (account.is_active ? 'ACTIVE' : 'INACTIVE');
     const action = currentStatus === 'SUSPENDED' ? 'activate' : 'suspend';
+    const newStatus = currentStatus === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED';
+    
     if (confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} account for ${account.first_name} ${account.last_name}?`)) {
-      try {
-        const response = await fetch(`/api/admin/accounts/${account.id}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: currentStatus === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED'
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
+      updateStatus.mutate({ accountId: account.id, status: newStatus }, {
+        onSuccess: () => {
           toast({
             title: `Account ${action}d`,
             description: `Account for ${account.first_name} ${account.last_name} has been ${action}d.`,
           });
-          refetchAccounts();
-        } else {
-          throw new Error(data.error || `Failed to ${action} account`);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || `Failed to ${action} account`,
+            variant: "destructive",
+          });
         }
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || `Failed to ${action} account`,
-          variant: "destructive",
-        });
-      }
+      });
     }
   };
 
@@ -353,7 +319,7 @@ export default function AccountManagementPage() {
     setNewUser(prev => ({ ...prev, password }));
   };
 
-  const handleCreateUser = async () => {
+  const handleCreateUser = () => {
     if (!newUser.email || !newUser.password || !newUser.firstName || !newUser.lastName) {
       toast({
         title: "Validation Error",
@@ -363,55 +329,38 @@ export default function AccountManagementPage() {
       return;
     }
 
-    setIsCreating(true);
-    try {
-      const response = await fetch('/api/admin/accounts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({
-          email: newUser.email,
-          password: newUser.password,
-          first_name: newUser.firstName,
-          last_name: newUser.lastName,
-          role: newUser.role.toUpperCase()
-        }),
-      });
+    createAccount.mutate({
+      email: newUser.email,
+      password: newUser.password,
+      first_name: newUser.firstName,
+      last_name: newUser.lastName,
+      role: newUser.role.toUpperCase() as 'ADMIN' | 'EMPLOYEE'
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "User created successfully",
+          description: `New ${newUser.role} account has been created for ${newUser.email}`,
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create user');
+        // Reset form and close dialog
+        setNewUser({
+          email: '',
+          password: '',
+          firstName: '',
+          lastName: '',
+          role: 'admin'
+        });
+        setShowCreateDialog(false);
+      },
+      onError: (error: any) => {
+        console.error('Error creating user:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create user",
+          variant: "destructive",
+        });
       }
-
-      toast({
-        title: "User created successfully",
-        description: `New ${newUser.role} account has been created for ${newUser.email}`,
-      });
-
-      // Reset form and close dialog
-      setNewUser({
-        email: '',
-        password: '',
-        firstName: '',
-        lastName: '',
-        role: 'admin'
-      });
-      setShowCreateDialog(false);
-
-      // Refresh the accounts list
-      refetchAccounts();
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create user",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
+    });
   };
 
   // Bulk action handlers
@@ -577,8 +526,8 @@ export default function AccountManagementPage() {
                   <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
                     Cancel
                   </Button>
-                  <Button type="button" onClick={handleCreateUser} disabled={isCreating}>
-                    {isCreating ? "Creating..." : "Create Account"}
+                  <Button type="button" onClick={handleCreateUser} disabled={createAccount.isPending}>
+                    {createAccount.isPending ? "Creating..." : "Create Account"}
                   </Button>
                 </DialogFooter>
               </DialogContent>

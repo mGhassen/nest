@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePerson } from "@/hooks/use-people";
+import { useEmployeeInvitation, useEmployeePasswordReset } from "@/hooks/use-employee-invitations";
 import { useEffect, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout"
@@ -38,6 +39,10 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
 
   // Fetch employee data from API
   const { data: employee, isLoading: employeeLoading, error: employeeError } = usePerson(employeeId || '');
+  
+  // Hooks for employee actions
+  const sendInvitation = useEmployeeInvitation();
+  const resetPassword = useEmployeePasswordReset();
 
   useEffect(() => {
     if (isLoading) return;
@@ -56,16 +61,16 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     email: employee.email,
     phone: "", // Not available in current schema
     position: employee.position_title,
-    department: employee.cost_center?.name || "Unknown",
-    manager: employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : "No Manager",
+    department: "Unknown", // TODO: Add cost_center relation to API
+    manager: "No Manager", // TODO: Add manager relation to API
     hireDate: employee.hire_date,
     salary: employee.base_salary,
     status: employee.status?.toLowerCase() || "active",
     avatar: employee.account?.profile_image_url || null,
-    address: employee.location ? `${employee.location.address || ''} ${employee.location.city || ''} ${employee.location.state || ''} ${employee.location.country || ''}`.trim() : "No Address",
+    address: "No Address", // TODO: Add location relation to API
     emergencyContact: "Not Available", // Not available in current schema
-    documents: employee.documents || [],
-    contracts: employee.contracts || []
+    documents: [], // TODO: Add documents relation to API
+    contracts: [] // TODO: Add contracts relation to API
   } : null;
 
   if (isLoading || employeeLoading || !employeeId) {
@@ -103,26 +108,14 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     if (!employee) return;
     
     if (confirm(`Send password reset email to ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
-      // Call the password reset API
-      fetch(`/api/people/${employee.id}/password/reset`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // You might want to add a toast notification here
+      resetPassword.mutate(employee.id, {
+        onSuccess: () => {
           alert(`Password reset email sent to ${employee.email}`);
-        } else {
-          throw new Error(data.error || 'Failed to send password reset email');
+        },
+        onError: (error) => {
+          console.error('Password reset error:', error);
+          alert(`Error: ${error.message || "Failed to send password reset email"}`);
         }
-      })
-      .catch(error => {
-        console.error('Password reset error:', error);
-        alert(`Error: ${error.message || "Failed to send password reset email"}`);
       });
     }
   };
@@ -136,30 +129,14 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     if (!employee) return;
     
     if (confirm(`Create user account for ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
-      // Call the invite API to create account
-      fetch(`/api/people/${employee.id}/invite`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          role: 'EMPLOYEE' // Default role for new accounts
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
+      sendInvitation.mutate({ employeeId: employee.id, role: 'EMPLOYEE' }, {
+        onSuccess: () => {
           alert(`Account created and invitation sent to ${employee.email}`);
-          // Refresh the page to show the new account
-          window.location.reload();
-        } else {
-          throw new Error(data.error || 'Failed to create account');
+        },
+        onError: (error) => {
+          console.error('Create account error:', error);
+          alert(`Error: ${error.message || "Failed to create account"}`);
         }
-      })
-      .catch(error => {
-        console.error('Create account error:', error);
-        alert(`Error: ${error.message || "Failed to create account"}`);
       });
     }
   };
@@ -278,7 +255,15 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                 first_name: employee.first_name,
                 last_name: employee.last_name,
                 email: employee.email,
-                account: employee.account
+                account: employee.account ? {
+                  id: employee.account.id,
+                  email: employee.account.email,
+                  first_name: employee.account.first_name,
+                  last_name: employee.account.last_name,
+                  role: employee.account.role,
+                  is_active: employee.account.is_active || false,
+                  profile_image_url: employee.account.profile_image_url
+                } : null
               }}
               onCreateAccount={handleCreateAccount}
               onPasswordReset={handlePasswordReset}
