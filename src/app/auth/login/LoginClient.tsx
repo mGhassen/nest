@@ -188,7 +188,11 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                 type="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // Clear local error when user starts typing
+                  if (error) setError("");
+                }}
                 required
                 disabled={isLoading}
               />
@@ -200,7 +204,11 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                 type="password"
                 placeholder="Enter your password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  // Clear local error when user starts typing
+                  if (error) setError("");
+                }}
                 required
                 disabled={isLoading}
               />

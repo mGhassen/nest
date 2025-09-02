@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from "@/hooks/use-auth";
 import AdminLayout from "@/components/layout/admin-layout";
@@ -743,7 +744,7 @@ export default function AccountManagementPage() {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-64">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-80">
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -755,7 +756,7 @@ export default function AccountManagementPage() {
                         className="flex items-center space-x-1 hover:text-foreground transition-colors"
                         onClick={() => handleSort('first_name')}
                       >
-                        <span>User</span>
+                        <span>User & Employee</span>
                         {getSortIcon('first_name')}
                       </button>
                     </div>
@@ -777,9 +778,6 @@ export default function AccountManagementPage() {
                       <span>Status</span>
                       {getSortIcon('account_status')}
                     </button>
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-48">
-                    Employee
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-24">
                     <button
@@ -811,19 +809,38 @@ export default function AccountManagementPage() {
                             onChange={(e) => handleSelectAccount(account.id, e.target.checked)}
                             className="rounded border-gray-300"
                           />
-                          <div className="flex items-center max-w-[200px]">
+                          <div className="flex items-center max-w-[300px]">
                             <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-blue-600 font-medium text-xs">
                                 {account.first_name?.charAt(0)}{account.last_name?.charAt(0)}
                               </span>
                             </div>
                             <div className="ml-2 min-w-0 flex-1">
-                              <div className="text-sm font-medium text-blue-600 truncate">
-                                {account.first_name} {account.last_name}
+                              <div className="flex items-center space-x-1">
+                                {account.employee ? (
+                                  <Link 
+                                    href={`/admin/people/${account.employee.id}`}
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                  >
+                                    {account.first_name} {account.last_name}
+                                  </Link>
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-sm font-medium text-gray-600 truncate">
+                                      {account.first_name} {account.last_name}
+                                    </span>
+                                    <UserX className="w-3 h-3 text-gray-400" />
+                                  </div>
+                                )}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
                                 {account.email}
                               </div>
+                              {account.employee && (
+                                <div className="text-xs text-muted-foreground truncate mt-1">
+                                  <span className="font-medium">{account.employee.position_title}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -833,16 +850,6 @@ export default function AccountManagementPage() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
                         {getStatusBadge(account)}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
-                        {account.employee ? (
-                          <div className="max-w-[180px]">
-                            <div className="font-medium text-sm truncate">{account.employee.first_name} {account.employee.last_name}</div>
-                            <div className="text-xs text-muted-foreground truncate">{account.employee.position_title}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
                         {account.last_login ? (

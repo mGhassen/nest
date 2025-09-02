@@ -9,16 +9,21 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban } from "lucide-react";
+import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, ExternalLink, User, UserX } from "lucide-react";
 import Link from "next/link";
-import type { Employee } from "@/types/schema";
+import type { Employee, Account } from "@/types/schema";
+
+// Extended employee type that includes account information
+type EmployeeWithAccount = Employee & {
+  account?: Account | null;
+};
 import { usePeopleDelete, usePeopleUpdate, usePeoplePasswordManagement } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
 import SendInvitationDialog from "./send-invitation-dialog";
 import PasswordManagementDialog from "./password-management-dialog";
 
 interface EmployeeTableProps {
-  employees: Employee[];
+  employees: EmployeeWithAccount[];
   onEdit?: (employee: Employee) => void;
   onDelete?: (id: string) => void;
   onSetPassword?: (employee: Employee) => void;
@@ -303,14 +308,35 @@ export default function EmployeeTable({
                       </span>
                     </div>
                     <div className="ml-3">
-                      <Link href={`/admin/people/${employee.id}`} className="hover:underline">
-                        <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
-                          {employee.first_name} {employee.last_name}
-                        </div>
-                      </Link>
+                      <div className="flex items-center space-x-1">
+                        {employee.account ? (
+                          <>
+                            <Link href={`/admin/people/${employee.id}`} className="hover:underline">
+                              <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
+                                {employee.first_name} {employee.last_name}
+                              </div>
+                            </Link>
+                            <Link href={`/admin/people/${employee.id}?tab=account`} className="text-blue-600 hover:text-blue-800">
+                              <User className="w-3 h-3" />
+                            </Link>
+                          </>
+                        ) : (
+                          <div className="flex items-center space-x-1">
+                            <div className="text-sm font-medium text-gray-600" data-testid={`text-employee-name-${employee.id}`}>
+                              {employee.first_name} {employee.last_name}
+                            </div>
+                            <UserX className="w-3 h-3 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground" data-testid={`text-employee-email-${employee.id}`}>
                         {employee.email}
                       </div>
+                      {employee.account && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <span className="font-medium">Account: {employee.account.role}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -322,7 +348,7 @@ export default function EmployeeTable({
                   {employee.employment_type || 'Contractor'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`badge-employee-status-${employee.id}`}>
-                  {getStatusBadge(employee.status)}
+                  {getStatusBadge(employee.status || 'ACTIVE')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap" data-testid={`text-employee-hire-date-${employee.id}`}>
                   <div className="text-sm text-foreground">

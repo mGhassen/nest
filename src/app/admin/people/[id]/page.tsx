@@ -13,6 +13,7 @@ import EmployeeAdministration from "@/components/employees/employee-administrati
 import EmployeeContracts from "@/components/employees/employee-contracts"
 import EmployeePayroll from "@/components/employees/employee-payroll"
 import EmployeeDocuments from "@/components/employees/employee-documents"
+import EmployeeAccountOverview from "@/components/employees/employee-account-overview"
 import type { EmployeeDetail, PayrollRecord } from "@/types/employee"
 
 export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,11 +22,18 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const [activeTab, setActiveTab] = useState("overview");
   const [employeeId, setEmployeeId] = useState<string | null>(null);
 
-  // Await params to get the id
+  // Await params to get the id and check for tab parameter
   useEffect(() => {
     params.then(({ id }) => {
       setEmployeeId(id);
     });
+    
+    // Check for tab parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && ['overview', 'account', 'administration', 'contracts', 'payroll', 'documents'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
   }, [params]);
 
   // Fetch employee data from API
@@ -124,6 +132,38 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     console.log('Resend invitation for:', employee?.id);
   };
 
+  const handleCreateAccount = () => {
+    if (!employee) return;
+    
+    if (confirm(`Create user account for ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
+      // Call the invite API to create account
+      fetch(`/api/people/${employee.id}/invite`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'EMPLOYEE' // Default role for new accounts
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(`Account created and invitation sent to ${employee.email}`);
+          // Refresh the page to show the new account
+          window.location.reload();
+        } else {
+          throw new Error(data.error || 'Failed to create account');
+        }
+      })
+      .catch(error => {
+        console.error('Create account error:', error);
+        alert(`Error: ${error.message || "Failed to create account"}`);
+      });
+    }
+  };
+
   const handleChangeRole = () => {
     // TODO: Implement change role functionality
     console.log('Change role for:', employee?.id);
@@ -218,6 +258,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="administration">Administration</TabsTrigger>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
@@ -227,6 +268,22 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
             <EmployeeOverview employee={transformedEmployee} />
+          </TabsContent>
+
+          {/* Account Tab */}
+          <TabsContent value="account" className="space-y-4">
+            <EmployeeAccountOverview 
+              employee={{
+                id: employee.id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                email: employee.email,
+                account: employee.account
+              }}
+              onCreateAccount={handleCreateAccount}
+              onPasswordReset={handlePasswordReset}
+              onResendInvitation={handleResendInvitation}
+            />
           </TabsContent>
 
           {/* Administration Tab */}

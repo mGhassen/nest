@@ -198,8 +198,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
             return;
           }
-          setLoginError(new Error(data.error || 'Account access denied'));
-          return;
+                  const errorMsg = data.error || 'Account access denied';
+        setLoginError(new Error(errorMsg));
+        setAuthError(errorMsg);
+        return;
         }
         
         // Handle 401 errors (invalid credentials or user not found)
@@ -218,17 +220,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
               return;
             }
           }
-          setLoginError(new Error(data.error || 'Invalid email or password'));
+          const errorMsg = data.error || 'Invalid email or password';
+          setLoginError(new Error(errorMsg));
+          setAuthError(errorMsg);
           return;
         }
         
-        setLoginError(new Error(data.error || 'Login failed'));
+        const errorMsg = data.error || 'Login failed';
+        setLoginError(new Error(errorMsg));
+        setAuthError(errorMsg);
         return;
       }
 
       if (!data.session || !data.session.access_token) {
         console.log('Session structure:', JSON.stringify(data.session, null, 2));
-        setLoginError(new Error('No access token received'));
+        const errorMsg = 'No access token received';
+        setLoginError(new Error(errorMsg));
+        setAuthError(errorMsg);
         return;
       }
 
@@ -253,6 +261,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       setUser(data.user);
       setLoginError(null); // Clear any previous errors
+      setAuthError(null); // Clear any previous auth errors
 
       // Redirect based on user role
       console.log('Login successful, redirecting user:', data.user);
@@ -274,7 +283,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         delete window.__authToken;
       }
       setUser(null);
+      const errorMsg = error instanceof Error ? error.message : String(error);
       setLoginError(error instanceof Error ? error : new Error(String(error)));
+      setAuthError(errorMsg);
     } finally {
       setIsLoggingIn(false);
     }
