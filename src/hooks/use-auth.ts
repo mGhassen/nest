@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { setAuthToken } from '@/lib/api';
 
 export interface User {
   id: string;
@@ -84,11 +85,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (response.status === 401) {
           console.log('401 error - clearing tokens and redirecting to login');
           // Clear invalid token
-          localStorage.removeItem('access_token');
+          setAuthToken(null);
           localStorage.removeItem('refresh_token');
-          if (typeof window !== 'undefined') {
-            delete window.__authToken;
-          }
           setUser(null);
           router.push('/login');
           setAuthError('Your session has expired or is invalid. Please log in again.');
@@ -128,6 +126,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
+      // Ensure the token is available to apiFetch
+      setAuthToken(token);
+
       try {
         const user = await fetchSession(token);
         if (!user) {
@@ -137,10 +138,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('Session check failed:', error);
         // Fallback cleanup in case fetchSession didn't handle it
-        localStorage.removeItem('access_token');
-        if (typeof window !== 'undefined') {
-          delete window.__authToken;
-        }
+        setAuthToken(null);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -240,13 +238,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // 2. Store tokens
-      localStorage.setItem('access_token', data.session.access_token);
+      // 2. Store tokens using the utility function
+      setAuthToken(data.session.access_token);
       if (data.session.refresh_token) {
         localStorage.setItem('refresh_token', data.session.refresh_token);
-      }
-      if (typeof window !== 'undefined') {
-        window.__authToken = data.session.access_token;
       }
 
       // Clean up any pending email
@@ -308,11 +303,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Logout error:', error);
     } finally {
       // Clear all auth-related data regardless of API call success
-      localStorage.removeItem('access_token');
+      setAuthToken(null);
       localStorage.removeItem('refresh_token');
-      if (typeof window !== 'undefined') {
-        delete window.__authToken;
-      }
       
       // Clear user state immediately
       setUser(null);
