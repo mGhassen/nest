@@ -53,9 +53,7 @@ export default function AdminDashboardPage() {
           </div>
           
           {/* Stats Overview */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatsCards />
-          </div>
+          <StatsCards />
           
           {/* Main Dashboard Content */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
