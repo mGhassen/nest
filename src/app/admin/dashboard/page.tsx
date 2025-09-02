@@ -10,6 +10,7 @@ import StatsCards from "@/components/dashboard/stats-cards"
 import TeamOverview from "@/components/dashboard/team-overview"
 import RecentActivity from "@/components/dashboard/recent-activity"
 import PendingActions from "@/components/dashboard/pending-actions"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -25,11 +26,7 @@ export default function AdminDashboardPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) {

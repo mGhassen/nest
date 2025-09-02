@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Clock, Calendar, CheckCircle, AlertCircle, Users, FileText } from "lucide-react"
 import Link from "next/link"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function WorkloadPage() {
   const router = useRouter();
@@ -23,11 +24,7 @@ export default function WorkloadPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) {

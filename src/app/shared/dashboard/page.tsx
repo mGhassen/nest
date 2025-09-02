@@ -8,6 +8,7 @@ import StatsCards from "@/components/dashboard/stats-cards"
 import TeamOverview from "@/components/dashboard/team-overview"
 import RecentActivity from "@/components/dashboard/recent-activity"
 import PendingActions from "@/components/dashboard/pending-actions"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function SharedDashboardPage() {
   const { user, isLoading } = useAuth()
@@ -33,7 +34,7 @@ export default function SharedDashboardPage() {
       <MainLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading...</div>
+            <LoadingSpinner />
           </div>
         </div>
       </MainLayout>
@@ -45,7 +46,7 @@ export default function SharedDashboardPage() {
     <MainLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Redirecting...</div>
+          <LoadingSpinner text="Redirecting..." />
         </div>
       </div>
     </MainLayout>

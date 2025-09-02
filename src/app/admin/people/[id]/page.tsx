@@ -16,6 +16,7 @@ import EmployeePayroll from "@/components/employees/employee-payroll"
 import EmployeeDocuments from "@/components/employees/employee-documents"
 import EmployeeAccountOverview from "@/components/employees/employee-account-overview"
 import type { EmployeeDetail, PayrollRecord } from "@/types/employee"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -74,11 +75,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   } : null;
 
   if (isLoading || employeeLoading || !employeeId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) return null;

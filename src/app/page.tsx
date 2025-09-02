@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { LoadingPage } from "@/components/ui/loading-spinner";
 
 export default function Home() {
   const router = useRouter();
@@ -19,9 +20,5 @@ export default function Home() {
     }
   }, [user, isLoading, router]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <span className="text-lg text-muted-foreground">Loading...</span>
-    </div>
-  );
+  return <LoadingPage />;
 }

@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import AdminLayout from "@/components/layout/admin-layout"
 import EmployeeForm from "@/components/employees/employee-form"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function CreateEmployeePage() {
   const router = useRouter();
@@ -25,11 +26,7 @@ export default function CreateEmployeePage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) return null;

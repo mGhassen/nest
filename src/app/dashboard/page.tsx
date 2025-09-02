@@ -11,6 +11,7 @@ import AdvancedAnalytics from "@/components/admin/advanced-analytics";
 import PendingActions from "@/components/dashboard/pending-actions";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function DashboardPage() {
   const { toast } = useToast();
@@ -38,8 +39,8 @@ export default function DashboardPage() {
 
   if (isLoading || statsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-96 bg-background">
+        <LoadingSpinner size="lg" text="Loading dashboard..." />
       </div>
     );
   }

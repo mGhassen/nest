@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Star, Users, Clock, CheckCircle, TrendingUp, Calendar, Plus, FileText } from "lucide-react"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function ReviewCyclePage() {
   const router = useRouter();
@@ -26,11 +27,7 @@ export default function ReviewCyclePage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) {

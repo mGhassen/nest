@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people"
 import { useToast } from "@/hooks/use-toast"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function PeopleListPage() {
   const router = useRouter();
@@ -254,11 +255,7 @@ export default function PeopleListPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) {

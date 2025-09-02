@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { AlertCircle, CheckCircle, Loader2, Clock, Dumbbell, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function ResetPasswordClient({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Unwrap searchParams Promise (Next.js 15+)
@@ -99,8 +100,7 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
         
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-4" />
-            <CardTitle>Loading...</CardTitle>
+            <LoadingSpinner />
           </CardHeader>
         </Card>
       </div>

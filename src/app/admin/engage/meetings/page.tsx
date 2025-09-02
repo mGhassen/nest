@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageSquare, Calendar, Users, Clock, Plus, Video, MapPin, CheckCircle } from "lucide-react"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function MeetingsPage() {
   const router = useRouter();
@@ -25,11 +26,7 @@ export default function MeetingsPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-lg text-muted-foreground">Loading...</span>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user || !user.isAdmin) {

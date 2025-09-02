@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, Home, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function UnauthorizedPage() {
   const { user, isLoading } = useAuth()
@@ -18,11 +19,7 @@ export default function UnauthorizedPage() {
   }, [user, isLoading])
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (
