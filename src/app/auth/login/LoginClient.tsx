@@ -100,13 +100,13 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
       {/* Theme Toggle */}
       <Button 
         variant="ghost" 
         size="sm" 
         onClick={toggleTheme}
-        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 h-9 w-9"
+        className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground h-9 w-9"
         data-testid="button-theme-toggle"
       >
         {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
