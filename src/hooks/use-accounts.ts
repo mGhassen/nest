@@ -1,13 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { accountApi, type Account } from "@/lib/api";
+import { useAuth } from "./use-auth";
 
 // Hook for fetching accounts list
 export function useAccountsList() {
+  const { user, isAuthenticated } = useAuth();
+  
   return useQuery<Account[]>({
     queryKey: ['accounts'],
     queryFn: accountApi.getAccounts,
+    enabled: isAuthenticated && !!user, // Only fetch when authenticated
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401/403 errors
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 

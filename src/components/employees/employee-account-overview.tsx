@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   User, 
   Mail, 
@@ -17,10 +18,12 @@ import {
   Clock,
   RefreshCw,
   UserX,
-  Link
+  Link,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import LinkAccountDialog from "./link-account-dialog";
+import { useAccountsList } from "@/hooks/use-accounts";
+
 interface EmployeeAccountOverviewProps {
   employee: {
     id: string;
@@ -52,73 +55,43 @@ export default function EmployeeAccountOverview({
 }: EmployeeAccountOverviewProps) {
   const { toast } = useToast();
   const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  
+  // Get available accounts
+  const { data: accounts = [], isLoading: accountsLoading } = useAccountsList();
+  
+  // Filter accounts that are not already linked to employees
+  const availableAccounts = accounts.filter(account => !account.employee);
 
-  const getStatusBadge = (account: { is_active: boolean }) => {
-    const status = account.is_active ? 'ACTIVE' : 'INACTIVE';
-    
-    const statusConfig = {
-      'ACTIVE': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Active' },
-      'INACTIVE': { color: 'bg-gray-100 text-gray-800', icon: UserX, label: 'Inactive' },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.INACTIVE;
-    const Icon = config.icon;
-    
-    return (
-      <Badge className={config.color}>
-        <Icon className="w-3 h-3 mr-1" />
-        {config.label}
-      </Badge>
-    );
+  const handleLinkAccount = () => {
+    if (selectedAccountId && onLinkAccount) {
+      onLinkAccount(selectedAccountId);
+      setSelectedAccountId("");
+      setShowLinkDialog(false);
+    }
   };
 
-  const getRoleBadge = (role: string) => {
-    return (
-      <Badge variant={role === 'ADMIN' ? 'default' : 'secondary'}>
-        {role}
-      </Badge>
-    );
-  };
-
+  // If employee has no account, show account creation options
   if (!employee.account) {
     return (
       <div className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            This employee doesn't have a user account yet. Create an account to enable system access.
-          </AlertDescription>
-        </Alert>
-
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <UserPlus className="h-5 w-5" />
-              <span>Create Account</span>
+              <User className="h-5 w-5" />
+              <span>Account Information</span>
             </CardTitle>
             <CardDescription>
-              Set up a user account for {employee.first_name} {employee.last_name} to access the system.
+              No user account found for {employee.first_name} {employee.last_name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Employee Information</div>
-                <div className="text-sm text-muted-foreground">
-                  <div>Name: {employee.first_name} {employee.last_name}</div>
-                  <div>Email: {employee.email}</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Account Benefits</div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <div>• Access to employee portal</div>
-                  <div>• Timesheet management</div>
-                  <div>• Leave request system</div>
-                  <div>• Document access</div>
-                </div>
-              </div>
-            </div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                This employee doesn't have a user account yet. You can create a new account or link to an existing one.
+              </AlertDescription>
+            </Alert>
             
             <div className="flex space-x-2">
               <Button onClick={onCreateAccount} className="flex items-center space-x-2">
@@ -127,7 +100,6 @@ export default function EmployeeAccountOverview({
               </Button>
               <Button 
                 onClick={() => setShowLinkDialog(true)} 
-                variant="outline" 
                 className="flex items-center space-x-2"
               >
                 <Link className="h-4 w-4" />
@@ -136,6 +108,92 @@ export default function EmployeeAccountOverview({
             </div>
           </CardContent>
         </Card>
+
+        {/* Beautiful Popup with Select List */}
+        {showLinkDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-background border border-border rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Link to Existing Account</h2>
+                <button 
+                  onClick={() => {
+                    setShowLinkDialog(false);
+                    setSelectedAccountId("");
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-hidden flex flex-col space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Select an account to link to <strong className="text-foreground">{employee.first_name} {employee.last_name}</strong>
+                </p>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Available Accounts</label>
+                  <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose an account..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {accountsLoading ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                          <span className="ml-2 text-sm text-muted-foreground">Loading accounts...</span>
+                        </div>
+                      ) : availableAccounts.length === 0 ? (
+                        <div className="flex items-center justify-center py-4 text-muted-foreground">
+                          <User className="h-5 w-5 mr-2" />
+                          <span className="text-sm">No available accounts found</span>
+                        </div>
+                      ) : (
+                        availableAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id} className="py-3">
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex-1">
+                                <div className="font-medium text-foreground">{account.first_name} {account.last_name}</div>
+                                <div className="text-sm text-muted-foreground">{account.email}</div>
+                              </div>
+                              <div className="flex items-center space-x-2 ml-4">
+                                <Badge variant={account.role === 'ADMIN' ? 'default' : 'secondary'} className="text-xs">
+                                  {account.role}
+                                </Badge>
+                                <Badge variant={account.is_active ? 'default' : 'secondary'} className="text-xs">
+                                  {account.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-border">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowLinkDialog(false);
+                    setSelectedAccountId("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleLinkAccount}
+                  disabled={!selectedAccountId}
+                  className="min-w-[100px]"
+                >
+                  Link Account
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -153,106 +211,48 @@ export default function EmployeeAccountOverview({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">Email</div>
-                  <div className="text-sm text-muted-foreground">{employee.account.email}</div>
-                </div>
+                <span className="text-sm font-medium">Email</span>
               </div>
-              
+              <p className="text-sm text-muted-foreground">{employee.account.email}</p>
+            </div>
+            
+            <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Shield className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">Role</div>
-                  <div className="mt-1">{getRoleBadge(employee.account.role)}</div>
-                </div>
+                <span className="text-sm font-medium">Role</span>
               </div>
+              <Badge variant={employee.account.role === 'ADMIN' ? 'default' : 'secondary'}>
+                {employee.account.role}
+              </Badge>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">Status</div>
-                  <div className="mt-1">{getStatusBadge(employee.account)}</div>
-                </div>
+                <span className="text-sm font-medium">Status</span>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">Account ID</div>
-                  <div className="text-sm text-muted-foreground">
-                    {employee.account.id}
-                  </div>
-                </div>
-              </div>
+              <Badge variant={employee.account.is_active ? 'default' : 'secondary'}>
+                {employee.account.is_active ? 'Active' : 'Inactive'}
+              </Badge>
             </div>
+          </div>
+          
+          <div className="flex space-x-2 pt-4">
+            <Button onClick={onPasswordReset} variant="outline" size="sm">
+              <Key className="h-4 w-4 mr-2" />
+              Reset Password
+            </Button>
+            <Button onClick={onResendInvitation} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Resend Invitation
+            </Button>
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Key className="h-5 w-5" />
-            <span>Account Management</span>
-          </CardTitle>
-          <CardDescription>
-            Manage account access and permissions
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Account Actions</div>
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onPasswordReset}
-                  className="w-full justify-start"
-                >
-                  <Key className="mr-2 h-4 w-4" />
-                  Reset Password
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onResendInvitation}
-                  className="w-full justify-start"
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Resend Invitation
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Account Details</div>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <div>Account ID: {employee.account.id}</div>
-                <div>Profile Image: {employee.account.profile_image_url ? 'Set' : 'Not set'}</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Link Account Dialog */}
-      <LinkAccountDialog
-        open={showLinkDialog}
-        onOpenChange={setShowLinkDialog}
-        onLink={(accountId) => {
-          if (onLinkAccount) {
-            onLinkAccount(accountId);
-          }
-        }}
-        employee={employee}
-      />
     </div>
   );
 }

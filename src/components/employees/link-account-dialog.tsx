@@ -35,6 +35,9 @@ export default function LinkAccountDialog({
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   
+  // Debug logging
+  console.log('LinkAccountDialog rendered with open:', open, 'employee:', employee);
+  
   // Use the accounts hook instead of direct API call
   const { data: accounts = [], isLoading, error } = useAccountsList();
 
