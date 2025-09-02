@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,6 +11,8 @@ import {
 import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban } from "lucide-react";
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
+import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people";
+import { useToast } from "@/hooks/use-toast";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -20,6 +23,19 @@ interface EmployeeTableProps {
   onResendInvitation?: (employee: Employee) => void;
   onArchive?: (employee: Employee) => void;
   onSuspend?: (employee: Employee) => void;
+  onSort?: (field: string) => void;
+  getSortIcon?: (field: string) => React.ReactNode;
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+  currentPage?: number;
+  totalPages?: number;
+  totalItems?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  selectedEmployees?: Set<string>;
+  selectAll?: boolean;
+  onSelectAll?: (checked: boolean) => void;
+  onSelectEmployee?: (employeeId: string, checked: boolean) => void;
 }
 
 export default function EmployeeTable({ 
@@ -30,38 +46,118 @@ export default function EmployeeTable({
   onResetPassword, 
   onResendInvitation, 
   onArchive, 
-  onSuspend 
+  onSuspend,
+  onSort,
+  getSortIcon,
+  sortField,
+  sortDirection,
+  currentPage = 1,
+  totalPages = 1,
+  totalItems = 0,
+  pageSize = 10,
+  onPageChange,
+  selectedEmployees = new Set(),
+  selectAll = false,
+  onSelectAll,
+  onSelectEmployee
 }: EmployeeTableProps) {
+  const { toast } = useToast();
+  const deleteEmployee = usePeopleDelete();
+  const updateEmployee = usePeopleUpdate();
+  
   // Default handlers if not provided
   const handleEdit = onEdit || ((employee: Employee) => {
     window.location.href = `/admin/people/${employee.id}`;
   });
   
   const handleDelete = onDelete || ((id: string) => {
-    if (confirm('Are you sure you want to delete this employee?')) {
-      // Default delete behavior - could be enhanced later
-      console.log('Delete employee:', id);
+    if (confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+      deleteEmployee.mutate(id, {
+        onSuccess: () => {
+          toast({
+            title: "Employee deleted",
+            description: "The employee has been successfully deleted.",
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to delete employee.",
+            variant: "destructive",
+          });
+        },
+      });
     }
   });
 
   const handleSetPassword = onSetPassword || ((employee: Employee) => {
-    console.log('Set password for:', employee.email);
+    // TODO: Implement password setting dialog
+    toast({
+      title: "Feature coming soon",
+      description: "Password setting functionality will be available soon.",
+    });
   });
 
   const handleResetPassword = onResetPassword || ((employee: Employee) => {
-    console.log('Reset password for:', employee.email);
+    // TODO: Implement password reset functionality
+    toast({
+      title: "Feature coming soon",
+      description: "Password reset functionality will be available soon.",
+    });
   });
 
   const handleResendInvitation = onResendInvitation || ((employee: Employee) => {
-    console.log('Resend invitation for:', employee.email);
+    // TODO: Implement invitation resend functionality
+    toast({
+      title: "Feature coming soon",
+      description: "Invitation resend functionality will be available soon.",
+    });
   });
 
   const handleArchive = onArchive || ((employee: Employee) => {
-    console.log('Archive employee:', employee.email);
+    if (confirm(`Are you sure you want to archive ${employee.first_name} ${employee.last_name}?`)) {
+      updateEmployee.mutate({
+        id: employee.id,
+        data: { status: 'INACTIVE' }
+      }, {
+        onSuccess: () => {
+          toast({
+            title: "Employee archived",
+            description: `${employee.first_name} ${employee.last_name} has been archived.`,
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to archive employee.",
+            variant: "destructive",
+          });
+        },
+      });
+    }
   });
 
   const handleSuspend = onSuspend || ((employee: Employee) => {
-    console.log('Suspend employee:', employee.email);
+    if (confirm(`Are you sure you want to suspend ${employee.first_name} ${employee.last_name}?`)) {
+      updateEmployee.mutate({
+        id: employee.id,
+        data: { status: 'ON_LEAVE' }
+      }, {
+        onSuccess: () => {
+          toast({
+            title: "Employee suspended",
+            description: `${employee.first_name} ${employee.last_name} has been suspended.`,
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to suspend employee.",
+            variant: "destructive",
+          });
+        },
+      });
+    }
   });
   const getInitials = (firstName: string | null, lastName: string | null) => {
     if (!firstName || !lastName) return '??';
@@ -105,20 +201,59 @@ export default function EmployeeTable({
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Person
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-12">
+                {onSelectAll && (
+                  <Checkbox
+                    checked={selectAll}
+                    onCheckedChange={onSelectAll}
+                    aria-label="Select all employees"
+                  />
+                )}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Group
+                <button
+                  onClick={() => onSort?.('first_name')}
+                  className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                >
+                  <span>Person</span>
+                  {getSortIcon?.('first_name')}
+                </button>
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Worker type
+                <button
+                  onClick={() => onSort?.('position_title')}
+                  className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                >
+                  <span>Group</span>
+                  {getSortIcon?.('position_title')}
+                </button>
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Worker status
+                <button
+                  onClick={() => onSort?.('employment_type')}
+                  className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                >
+                  <span>Worker type</span>
+                  {getSortIcon?.('employment_type')}
+                </button>
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Hire Date
+                <button
+                  onClick={() => onSort?.('status')}
+                  className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                >
+                  <span>Worker status</span>
+                  {getSortIcon?.('status')}
+                </button>
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <button
+                  onClick={() => onSort?.('hire_date')}
+                  className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                >
+                  <span>Hire Date</span>
+                  {getSortIcon?.('hire_date')}
+                </button>
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Worker ID
@@ -131,6 +266,15 @@ export default function EmployeeTable({
           <tbody className="bg-background divide-y divide-border">
             {employees.map((employee) => (
               <tr key={employee.id} className="hover:bg-muted/50" data-testid={`employee-row-${employee.id}`}>
+                <td className="px-6 py-4 whitespace-nowrap w-12">
+                  {onSelectEmployee && (
+                    <Checkbox
+                      checked={selectedEmployees.has(employee.id)}
+                      onCheckedChange={(checked) => onSelectEmployee(employee.id, checked as boolean)}
+                      aria-label={`Select ${employee.first_name} ${employee.last_name}`}
+                    />
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -236,16 +380,52 @@ export default function EmployeeTable({
       <div className="px-6 py-4 border-t">
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground" data-testid="text-pagination-info">
-            Showing 1 to {employees.length} of {employees.length} results
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} results
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" disabled data-testid="button-previous-page">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              disabled={currentPage <= 1}
+              onClick={() => onPageChange?.(currentPage - 1)}
+              data-testid="button-previous-page"
+            >
               Previous
             </Button>
-            <Button variant="default" size="sm" data-testid="button-page-1">
-              1
-            </Button>
-            <Button variant="ghost" size="sm" disabled data-testid="button-next-page">
+            
+            {/* Page numbers */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => onPageChange?.(pageNum)}
+                  data-testid={`button-page-${pageNum}`}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              disabled={currentPage >= totalPages}
+              onClick={() => onPageChange?.(currentPage + 1)}
+              data-testid="button-next-page"
+            >
               Next
             </Button>
           </div>
