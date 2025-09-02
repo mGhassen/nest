@@ -1,23 +1,35 @@
-import { ReactNode, useState } from "react";
-import Sidebar from "./sidebar";
-import EmployeeHeader from "./employee-header";
+import { ReactNode } from "react";
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="flex h-screen bg-background" data-testid="main-layout">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <EmployeeHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <div className="h-4 w-px bg-sidebar-border" />
+          </div>
+          <div className="flex flex-1 items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">Employee Portal</h1>
+            </div>
+          </div>
+        </header>
         <main className="flex-1 overflow-y-auto" data-testid="main-content">
           {children}
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
