@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
-import { usePendingLeaveRequests } from "@/hooks/use-leave";
-import { usePendingTimesheets } from "@/hooks/use-timesheets";
+import { useLeaveRequests } from "@/hooks/use-leave";
+import { useTimesheets } from "@/hooks/use-timesheets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,13 +21,17 @@ export default function PendingActions() {
   // TODO: Add companyId to User interface or get it from a different source
   const companyId = user?.id; // Using user ID as fallback
 
-  // Fetch pending leave requests and timesheets using custom hooks
-  const { data: leaveRequests = [] } = usePendingLeaveRequests(companyId);
-  const { data: timesheets = [] } = usePendingTimesheets(companyId);
+  // Fetch leave requests and timesheets using custom hooks
+  const { data: leaveRequests = [] } = useLeaveRequests();
+  const { data: timesheets = [] } = useTimesheets();
 
-  // Data is already filtered by the custom hooks
-  const pendingLeaveRequests = leaveRequests;
-  const pendingTimesheets = timesheets;
+  // Filter for pending items
+  const pendingLeaveRequests = leaveRequests.filter(request => 
+    request.status === 'PENDING' || request.status === 'SUBMITTED'
+  );
+  const pendingTimesheets = timesheets.filter(timesheet => 
+    timesheet.status === 'PENDING' || timesheet.status === 'SUBMITTED'
+  );
 
   const totalPendingActions = pendingLeaveRequests.length + pendingTimesheets.length;
 

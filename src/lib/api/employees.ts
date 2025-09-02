@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '../api';
 import type { Employee, Account } from '@/types/schema';
 
 // Extended employee type that includes account information
@@ -88,7 +88,7 @@ export const employeeApi = {
   },
 
   // Send invitation to employee
-  async sendInvitation(id: string, role: string = 'EMPLOYEE'): Promise<{ success: boolean; message: string }> {
+  async sendInvitation(id: string, role: string = 'EMPLOYEE'): Promise<{ success: boolean; message: string; account?: any; authUser?: any }> {
     return await apiFetch(`/api/people/${id}/invite`, {
       method: 'POST',
       body: JSON.stringify({ role }),

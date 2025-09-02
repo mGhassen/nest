@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { employeeApi, type EmployeeWithAccount } from "@/lib/api/employees";
+import { employeeApi, type EmployeeWithAccount } from "@/lib/api";
 import type { EmployeeDetail } from "@/types/employee";
 
 // Import the form data type from the employee form

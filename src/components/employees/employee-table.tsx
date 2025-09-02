@@ -12,7 +12,7 @@ import {
 import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, ExternalLink, User, UserX } from "lucide-react";
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
-import type { EmployeeWithAccount } from "@/lib/api/employees";
+import type { EmployeeWithAccount } from "@/lib/api";
 import { usePeopleDelete, usePeopleUpdate, usePeoplePasswordManagement } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
 import SendInvitationDialog from "./send-invitation-dialog";

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Clock, Calendar, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useDashboardStats } from "@/hooks/use-analytics";
+import { useDashboard } from "@/hooks/use-dashboard";
 
 interface StatsCardsProps {
   stats?: {
@@ -15,8 +15,8 @@ interface StatsCardsProps {
 export default function StatsCards({ stats }: StatsCardsProps) {
   const { user } = useAuth();
   
-  // Fetch analytics data using custom hook
-  const { data: analyticsData } = useDashboardStats();
+  // Fetch dashboard data using custom hook
+  const { data: dashboardData } = useDashboard();
 
   const defaultStats = {
     totalEmployees: 0,
@@ -25,7 +25,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
     totalPayroll: 0
   };
 
-  const data = stats || analyticsData || defaultStats;
+  const data = stats || dashboardData?.stats || defaultStats;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="stats-cards">

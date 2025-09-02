@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { accountApi, type Account } from "@/lib/api/accounts";
+import { accountApi, type Account } from "@/lib/api";
 
 // Hook for fetching accounts list
 export function useAccountsList() {
@@ -48,5 +48,16 @@ export function useAccountStatusUpdate() {
       // Invalidate accounts list to refresh status
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
+  });
+}
+
+// Hook for getting account events
+export function useAccountEvents(accountId: string) {
+  return useQuery({
+    queryKey: ['account-events', accountId],
+    queryFn: () => accountApi.getAccountEvents(accountId),
+    enabled: !!accountId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }

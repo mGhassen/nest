@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { employeeApi } from "@/lib/api/employees";
+import { employeeApi } from "@/lib/api";
 
 // Hook for sending employee invitation
 export function useEmployeeInvitation() {

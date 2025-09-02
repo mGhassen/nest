@@ -1,105 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api";
-import type { Timesheet } from "@/types/leave-request";
-
-// Types for timesheet API responses
-interface TimesheetResponse {
-  id: string;
-  employeeId: string;
-  weekStartDate: string;
-  weekEndDate: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-  totalHours: number;
-  entries: Array<{
-    date: string;
-    hours: number;
-    project?: string;
-    description?: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface CreateTimesheetRequest {
-  employeeId: string;
-  weekStartDate: string;
-  weekEndDate: string;
-  entries: Array<{
-    date: string;
-    hours: number;
-    project?: string;
-    description?: string;
-  }>;
-}
+import { timesheetsApi, type Timesheet, type CreateTimesheetData } from "@/lib/api";
 
 // Hook for fetching timesheets
-export function useTimesheets(companyId?: string) {
+export function useTimesheets() {
   return useQuery<Timesheet[]>({
-    queryKey: ['/api/timesheets'],
-    queryFn: async () => {
-      return await apiFetch<Timesheet[]>('/api/timesheets');
-    },
-    enabled: !!companyId,
+    queryKey: ['timesheets'],
+    queryFn: timesheetsApi.getTimesheets,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
-}
-
-// Hook for fetching pending timesheets
-export function usePendingTimesheets(companyId?: string) {
-  const { data: timesheets = [], ...rest } = useTimesheets(companyId);
-  
-  const pendingTimesheets = timesheets.filter(
-    (timesheet) => timesheet.status === 'SUBMITTED'
-  );
-
-  return {
-    data: pendingTimesheets,
-    ...rest,
-  };
 }
 
 // Hook for creating a timesheet
 export function useTimesheetCreate() {
   const queryClient = useQueryClient();
 
-  return useMutation<TimesheetResponse, Error, CreateTimesheetRequest>({
-    mutationFn: async (data) => {
-      return await apiFetch<TimesheetResponse>('/api/timesheets', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
+  return useMutation({
+    mutationFn: timesheetsApi.createTimesheet,
     onSuccess: () => {
-      // Invalidate timesheets list
-      queryClient.invalidateQueries({ queryKey: ['/api/timesheets'] });
+      // Invalidate and refetch timesheets list
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
     },
-  });
-}
-
-// Hook for updating timesheet status (approve/reject)
-export function useTimesheetUpdate() {
-  const queryClient = useQueryClient();
-
-  return useMutation<TimesheetResponse, Error, { id: string; status: 'APPROVED' | 'REJECTED'; reason?: string }>({
-    mutationFn: async ({ id, status, reason }) => {
-      return await apiFetch<TimesheetResponse>(`/api/timesheets/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status, reason }),
-      });
-    },
-    onSuccess: () => {
-      // Invalidate timesheets list
-      queryClient.invalidateQueries({ queryKey: ['/api/timesheets'] });
-    },
-  });
-}
-
-// Hook for fetching timesheets for a specific employee
-export function useEmployeeTimesheets(employeeId: string) {
-  return useQuery<Timesheet[]>({
-    queryKey: ['/api/timesheets', employeeId],
-    queryFn: async () => {
-      return await apiFetch<Timesheet[]>(`/api/timesheets?employeeId=${employeeId}`);
-    },
-    enabled: !!employeeId,
   });
 }

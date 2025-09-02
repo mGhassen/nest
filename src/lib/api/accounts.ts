@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '../api';
 
 // Account types
 export interface Account {
@@ -77,5 +77,10 @@ export const accountApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
+  },
+
+  // Get account events
+  async getAccountEvents(accountId: string): Promise<{ success: boolean; data: any[] }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/events`);
   },
 };
