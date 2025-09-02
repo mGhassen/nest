@@ -92,8 +92,31 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   };
 
   const handlePasswordReset = () => {
-    // TODO: Implement password reset functionality
-    console.log('Reset password for:', employee?.id);
+    if (!employee) return;
+    
+    if (confirm(`Send password reset email to ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
+      // Call the password reset API
+      fetch(`/api/people/${employee.id}/password/reset`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // You might want to add a toast notification here
+          alert(`Password reset email sent to ${employee.email}`);
+        } else {
+          throw new Error(data.error || 'Failed to send password reset email');
+        }
+      })
+      .catch(error => {
+        console.error('Password reset error:', error);
+        alert(`Error: ${error.message || "Failed to send password reset email"}`);
+      });
+    }
   };
 
   const handleResendInvitation = () => {

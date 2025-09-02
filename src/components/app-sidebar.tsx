@@ -59,14 +59,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "List",
             url: "/admin/people/list",
           },
-          // {
-          //   title: "Create",
-          //   url: "/admin/people/create",
-          // },
-          // {
-          //   title: "Payroll",
-          //   url: "/admin/people/payroll",
-          // },
           {
             title: "Teams",
             url: "/admin/people/teams",
@@ -113,7 +105,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Settings",
         url: "/admin/settings",
         icon: Settings,
-        isActive: pathname === "/admin/settings",
+        isActive: pathname.startsWith("/admin/settings"),
+        items: [
+          {
+            title: "General",
+            url: "/admin/settings",
+          },
+          {
+            title: "Account Management",
+            url: "/admin/settings/accounts",
+          },
+        ],
       },
     ],
     navSecondary: [

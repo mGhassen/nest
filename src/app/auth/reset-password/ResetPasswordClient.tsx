@@ -216,6 +216,46 @@ export default function ResetPasswordClient({ searchParams }: { searchParams: Pr
 
       console.log('Password updated successfully');
 
+      // Update account status to PASSWORD_RESET_COMPLETED
+      try {
+        const { error: statusUpdateError } = await supabase
+          .from('accounts')
+          .update({
+            account_status: 'PASSWORD_RESET_COMPLETED',
+            password_reset_completed_at: new Date().toISOString(),
+            last_password_change_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('auth_user_id', sessionData.session.user.id);
+
+        if (statusUpdateError) {
+          console.error('Error updating account status:', statusUpdateError);
+        }
+
+        // Log the password reset completion event
+        const { error: logError } = await supabase
+          .from('account_events')
+          .insert({
+            account_id: sessionData.session.user.id, // This will need to be the account ID, not auth user ID
+            event_type: 'PASSWORD_RESET_COMPLETED',
+            event_status: 'SUCCESS',
+            description: 'Password reset completed successfully',
+            metadata: {
+              user_id: sessionData.session.user.id,
+              user_email: sessionData.session.user.email,
+              ip_address: window.location.hostname,
+              user_agent: navigator.userAgent
+            }
+          });
+
+        if (logError) {
+          console.error('Error logging password reset completion:', logError);
+        }
+      } catch (statusError) {
+        console.error('Error updating password reset status:', statusError);
+        // Don't fail the password reset, just log the error
+      }
+
       // Get the user's email from the session and store it for auto-login
       const sessionEmail = sessionData.session.user.email;
       if (sessionEmail) {

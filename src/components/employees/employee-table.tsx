@@ -12,7 +12,7 @@ import {
 import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban } from "lucide-react";
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
-import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people";
+import { usePeopleDelete, usePeopleUpdate, usePeoplePasswordManagement } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
 import SendInvitationDialog from "./send-invitation-dialog";
 import PasswordManagementDialog from "./password-management-dialog";
@@ -67,6 +67,7 @@ export default function EmployeeTable({
   const { toast } = useToast();
   const deleteEmployee = usePeopleDelete();
   const updateEmployee = usePeopleUpdate();
+  const passwordManagement = usePeoplePasswordManagement();
   const [invitationDialog, setInvitationDialog] = useState<{
     open: boolean;
     employee: Employee | null;
@@ -107,11 +108,26 @@ export default function EmployeeTable({
   });
 
   const handleResetPassword = onResetPassword || ((employee: Employee) => {
-    // TODO: Implement password reset functionality
-    toast({
-      title: "Feature coming soon",
-      description: "Password reset functionality will be available soon.",
-    });
+    if (confirm(`Send password reset email to ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
+      passwordManagement.mutate(
+        { id: employee.id, action: 'reset' },
+        {
+          onSuccess: () => {
+            toast({
+              title: "Password reset email sent",
+              description: `A password reset email has been sent to ${employee.email}`,
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: error.message || "Failed to send password reset email",
+              variant: "destructive",
+            });
+          },
+        }
+      );
+    }
   });
 
   const handleResendInvitation = onResendInvitation || ((employee: Employee) => {
