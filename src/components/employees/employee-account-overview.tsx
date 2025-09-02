@@ -16,9 +16,11 @@ import {
   CheckCircle,
   Clock,
   RefreshCw,
-  UserX
+  UserX,
+  Link
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import LinkAccountDialog from "./link-account-dialog";
 interface EmployeeAccountOverviewProps {
   employee: {
     id: string;
@@ -36,6 +38,7 @@ interface EmployeeAccountOverviewProps {
     } | null;
   };
   onCreateAccount?: () => void;
+  onLinkAccount?: (accountId: string) => void;
   onPasswordReset?: () => void;
   onResendInvitation?: () => void;
 }
@@ -43,10 +46,12 @@ interface EmployeeAccountOverviewProps {
 export default function EmployeeAccountOverview({ 
   employee, 
   onCreateAccount,
+  onLinkAccount,
   onPasswordReset,
   onResendInvitation 
 }: EmployeeAccountOverviewProps) {
   const { toast } = useToast();
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
 
   const getStatusBadge = (account: { is_active: boolean }) => {
     const status = account.is_active ? 'ACTIVE' : 'INACTIVE';
@@ -119,6 +124,14 @@ export default function EmployeeAccountOverview({
               <Button onClick={onCreateAccount} className="flex items-center space-x-2">
                 <UserPlus className="h-4 w-4" />
                 <span>Create Account</span>
+              </Button>
+              <Button 
+                onClick={() => setShowLinkDialog(true)} 
+                variant="outline" 
+                className="flex items-center space-x-2"
+              >
+                <Link className="h-4 w-4" />
+                <span>Link to Existing Account</span>
               </Button>
             </div>
           </CardContent>
@@ -228,6 +241,18 @@ export default function EmployeeAccountOverview({
           </div>
         </CardContent>
       </Card>
+
+      {/* Link Account Dialog */}
+      <LinkAccountDialog
+        open={showLinkDialog}
+        onOpenChange={setShowLinkDialog}
+        onLink={(accountId) => {
+          if (onLinkAccount) {
+            onLinkAccount(accountId);
+          }
+        }}
+        employee={employee}
+      />
     </div>
   );
 }

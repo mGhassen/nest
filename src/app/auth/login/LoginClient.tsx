@@ -264,7 +264,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
             </div>
           )}
 
-          <div className="text-center mt-4">
+          {/* <div className="text-center mt-4">
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
               <Button
@@ -275,7 +275,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
                 Sign up
               </Button>
             </p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

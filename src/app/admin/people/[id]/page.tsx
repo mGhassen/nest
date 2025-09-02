@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePerson } from "@/hooks/use-people";
-import { useEmployeeInvitation, useEmployeePasswordReset } from "@/hooks/use-employee-invitations";
+import { useEmployeeInvitation, useEmployeePasswordReset, useEmployeeLinkAccount } from "@/hooks/use-employee-invitations";
 import { useEffect, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout"
@@ -30,13 +30,48 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
       setEmployeeId(id);
     });
     
-    // Check for tab parameter in URL
+    // Check for tab parameter in URL on initial load
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
-    if (tabParam && ['overview', 'account', 'administration', 'contracts', 'payroll', 'documents'].includes(tabParam)) {
+    const validTabs = ['overview', 'account', 'administration', 'contracts', 'payroll', 'documents'];
+    
+    if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
+    } else {
+      // If no valid tab parameter, set default and update URL
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'overview');
+      window.history.replaceState({}, '', url.toString());
     }
   }, [params]);
+
+  // Handle tab changes and update URL
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    
+    // Update URL with tab parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', newTab);
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  // Listen for browser navigation (back/forward buttons)
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      const validTabs = ['overview', 'account', 'administration', 'contracts', 'payroll', 'documents'];
+      
+      if (tabParam && validTabs.includes(tabParam)) {
+        setActiveTab(tabParam);
+      } else {
+        setActiveTab('overview');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Fetch employee data from API
   const { data: employee, isLoading: employeeLoading, error: employeeError } = usePerson(employeeId || '');
@@ -44,6 +79,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   // Hooks for employee actions
   const sendInvitation = useEmployeeInvitation();
   const resetPassword = useEmployeePasswordReset();
+  const linkAccount = useEmployeeLinkAccount();
 
   useEffect(() => {
     if (isLoading) return;
@@ -133,6 +169,22 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         onError: (error) => {
           console.error('Create account error:', error);
           alert(`Error: ${error.message || "Failed to create account"}`);
+        }
+      });
+    }
+  };
+
+  const handleLinkAccount = (accountId: string) => {
+    if (!employee) return;
+    
+    if (confirm(`Link ${employee.first_name} ${employee.last_name} to the selected account?`)) {
+      linkAccount.mutate({ employeeId: employee.id, accountId }, {
+        onSuccess: (data) => {
+          alert(`Employee successfully linked to account: ${data.data?.account?.email || 'Unknown'}`);
+        },
+        onError: (error) => {
+          console.error('Link account error:', error);
+          alert(`Error: ${error.message || "Failed to link account"}`);
         }
       });
     }
@@ -229,7 +281,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         />
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
@@ -263,6 +315,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                 } : null
               }}
               onCreateAccount={handleCreateAccount}
+              onLinkAccount={handleLinkAccount}
               onPasswordReset={handlePasswordReset}
               onResendInvitation={handleResendInvitation}
             />

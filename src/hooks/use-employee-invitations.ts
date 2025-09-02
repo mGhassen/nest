@@ -28,3 +28,19 @@ export function useEmployeePasswordReset() {
     },
   });
 }
+
+// Hook for linking employee to existing account
+export function useEmployeeLinkAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ employeeId, accountId }: { employeeId: string; accountId: string }) => 
+      employeeApi.linkAccount(employeeId, accountId),
+    onSuccess: (_, variables) => {
+      // Invalidate employee data to refresh account information
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.employeeId] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}

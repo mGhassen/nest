@@ -109,4 +109,12 @@ export const employeeApi = {
       body: JSON.stringify({ password }),
     });
   },
+
+  // Link employee to existing account
+  async linkAccount(employeeId: string, accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/people/${employeeId}/link-account`, {
+      method: 'POST',
+      body: JSON.stringify({ accountId }),
+    });
+  },
 };
