@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePerson } from "@/hooks/use-people";
 import { useEmployeeInvitation, useEmployeePasswordReset, useEmployeeLinkAccount } from "@/hooks/use-employee-invitations";
+import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout"
@@ -21,6 +22,7 @@ import { LoadingPage } from "@/components/ui/loading-spinner"
 export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [employeeId, setEmployeeId] = useState<string | null>(null);
 
@@ -177,17 +179,22 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const handleLinkAccount = (accountId: string) => {
     if (!employee) return;
     
-    if (confirm(`Link ${employee.first_name} ${employee.last_name} to the selected account?`)) {
-      linkAccount.mutate({ employeeId: employee.id, accountId }, {
-        onSuccess: (data) => {
-          alert(`Employee successfully linked to account: ${data.data?.account?.email || 'Unknown'}`);
-        },
-        onError: (error) => {
-          console.error('Link account error:', error);
-          alert(`Error: ${error.message || "Failed to link account"}`);
-        }
-      });
-    }
+    linkAccount.mutate({ employeeId: employee.id, accountId }, {
+      onSuccess: (data) => {
+        toast({
+          title: "Account Linked Successfully",
+          description: `Employee linked to account: ${data.data?.account?.email || 'Unknown'}`,
+        });
+      },
+      onError: (error) => {
+        console.error('Link account error:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to link account",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   const handleChangeRole = () => {

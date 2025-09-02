@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { createSupabaseServer } from '@/lib/supabase';
 
 export async function POST(
   req: NextRequest,
@@ -16,15 +16,20 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Create Supabase client
-    const supabase = supabaseServer();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // Create Supabase client and verify the token
+    const supabase = createSupabaseServer();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return NextResponse.json({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check if user is admin
