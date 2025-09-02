@@ -140,10 +140,10 @@ export default function AcceptInvitationClient({ searchParams }: { searchParams:
         throw new Error(updateError.message);
       }
 
-      // Update user status to 'active' after accepting invitation
+      // Update account status to 'active' after accepting invitation
       const { error: statusError } = await supabase
-        .from('users')
-        .update({ status: 'active' })
+        .from('accounts')
+        .update({ is_active: true })
         .eq('auth_user_id', sessionData.session.user.id);
 
       if (statusError) {

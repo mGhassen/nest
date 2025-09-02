@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +14,7 @@ import Link from "next/link";
 import type { Employee } from "@/types/schema";
 import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
+import SendInvitationDialog from "./send-invitation-dialog";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -64,6 +66,10 @@ export default function EmployeeTable({
   const { toast } = useToast();
   const deleteEmployee = usePeopleDelete();
   const updateEmployee = usePeopleUpdate();
+  const [invitationDialog, setInvitationDialog] = useState<{
+    open: boolean;
+    employee: Employee | null;
+  }>({ open: false, employee: null });
   
   // Default handlers if not provided
   const handleEdit = onEdit || ((employee: Employee) => {
@@ -107,11 +113,7 @@ export default function EmployeeTable({
   });
 
   const handleResendInvitation = onResendInvitation || ((employee: Employee) => {
-    // TODO: Implement invitation resend functionality
-    toast({
-      title: "Feature coming soon",
-      description: "Invitation resend functionality will be available soon.",
-    });
+    setInvitationDialog({ open: true, employee });
   });
 
   const handleArchive = onArchive || ((employee: Employee) => {
@@ -431,6 +433,20 @@ export default function EmployeeTable({
           </div>
         </div>
       </div>
+
+      {/* Send Invitation Dialog */}
+      <SendInvitationDialog
+        employee={invitationDialog.employee}
+        open={invitationDialog.open}
+        onOpenChange={(open) => setInvitationDialog({ open, employee: null })}
+        onSuccess={() => {
+          // Refresh the data or show success message
+          toast({
+            title: "Success",
+            description: "Employee data will be refreshed automatically.",
+          });
+        }}
+      />
     </div>
   );
 }
