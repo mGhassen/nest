@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   User, 
   Mail, 
@@ -19,7 +20,13 @@ import {
   RefreshCw,
   UserX,
   Link,
-  X
+  X,
+  MoreVertical,
+  Settings,
+  LogIn,
+  Activity,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccountsList } from "@/hooks/use-accounts";
@@ -38,6 +45,13 @@ interface EmployeeAccountOverviewProps {
       role: string;
       is_active: boolean;
       profile_image_url: string | null;
+      created_at?: string;
+      last_login?: string | null;
+      password_reset_requested_at?: string | null;
+      password_reset_completed_at?: string | null;
+      last_password_change_at?: string | null;
+      failed_login_attempts?: number;
+      locked_until?: string | null;
     } | null;
   };
   onCreateAccount?: () => void;
@@ -65,6 +79,54 @@ export default function EmployeeAccountOverview({
   // Filter accounts that are not already linked to employees
   const availableAccounts = accounts.filter(account => !account.employee);
 
+  // Utility functions
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getTimeAgo = (dateString?: string | null) => {
+    if (!dateString) return 'Never';
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
+    const diffInMonths = Math.floor(diffInDays / 30);
+    return `${diffInMonths}mo ago`;
+  };
+
+  const getSecurityStatus = () => {
+    if (!employee.account) return { status: 'none', color: 'text-muted-foreground', icon: AlertCircle };
+    
+    const { failed_login_attempts, locked_until, last_password_change_at } = employee.account;
+    
+    if (locked_until && new Date(locked_until) > new Date()) {
+      return { status: 'locked', color: 'text-red-600', icon: Lock };
+    }
+    if (failed_login_attempts && failed_login_attempts >= 3) {
+      return { status: 'warning', color: 'text-amber-600', icon: AlertCircle };
+    }
+    if (last_password_change_at) {
+      const daysSinceChange = Math.floor((new Date().getTime() - new Date(last_password_change_at).getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceChange > 90) {
+        return { status: 'stale', color: 'text-amber-600', icon: Clock };
+      }
+    }
+    return { status: 'secure', color: 'text-green-600', icon: CheckCircle };
+  };
+
   const handleLinkAccount = () => {
     if (selectedAccountId && onLinkAccount) {
       onLinkAccount(selectedAccountId);
@@ -76,36 +138,48 @@ export default function EmployeeAccountOverview({
   // If employee has no account, show account creation options
   if (!employee.account) {
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Account Information</span>
-            </CardTitle>
-            <CardDescription>
-              No user account found for {employee.first_name} {employee.last_name}
-            </CardDescription>
+      <div className="space-y-6">
+        {/* Account Status Card */}
+        <Card className="border-dashed border-2 border-muted">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-muted rounded-lg">
+                  <UserX className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">No Account Linked</CardTitle>
+                  <CardDescription>
+                    {employee.first_name} {employee.last_name} doesn't have a user account yet
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-400">
+                <Clock className="h-3 w-3 mr-1" />
+                Pending Setup
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
+          <CardContent>
+            <Alert className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                This employee doesn't have a user account yet. You can create a new account or link to an existing one.
+                This employee needs a user account to access the system. You can create a new account or link to an existing one.
               </AlertDescription>
             </Alert>
             
-            <div className="flex space-x-2">
-              <Button onClick={onCreateAccount} className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={onCreateAccount} className="flex items-center space-x-2 flex-1">
                 <UserPlus className="h-4 w-4" />
-                <span>Create Account</span>
+                <span>Create New Account</span>
               </Button>
               <Button 
                 onClick={() => setShowLinkDialog(true)} 
-                className="flex items-center space-x-2"
+                variant="outline"
+                className="flex items-center space-x-2 flex-1"
               >
                 <Link className="h-4 w-4" />
-                <span>Link to Existing Account</span>
+                <span>Link Existing Account</span>
               </Button>
             </div>
           </CardContent>
@@ -201,64 +275,156 @@ export default function EmployeeAccountOverview({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Account Overview Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <span>Account Information</span>
-          </CardTitle>
-          <CardDescription>
-            User account details for {employee.first_name} {employee.last_name}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Email</span>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <User className="h-6 w-6 text-primary" />
               </div>
-              <p className="text-sm text-muted-foreground">{employee.account.email}</p>
+              <div>
+                <CardTitle className="text-lg">Account Overview</CardTitle>
+                <CardDescription>
+                  User account details for {employee.first_name} {employee.last_name}
+                </CardDescription>
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Role</span>
-              </div>
-              <Badge variant={employee.account.role === 'ADMIN' ? 'default' : 'secondary'}>
-                {employee.account.role}
+            <div className="flex items-center space-x-2">
+              <Badge variant={employee.account.is_active ? 'default' : 'secondary'} className="flex items-center space-x-1">
+                {employee.account.is_active ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                <span>{employee.account.is_active ? 'Active' : 'Inactive'}</span>
               </Badge>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Status</span>
-              </div>
-              <Badge variant={employee.account.is_active ? 'default' : 'secondary'}>
-                {employee.account.is_active ? 'Active' : 'Inactive'}
-              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={onPasswordReset}>
+                    <Key className="h-4 w-4 mr-2" />
+                    Reset Password
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onResendInvitation}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Resend Invitation
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onUnlinkAccount} className="text-destructive">
+                    <UserX className="h-4 w-4 mr-2" />
+                    Unlink Account
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-          
-          <div className="flex space-x-2 pt-4">
-            <Button onClick={onPasswordReset} variant="outline" size="sm">
-              <Key className="h-4 w-4 mr-2" />
-              Reset Password
-            </Button>
-            <Button onClick={onResendInvitation} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Resend Invitation
-            </Button>
-            <Button onClick={onUnlinkAccount} variant="destructive" size="sm">
-              <UserX className="h-4 w-4 mr-2" />
-              Unlink Account
-            </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Basic Info */}
+            <div className="space-y-6">
+              {/* Email Information */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Email Address</span>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium">{employee.account.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Login credential</p>
+                </div>
+              </div>
+              
+              {/* Role Information */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Account Role</span>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <Badge variant={employee.account.role === 'ADMIN' ? 'default' : 'secondary'} className="text-xs">
+                    {employee.account.role === 'ADMIN' ? <Settings className="h-3 w-3 mr-1" /> : <User className="h-3 w-3 mr-1" />}
+                    {employee.account.role}
+                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {employee.account.role === 'ADMIN' ? 'Full system access' : 'Standard user access'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Account Creation */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Account Created</span>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium">{formatDate(employee.account.created_at)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{getTimeAgo(employee.account.created_at)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Activity & Security */}
+            <div className="space-y-6">
+              {/* Last Login */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <LogIn className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Last Login</span>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium">{formatDate(employee.account.last_login)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{getTimeAgo(employee.account.last_login)}</p>
+                </div>
+              </div>
+
+              {/* Security Status */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Security Status</span>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  {(() => {
+                    const security = getSecurityStatus();
+                    const IconComponent = security.icon;
+                    return (
+                      <div className="flex items-center space-x-2">
+                        <IconComponent className={`h-4 w-4 ${security.color}`} />
+                        <span className="text-sm font-medium capitalize">{security.status}</span>
+                      </div>
+                    );
+                  })()}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {employee.account.failed_login_attempts ? `${employee.account.failed_login_attempts} failed attempts` : 'No failed attempts'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Password Info */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Key className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Password</span>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium">
+                    {employee.account.last_password_change_at ? 'Last changed' : 'Never changed'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {employee.account.last_password_change_at ? getTimeAgo(employee.account.last_password_change_at) : 'Default password'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+
     </div>
   );
 }
