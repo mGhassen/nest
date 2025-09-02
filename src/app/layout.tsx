@@ -18,28 +18,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              try {
-                const stored = localStorage.getItem('theme');
-                if (stored === 'dark' || stored === 'light') {
-                  document.documentElement.classList.toggle('dark', stored === 'dark');
-                } else {
-                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  document.documentElement.classList.toggle('dark', prefersDark);
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (theme === 'dark' || theme === 'light') {
+                    document.documentElement.className = theme === 'dark' ? 'dark' : '';
+                  } else {
+                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.className = prefersDark ? 'dark' : '';
+                  }
+                } catch (e) {
+                  document.documentElement.className = '';
                 }
-              } catch (e) {
-                // Fallback to light theme if localStorage is not available
-                document.documentElement.classList.remove('dark');
-              }
+              })();
             `,
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <Providers>
           <TooltipProvider>
             {children}

@@ -19,28 +19,46 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
-  // On mount, read from localStorage or system preference
+  // Initialize theme on mount
   useEffect(() => {
-    setMounted(true);
-    const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-    if (stored === "light" || stored === "dark") {
-      setTheme(stored);
-      document.documentElement.classList.toggle("dark", stored === "dark");
-    } else {
+    const initializeTheme = () => {
+      try {
+        const stored = localStorage.getItem("theme");
+        if (stored === "light" || stored === "dark") {
+          setTheme(stored);
+          return stored;
+        }
+      } catch (e) {
+        // localStorage not available
+      }
+      
       // Check system preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       const initialTheme = prefersDark ? "dark" : "light";
       setTheme(initialTheme);
-      document.documentElement.classList.toggle("dark", initialTheme === "dark");
-      localStorage.setItem("theme", initialTheme);
-    }
+      
+      try {
+        localStorage.setItem("theme", initialTheme);
+      } catch (e) {
+        // localStorage not available
+      }
+      
+      return initialTheme;
+    };
+
+    initializeTheme();
+    setMounted(true);
   }, []);
 
-  // Update class and localStorage on theme change
+  // Apply theme class to document when theme changes
   useEffect(() => {
     if (mounted) {
-      document.documentElement.classList.toggle("dark", theme === "dark");
-      localStorage.setItem("theme", theme);
+      document.documentElement.className = theme === "dark" ? "dark" : "";
+      try {
+        localStorage.setItem("theme", theme);
+      } catch (e) {
+        // localStorage not available
+      }
     }
   }, [theme, mounted]);
 
