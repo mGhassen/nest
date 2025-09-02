@@ -59,6 +59,12 @@ interface EmployeeAccountOverviewProps {
   onUnlinkAccount?: () => void;
   onPasswordReset?: () => void;
   onResendInvitation?: () => void;
+  onSetPassword?: () => void;
+  onToggleAccountStatus?: () => void;
+  onViewActivityLog?: () => void;
+  onEditAccountDetails?: () => void;
+  onChangeRole?: () => void;
+  onDeleteAccount?: () => void;
 }
 
 export default function EmployeeAccountOverview({ 
@@ -67,7 +73,13 @@ export default function EmployeeAccountOverview({
   onLinkAccount,
   onUnlinkAccount,
   onPasswordReset,
-  onResendInvitation 
+  onResendInvitation,
+  onSetPassword,
+  onToggleAccountStatus,
+  onViewActivityLog,
+  onEditAccountDetails,
+  onChangeRole,
+  onDeleteAccount
 }: EmployeeAccountOverviewProps) {
   const { toast } = useToast();
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -302,19 +314,64 @@ export default function EmployeeAccountOverview({
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Password Management */}
                   <DropdownMenuItem onClick={onPasswordReset}>
                     <Key className="h-4 w-4 mr-2" />
                     Reset Password
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onSetPassword}>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Set New Password
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {/* Account Management */}
                   <DropdownMenuItem onClick={onResendInvitation}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Resend Invitation
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onToggleAccountStatus}>
+                    {employee.account.is_active ? (
+                      <>
+                        <Unlock className="h-4 w-4 mr-2" />
+                        Deactivate Account
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4 mr-2" />
+                        Activate Account
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onViewActivityLog}>
+                    <Activity className="h-4 w-4 mr-2" />
+                    View Activity Log
+                  </DropdownMenuItem>
+                  
                   <DropdownMenuSeparator />
+                  
+                  {/* Account Actions */}
+                  <DropdownMenuItem onClick={onEditAccountDetails}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Edit Account Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onChangeRole}>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Change Role
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {/* Dangerous Actions */}
                   <DropdownMenuItem onClick={onUnlinkAccount} className="text-destructive">
                     <UserX className="h-4 w-4 mr-2" />
                     Unlink Account
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onDeleteAccount} className="text-destructive">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Delete Account
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
