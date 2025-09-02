@@ -100,7 +100,7 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
       {/* Theme Toggle */}
       <Button 
         variant="ghost" 

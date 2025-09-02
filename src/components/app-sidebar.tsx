@@ -15,12 +15,12 @@ import {
   LifeBuoy,
   Send,
 } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { useAuth } from "@/hooks/use-auth"
-import { getInitials } from "@/lib/auth"
 import {
   Sidebar,
   SidebarContent,
@@ -29,10 +29,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
+  const pathname = usePathname()
 
   const data = {
     user: {
@@ -45,26 +47,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Dashboard",
         url: "/admin/dashboard",
         icon: LayoutDashboard,
-        isActive: false,
+        isActive: pathname === "/admin/dashboard",
       },
       {
         title: "People",
         url: "/admin/people/list",
         icon: Users,
-        isActive: true,
+        isActive: pathname.startsWith("/admin/people"),
         items: [
           {
             title: "List",
             url: "/admin/people/list",
           },
-          {
-            title: "Create",
-            url: "/admin/people/create",
-          },
-          {
-            title: "Payroll",
-            url: "/admin/people/payroll",
-          },
+          // {
+          //   title: "Create",
+          //   url: "/admin/people/create",
+          // },
+          // {
+          //   title: "Payroll",
+          //   url: "/admin/people/payroll",
+          // },
           {
             title: "Teams",
             url: "/admin/people/teams",
@@ -79,7 +81,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Workload",
         url: "/admin/workload/leave",
         icon: Clock,
-        isActive: false,
+        isActive: pathname.startsWith("/admin/workload"),
         items: [
           {
             title: "Leave/Absence",
@@ -95,7 +97,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Engage",
         url: "/admin/engage/meetings",
         icon: MessageSquare,
-        isActive: false,
+        isActive: pathname.startsWith("/admin/engage"),
         items: [
           {
             title: "Meetings",
@@ -111,7 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Settings",
         url: "/admin/settings",
         icon: Settings,
-        isActive: false,
+        isActive: pathname === "/admin/settings",
       },
     ],
     navSecondary: [
@@ -129,7 +131,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -154,6 +156,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }
