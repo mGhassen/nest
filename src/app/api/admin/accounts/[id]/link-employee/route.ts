@@ -6,13 +6,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: employeeId } = await params;
-    const { accountId } = await req.json();
+    const { id: accountId } = await params;
+    const { employeeId } = await req.json();
 
-    if (!accountId) {
+    if (!employeeId) {
       return NextResponse.json({
         success: false,
-        error: 'Account ID is required'
+        error: 'Employee ID is required'
       }, { status: 400 });
     }
 
@@ -46,6 +46,20 @@ export async function POST(
       }, { status: 403 });
     }
 
+    // Get account data
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('id', accountId)
+      .single();
+
+    if (accountError || !account) {
+      return NextResponse.json({
+        success: false,
+        error: 'Account not found'
+      }, { status: 404 });
+    }
+
     // Get employee data
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
@@ -66,20 +80,6 @@ export async function POST(
         success: false,
         error: 'Employee already has a linked account'
       }, { status: 400 });
-    }
-
-    // Get the account to link
-    const { data: account, error: accountError } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('id', accountId)
-      .single();
-
-    if (accountError || !account) {
-      return NextResponse.json({
-        success: false,
-        error: 'Account not found'
-      }, { status: 404 });
     }
 
     // Check if account is already linked to another employee
@@ -120,7 +120,9 @@ export async function POST(
         .insert({
           account_id: accountId,
           event_type: 'ACCOUNT_LINKED_TO_EMPLOYEE',
-          event_data: {
+          event_status: 'SUCCESS',
+          description: `Account linked to employee ${employee.first_name} ${employee.last_name}`,
+          metadata: {
             employee_id: employeeId,
             employee_name: `${employee.first_name} ${employee.last_name}`,
             employee_email: employee.email,

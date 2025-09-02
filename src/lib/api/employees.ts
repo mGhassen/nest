@@ -88,23 +88,23 @@ export const employeeApi = {
   },
 
   // Send invitation to employee
-  async sendInvitation(id: string, role: string = 'EMPLOYEE'): Promise<{ success: boolean; message: string; account?: any; authUser?: any }> {
-    return await apiFetch(`/api/people/${id}/invite`, {
+  async sendInvitation(employeeId: string, role: string = 'EMPLOYEE'): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/invite-employee`, {
       method: 'POST',
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ employeeId, role }),
     });
   },
 
   // Reset employee password
-  async resetPassword(id: string): Promise<{ success: boolean; message: string }> {
-    return await apiFetch(`/api/people/${id}/password/reset`, {
+  async resetPassword(accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/password-reset`, {
       method: 'POST',
     });
   },
 
   // Set employee password
-  async setPassword(id: string, password: string): Promise<{ success: boolean; message: string }> {
-    return await apiFetch(`/api/people/${id}/password`, {
+  async setPassword(accountId: string, password: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/password`, {
       method: 'PATCH',
       body: JSON.stringify({ password }),
     });
@@ -112,9 +112,16 @@ export const employeeApi = {
 
   // Link employee to existing account
   async linkAccount(employeeId: string, accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
-    return await apiFetch(`/api/people/${employeeId}/link-account`, {
+    return await apiFetch(`/api/admin/accounts/${accountId}/link-employee`, {
       method: 'POST',
-      body: JSON.stringify({ accountId }),
+      body: JSON.stringify({ employeeId }),
+    });
+  },
+
+  // Unlink employee from account
+  async unlinkAccount(accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/unlink-employee`, {
+      method: 'POST',
     });
   },
 };

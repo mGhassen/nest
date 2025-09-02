@@ -1,68 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { createSupabaseServer } from '@/lib/supabase';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(req: NextRequest) {
   try {
-    const { id } = await params;
-    const { role = 'EMPLOYEE' } = await req.json();
+    const { employeeId, role = 'EMPLOYEE' } = await req.json();
+    
+    if (!employeeId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Employee ID is required'
+      }, { status: 400 });
+    }
     
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
-    const token = authHeader?.split(' ')[1];
-    
-    if (!token) {
-      return NextResponse.json({
-        success: false,
-        error: 'No authorization token provided',
-      }, { status: 401 });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify the user is authenticated
-    const { data: { user }, error: userError } = await supabaseServer().auth.getUser(token);
+    const token = authHeader.split(' ')[1];
     
-    if (userError || !user) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid or expired token',
-      }, { status: 401 });
-    }
+    // Create Supabase client and verify the token
+    const supabase = createSupabaseServer();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    // Get user profile to check if they're admin
-    const { data: userProfile, error: profileError } = await supabaseServer()
-      .from('accounts')
-      .select('*')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (profileError || !userProfile) {
-      return NextResponse.json({
-        success: false,
-        error: 'User profile not found',
-      }, { status: 404 });
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    const { data: adminAccount } = await supabase
+      .from('accounts')
+      .select('role')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (!adminAccount || adminAccount.role !== 'ADMIN') {
       return NextResponse.json({
         success: false,
-        error: 'Access denied. Admin privileges required.',
+        error: 'Admin access required'
       }, { status: 403 });
     }
 
     // Get the employee record
-    const { data: employee, error: employeeError } = await supabaseServer()
+    const { data: employee, error: employeeError } = await supabase
       .from('employees')
       .select('*')
-      .eq('id', id)
+      .eq('id', employeeId)
       .single();
 
     if (employeeError || !employee) {
       return NextResponse.json({
         success: false,
-        error: 'Employee not found',
+        error: 'Employee not found'
       }, { status: 404 });
     }
 
@@ -70,12 +60,12 @@ export async function POST(
     if (employee.account_id) {
       return NextResponse.json({
         success: false,
-        error: 'Employee already has an account',
+        error: 'Employee already has an account'
       }, { status: 400 });
     }
 
     // Check if an account already exists for this email
-    const { data: existingAccount, error: accountCheckError } = await supabaseServer()
+    const { data: existingAccount, error: accountCheckError } = await supabase
       .from('accounts')
       .select('id, auth_user_id')
       .eq('email', employee.email)
@@ -94,12 +84,12 @@ export async function POST(
     if (existingAccount) {
       return NextResponse.json({
         success: false,
-        error: 'An account with this email already exists',
+        error: 'An account with this email already exists'
       }, { status: 400 });
     }
 
     // Create auth user using Supabase admin invite
-    const { data: authData, error: inviteError } = await supabaseServer().auth.admin.inviteUserByEmail(
+    const { data: authData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
       employee.email,
       {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/accept-invitation`,
@@ -122,7 +112,7 @@ export async function POST(
     }
 
     // Create account record linked to the auth user
-    const { data: newAccount, error: accountError } = await supabaseServer()
+    const { data: newAccount, error: accountError } = await supabase
       .from('accounts')
       .insert([{
         auth_user_id: authData.user.id,
@@ -138,7 +128,7 @@ export async function POST(
     if (accountError) {
       console.error('Error creating account:', accountError);
       // Clean up the auth user if account creation fails
-      await supabaseServer().auth.admin.deleteUser(authData.user.id);
+      await supabase.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({
         success: false,
         error: 'Failed to create account',
@@ -147,7 +137,7 @@ export async function POST(
     }
 
     // Link the account to the employee
-    const { error: linkError } = await supabaseServer()
+    const { error: linkError } = await supabase
       .from('employees')
       .update({ account_id: newAccount.id })
       .eq('id', employee.id);
@@ -155,8 +145,8 @@ export async function POST(
     if (linkError) {
       console.error('Error linking account to employee:', linkError);
       // Clean up the account and auth user if linking fails
-      await supabaseServer().from('accounts').delete().eq('id', newAccount.id);
-      await supabaseServer().auth.admin.deleteUser(authData.user.id);
+      await supabase.from('accounts').delete().eq('id', newAccount.id);
+      await supabase.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({
         success: false,
         error: 'Failed to link account to employee',
@@ -164,11 +154,43 @@ export async function POST(
       }, { status: 500 });
     }
 
+    // Log the account creation event
+    try {
+      await supabase
+        .from('account_events')
+        .insert({
+          account_id: newAccount.id,
+          event_type: 'ACCOUNT_CREATED',
+          event_status: 'SUCCESS',
+          description: `Account created and invitation sent for employee ${employee.first_name} ${employee.last_name}`,
+          metadata: {
+            employee_id: employee.id,
+            employee_name: `${employee.first_name} ${employee.last_name}`,
+            employee_email: employee.email,
+            role: role,
+            created_by: user.id,
+            created_at: new Date().toISOString()
+          },
+          created_at: new Date().toISOString()
+        });
+    } catch (eventError) {
+      // Log the event error but don't fail the main operation
+      console.warn('Failed to log account creation event:', eventError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Invitation sent successfully',
-      account: newAccount,
-      authUser: authData.user
+      data: {
+        account: newAccount,
+        authUser: authData.user,
+        employee: {
+          id: employee.id,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email
+        }
+      }
     });
 
   } catch (error: unknown) {

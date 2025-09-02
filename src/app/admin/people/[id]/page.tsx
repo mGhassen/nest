@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePerson } from "@/hooks/use-people";
-import { useEmployeeInvitation, useEmployeePasswordReset, useEmployeeLinkAccount } from "@/hooks/use-employee-invitations";
+import { useEmployeeInvitation, useEmployeePasswordReset, useEmployeeLinkAccount, useEmployeeUnlinkAccount } from "@/hooks/use-employee-invitations";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 
@@ -35,6 +35,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const [activeTab, setActiveTab] = useState("overview");
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [deleteAccountDialog, setDeleteAccountDialog] = useState(false);
+  const [unlinkAccountDialog, setUnlinkAccountDialog] = useState(false);
 
   // Await params to get the id and check for tab parameter
   useEffect(() => {
@@ -92,6 +93,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const sendInvitation = useEmployeeInvitation();
   const resetPassword = useEmployeePasswordReset();
   const linkAccount = useEmployeeLinkAccount();
+  const unlinkAccount = useEmployeeUnlinkAccount();
 
   useEffect(() => {
     if (isLoading) return;
@@ -150,19 +152,23 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   };
 
   const handlePasswordReset = () => {
-    if (!employee) return;
+    if (!employee?.account?.id) return;
     
-    if (confirm(`Send password reset email to ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
-      resetPassword.mutate(employee.id, {
-        onSuccess: () => {
-          alert(`Password reset email sent to ${employee.email}`);
-        },
-        onError: (error) => {
-          console.error('Password reset error:', error);
-          alert(`Error: ${error.message || "Failed to send password reset email"}`);
-        }
-      });
-    }
+    resetPassword.mutate(employee.account.id, {
+      onSuccess: () => {
+        toast({
+          title: "Password reset email sent",
+          description: `A password reset email has been sent to ${employee?.account?.email}`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send password reset email",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   const handleResendInvitation = () => {
@@ -186,9 +192,9 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  const handleLinkAccount = (accountId: string) => {
+    const handleLinkAccount = (accountId: string) => {
     if (!employee) return;
-    
+
     linkAccount.mutate({ employeeId: employee.id, accountId }, {
       onSuccess: (data) => {
         toast({
@@ -201,6 +207,32 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         toast({
           title: "Error",
           description: error.message || "Failed to link account",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  const handleUnlinkAccount = () => {
+    setUnlinkAccountDialog(true);
+  };
+
+  const confirmUnlinkAccount = () => {
+    if (!employee?.account?.id) return;
+    
+    unlinkAccount.mutate(employee.account.id, {
+      onSuccess: (data) => {
+        toast({
+          title: "Account Unlinked Successfully",
+          description: `Employee unlinked from account: ${data.data?.account?.email || 'Unknown'}`,
+        });
+        setUnlinkAccountDialog(false);
+      },
+      onError: (error) => {
+        console.error('Unlink account error:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to unlink account",
           variant: "destructive",
         });
       }
@@ -344,6 +376,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
               }}
               onCreateAccount={handleCreateAccount}
               onLinkAccount={handleLinkAccount}
+              onUnlinkAccount={handleUnlinkAccount}
               onPasswordReset={handlePasswordReset}
               onResendInvitation={handleResendInvitation}
             />
@@ -420,6 +453,35 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
               className="w-full sm:w-auto"
             >
               Delete Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unlink Account Confirmation Dialog */}
+      <Dialog open={unlinkAccountDialog} onOpenChange={setUnlinkAccountDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Unlink Employee Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to unlink the account for <strong>{employee?.first_name} {employee?.last_name}</strong>? 
+              This will remove the connection between the employee and their account, but the account will remain active.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setUnlinkAccountDialog(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={confirmUnlinkAccount}
+              className="w-full sm:w-auto"
+            >
+              Unlink Account
             </Button>
           </DialogFooter>
         </DialogContent>

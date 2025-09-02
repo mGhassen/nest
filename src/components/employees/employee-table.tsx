@@ -326,24 +326,17 @@ export default function EmployeeTable({
                     </div>
                     <div className="ml-3">
                       <div className="flex items-center space-x-1">
-                        {employee.account ? (
-                          <>
-                            <Link href={`/admin/people/${employee.id}`} className="hover:underline">
-                              <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
-                                {employee.first_name} {employee.last_name}
-                              </div>
-                            </Link>
-                            <Link href={`/admin/people/${employee.id}?tab=account`} className="text-blue-600 hover:text-blue-800">
-                              <User className="w-3 h-3" />
-                            </Link>
-                          </>
-                        ) : (
-                          <div className="flex items-center space-x-1">
-                            <div className="text-sm font-medium text-gray-600" data-testid={`text-employee-name-${employee.id}`}>
-                              {employee.first_name} {employee.last_name}
-                            </div>
-                            <UserX className="w-3 h-3 text-gray-400" />
+                        <Link href={`/admin/people/${employee.id}`} className="hover:underline">
+                          <div className="text-sm font-medium text-blue-600" data-testid={`text-employee-name-${employee.id}`}>
+                            {employee.first_name} {employee.last_name}
                           </div>
+                        </Link>
+                        {employee.account ? (
+                          <Link href={`/admin/people/${employee.id}?tab=account`} className="text-blue-600 hover:text-blue-800">
+                            <User className="w-3 h-3" />
+                          </Link>
+                        ) : (
+                          <UserX className="w-3 h-3 text-gray-400" />
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground" data-testid={`text-employee-email-${employee.id}`}>

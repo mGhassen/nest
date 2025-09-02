@@ -7,7 +7,7 @@ export async function POST(
 ) {
   try {
     const { id: accountId } = await params;
-    
+
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -38,7 +38,7 @@ export async function POST(
       }, { status: 403 });
     }
 
-    // Get the account record
+    // Get account data
     const { data: account, error: accountError } = await supabase
       .from('accounts')
       .select('*')
@@ -52,96 +52,86 @@ export async function POST(
       }, { status: 404 });
     }
 
-    // Check if account has an auth user
-    if (!account.auth_user_id) {
+    // Get employee linked to this account
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('account_id', accountId)
+      .single();
+
+    if (employeeError || !employee) {
       return NextResponse.json({
         success: false,
-        error: 'Account is not linked to an auth user'
-      }, { status: 400 });
+        error: 'No employee linked to this account'
+      }, { status: 404 });
     }
 
-    // Send password reset email using Supabase
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const redirectTo = `${baseUrl}/auth/reset-password`;
+    // Update employee to remove account_id
+    const { error: updateError } = await supabase
+      .from('employees')
+      .update({ 
+        account_id: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', employee.id);
 
-    console.log('Sending password reset email to account:', account.email);
-    console.log('Redirect URL:', redirectTo);
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      account.email,
-      {
-        redirectTo: redirectTo,
-      }
-    );
-
-    if (resetError) {
-      console.error('Password reset error:', resetError);
+    if (updateError) {
+      console.error('Error unlinking account from employee:', updateError);
       return NextResponse.json({
         success: false,
-        error: 'Failed to send password reset email',
-        details: resetError.message,
+        error: 'Failed to unlink account from employee'
       }, { status: 500 });
     }
 
-    // Update account status to PASSWORD_RESET_PENDING
-    const { error: updateError } = await supabase
-      .from('accounts')
-      .update({
-        account_status: 'PASSWORD_RESET_PENDING',
-        password_reset_requested_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', accountId);
-
-    if (updateError) {
-      console.error('Error updating account status:', updateError);
-      // Don't fail the request, just log the error
-    }
-
-    // Log the password reset request event
+    // Log the account unlinking event if the account_events table exists
     try {
       await supabase
         .from('account_events')
         .insert({
           account_id: accountId,
-          event_type: 'PASSWORD_RESET_REQUESTED',
+          event_type: 'ACCOUNT_UNLINKED_FROM_EMPLOYEE',
           event_status: 'SUCCESS',
-          description: `Password reset email sent by admin for account ${account.email}`,
+          description: `Account unlinked from employee ${employee.first_name} ${employee.last_name}`,
           metadata: {
-            account_email: account.email,
-            account_name: `${account.first_name} ${account.last_name}`,
-            requested_by: user.id,
-            ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
-            user_agent: req.headers.get('user-agent')
+            employee_id: employee.id,
+            employee_name: `${employee.first_name} ${employee.last_name}`,
+            employee_email: employee.email,
+            unlinked_by: user.id,
+            unlinked_at: new Date().toISOString()
           },
           created_at: new Date().toISOString()
         });
-    } catch (logError) {
-      console.error('Error logging password reset event:', logError);
-      // Don't fail the request, just log the error
+    } catch (eventError) {
+      // Log the event error but don't fail the main operation
+      console.warn('Failed to log account unlinking event:', eventError);
     }
-
-    console.log('Password reset email sent successfully to:', account.email);
 
     return NextResponse.json({
       success: true,
-      message: 'Password reset email sent successfully',
+      message: 'Account unlinked successfully',
       data: {
+        employee: {
+          id: employee.id,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email,
+          account_id: null
+        },
         account: {
           id: account.id,
           email: account.email,
           first_name: account.first_name,
-          last_name: account.last_name
+          last_name: account.last_name,
+          role: account.role
         }
       }
     });
 
   } catch (error: unknown) {
-    console.error('Reset password API error:', error);
+    console.error('Unlink account API error:', error);
     return NextResponse.json({
       success: false,
-      error: 'An unexpected error occurred while sending password reset email',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }

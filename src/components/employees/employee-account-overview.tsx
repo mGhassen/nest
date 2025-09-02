@@ -42,6 +42,7 @@ interface EmployeeAccountOverviewProps {
   };
   onCreateAccount?: () => void;
   onLinkAccount?: (accountId: string) => void;
+  onUnlinkAccount?: () => void;
   onPasswordReset?: () => void;
   onResendInvitation?: () => void;
 }
@@ -50,6 +51,7 @@ export default function EmployeeAccountOverview({
   employee, 
   onCreateAccount,
   onLinkAccount,
+  onUnlinkAccount,
   onPasswordReset,
   onResendInvitation 
 }: EmployeeAccountOverviewProps) {
@@ -249,6 +251,10 @@ export default function EmployeeAccountOverview({
             <Button onClick={onResendInvitation} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Resend Invitation
+            </Button>
+            <Button onClick={onUnlinkAccount} variant="destructive" size="sm">
+              <UserX className="h-4 w-4 mr-2" />
+              Unlink Account
             </Button>
           </div>
         </CardContent>

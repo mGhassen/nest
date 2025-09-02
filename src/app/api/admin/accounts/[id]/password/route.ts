@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase';
 
-export async function POST(
+export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: accountId } = await params;
+    const { password } = await req.json();
+    
+    if (!password) {
+      return NextResponse.json({
+        success: false,
+        error: 'Password is required'
+      }, { status: 400 });
+    }
     
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
@@ -60,72 +68,64 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Send password reset email using Supabase
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const redirectTo = `${baseUrl}/auth/reset-password`;
-
-    console.log('Sending password reset email to account:', account.email);
-    console.log('Redirect URL:', redirectTo);
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      account.email,
+    // Update the password using Supabase admin
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      account.auth_user_id,
       {
-        redirectTo: redirectTo,
+        password: password
       }
     );
 
-    if (resetError) {
-      console.error('Password reset error:', resetError);
+    if (updateError) {
+      console.error('Error updating password:', updateError);
       return NextResponse.json({
         success: false,
-        error: 'Failed to send password reset email',
-        details: resetError.message,
+        error: 'Failed to update password',
+        details: updateError.message,
       }, { status: 500 });
     }
 
-    // Update account status to PASSWORD_RESET_PENDING
-    const { error: updateError } = await supabase
+    // Update account status and password change timestamp
+    const { error: accountUpdateError } = await supabase
       .from('accounts')
       .update({
-        account_status: 'PASSWORD_RESET_PENDING',
-        password_reset_requested_at: new Date().toISOString(),
+        account_status: 'ACTIVE',
+        last_password_change_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', accountId);
 
-    if (updateError) {
-      console.error('Error updating account status:', updateError);
+    if (accountUpdateError) {
+      console.error('Error updating account status:', accountUpdateError);
       // Don't fail the request, just log the error
     }
 
-    // Log the password reset request event
+    // Log the password update event
     try {
       await supabase
         .from('account_events')
         .insert({
           account_id: accountId,
-          event_type: 'PASSWORD_RESET_REQUESTED',
+          event_type: 'PASSWORD_UPDATED_BY_ADMIN',
           event_status: 'SUCCESS',
-          description: `Password reset email sent by admin for account ${account.email}`,
+          description: `Password updated by admin for account ${account.email}`,
           metadata: {
             account_email: account.email,
             account_name: `${account.first_name} ${account.last_name}`,
-            requested_by: user.id,
+            updated_by: user.id,
             ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
             user_agent: req.headers.get('user-agent')
           },
           created_at: new Date().toISOString()
         });
     } catch (logError) {
-      console.error('Error logging password reset event:', logError);
+      console.error('Error logging password update event:', logError);
       // Don't fail the request, just log the error
     }
 
-    console.log('Password reset email sent successfully to:', account.email);
-
     return NextResponse.json({
       success: true,
-      message: 'Password reset email sent successfully',
+      message: 'Password updated successfully',
       data: {
         account: {
           id: account.id,
@@ -137,10 +137,10 @@ export async function POST(
     });
 
   } catch (error: unknown) {
-    console.error('Reset password API error:', error);
+    console.error('Update password API error:', error);
     return NextResponse.json({
       success: false,
-      error: 'An unexpected error occurred while sending password reset email',
+      error: 'An unexpected error occurred while updating password',
       details: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
