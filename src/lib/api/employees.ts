@@ -87,41 +87,5 @@ export const employeeApi = {
     });
   },
 
-  // Send invitation to employee
-  async sendInvitation(employeeId: string, role: string = 'EMPLOYEE'): Promise<{ success: boolean; message: string; data?: any }> {
-    return await apiFetch(`/api/admin/accounts/invite-employee`, {
-      method: 'POST',
-      body: JSON.stringify({ employeeId, role }),
-    });
-  },
 
-  // Reset employee password
-  async resetPassword(accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
-    return await apiFetch(`/api/admin/accounts/${accountId}/password-reset`, {
-      method: 'POST',
-    });
-  },
-
-  // Set employee password
-  async setPassword(accountId: string, password: string): Promise<{ success: boolean; message: string; data?: any }> {
-    return await apiFetch(`/api/admin/accounts/${accountId}/password`, {
-      method: 'PATCH',
-      body: JSON.stringify({ password }),
-    });
-  },
-
-  // Link employee to existing account
-  async linkAccount(employeeId: string, accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
-    return await apiFetch(`/api/admin/accounts/${accountId}/link-employee`, {
-      method: 'POST',
-      body: JSON.stringify({ employeeId }),
-    });
-  },
-
-  // Unlink employee from account
-  async unlinkAccount(accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
-    return await apiFetch(`/api/admin/accounts/${accountId}/unlink-employee`, {
-      method: 'POST',
-    });
-  },
 };

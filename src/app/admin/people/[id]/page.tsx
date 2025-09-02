@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePerson } from "@/hooks/use-people";
-import { useEmployeeInvitation, useEmployeePasswordReset, useEmployeeLinkAccount, useEmployeeUnlinkAccount } from "@/hooks/use-employee-invitations";
+import { useEmployeeInvitation, useAccountPasswordReset, useEmployeeLinkAccount, useEmployeeUnlinkAccount } from "@/hooks/use-accounts";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 
@@ -91,7 +91,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   
   // Hooks for employee actions
   const sendInvitation = useEmployeeInvitation();
-  const resetPassword = useEmployeePasswordReset();
+  const resetPassword = useAccountPasswordReset();
   const linkAccount = useEmployeeLinkAccount();
   const unlinkAccount = useEmployeeUnlinkAccount();
 

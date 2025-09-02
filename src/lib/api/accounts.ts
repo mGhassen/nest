@@ -64,13 +64,6 @@ export const accountApi = {
     });
   },
 
-  // Reset password for an account
-  async resetPassword(accountId: string): Promise<AccountActionResponse> {
-    return await apiFetch<AccountActionResponse>(`/api/admin/accounts/${accountId}/password-reset`, {
-      method: 'POST',
-    });
-  },
-
   // Update account status
   async updateAccountStatus(accountId: string, status: string): Promise<AccountActionResponse> {
     return await apiFetch<AccountActionResponse>(`/api/admin/accounts/${accountId}/status`, {
@@ -82,5 +75,45 @@ export const accountApi = {
   // Get account events
   async getAccountEvents(accountId: string): Promise<{ success: boolean; data: any[] }> {
     return await apiFetch(`/api/admin/accounts/${accountId}/events`);
+  },
+
+  // Reset password (send email)
+  async resetPassword(accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/password`, {
+      method: 'POST',
+    });
+  },
+
+  // Set password directly
+  async setPassword(accountId: string, password: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ password }),
+    });
+  },
+
+  // Employee-Account Management Methods
+
+  // Send invitation to employee (creates account)
+  async sendInvitation(employeeId: string, role: string = 'EMPLOYEE'): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/invite-employee`, {
+      method: 'POST',
+      body: JSON.stringify({ employeeId, role }),
+    });
+  },
+
+  // Link employee to existing account
+  async linkAccount(employeeId: string, accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/link-employee`, {
+      method: 'POST',
+      body: JSON.stringify({ employeeId }),
+    });
+  },
+
+  // Unlink employee from account
+  async unlinkAccount(accountId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return await apiFetch(`/api/admin/accounts/${accountId}/unlink-employee`, {
+      method: 'POST',
+    });
   },
 };

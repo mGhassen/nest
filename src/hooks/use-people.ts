@@ -79,22 +79,4 @@ export function usePerson(id: string) {
   });
 }
 
-// Hook for password management
-export function usePeoplePasswordManagement() {
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({ id, action, password }: { id: string; action: 'set' | 'reset'; password?: string }) => {
-      if (action === 'set' && password) {
-        return await employeeApi.setPassword(id, password);
-      } else if (action === 'reset') {
-        return await employeeApi.resetPassword(id);
-      }
-      throw new Error('Invalid action or missing password');
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate specific person data
-      queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
-    },
-  });
-}

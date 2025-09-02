@@ -35,15 +35,31 @@ export function useAccountCreate() {
   });
 }
 
-// Hook for password reset
+// Hook for password reset (send email)
 export function useAccountPasswordReset() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: accountApi.resetPassword,
+    mutationFn: (accountId: string) => accountApi.resetPassword(accountId),
     onSuccess: () => {
       // Invalidate accounts list to refresh status
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
+// Hook for setting password directly
+export function useAccountSetPassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ accountId, password }: { accountId: string; password: string }) => 
+      accountApi.setPassword(accountId, password),
+    onSuccess: () => {
+      // Invalidate accounts list to refresh status
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
@@ -70,5 +86,55 @@ export function useAccountEvents(accountId: string) {
     enabled: !!accountId,
     staleTime: 1 * 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Employee-Account Management Hooks
+
+// Hook for sending employee invitation (creates account)
+export function useEmployeeInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ employeeId, role }: { employeeId: string; role?: string }) => 
+      accountApi.sendInvitation(employeeId, role),
+    onSuccess: (_, variables) => {
+      // Invalidate employee data to refresh account information
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.employeeId] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}
+
+// Hook for linking employee to existing account
+export function useEmployeeLinkAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ employeeId, accountId }: { employeeId: string; accountId: string }) => 
+      accountApi.linkAccount(employeeId, accountId),
+    onSuccess: (_, variables) => {
+      // Invalidate employee data to refresh account information
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.employeeId] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}
+
+// Hook for unlinking employee from account
+export function useEmployeeUnlinkAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accountId: string) => 
+      accountApi.unlinkAccount(accountId),
+    onSuccess: () => {
+      // Invalidate employee and account data to refresh information
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['employee'] });
+    },
   });
 }
