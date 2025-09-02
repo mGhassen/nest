@@ -15,6 +15,7 @@ import type { Employee } from "@/types/schema";
 import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
 import SendInvitationDialog from "./send-invitation-dialog";
+import PasswordManagementDialog from "./password-management-dialog";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -71,6 +72,11 @@ export default function EmployeeTable({
     employee: Employee | null;
   }>({ open: false, employee: null });
   
+  const [passwordDialog, setPasswordDialog] = useState<{
+    open: boolean;
+    employee: Employee | null;
+  }>({ open: false, employee: null });
+  
   // Default handlers if not provided
   const handleEdit = onEdit || ((employee: Employee) => {
     window.location.href = `/admin/people/${employee.id}`;
@@ -97,11 +103,7 @@ export default function EmployeeTable({
   });
 
   const handleSetPassword = onSetPassword || ((employee: Employee) => {
-    // TODO: Implement password setting dialog
-    toast({
-      title: "Feature coming soon",
-      description: "Password setting functionality will be available soon.",
-    });
+    setPasswordDialog({ open: true, employee });
   });
 
   const handleResetPassword = onResetPassword || ((employee: Employee) => {
@@ -444,6 +446,21 @@ export default function EmployeeTable({
           toast({
             title: "Success",
             description: "Employee data will be refreshed automatically.",
+          });
+        }}
+      />
+
+      {/* Password Management Dialog */}
+      <PasswordManagementDialog
+        employeeId={passwordDialog.employee?.id || ''}
+        employeeName={passwordDialog.employee ? `${passwordDialog.employee.first_name} ${passwordDialog.employee.last_name}` : ''}
+        open={passwordDialog.open}
+        onOpenChange={(open) => setPasswordDialog({ open, employee: null })}
+        onSuccess={() => {
+          // Refresh the data or show success message
+          toast({
+            title: "Success",
+            description: "Password updated successfully.",
           });
         }}
       />
