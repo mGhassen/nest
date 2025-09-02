@@ -9,6 +9,14 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, ExternalLink, User, UserX } from "lucide-react";
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
@@ -79,30 +87,43 @@ export default function EmployeeTable({
     employee: Employee | null;
   }>({ open: false, employee: null });
   
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    employee: Employee | null;
+  }>({ open: false, employee: null });
+  
   // Default handlers if not provided
   const handleEdit = onEdit || ((employee: Employee) => {
     window.location.href = `/admin/people/${employee.id}`;
   });
   
   const handleDelete = onDelete || ((id: string) => {
-    if (confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
-      deleteEmployee.mutate(id, {
-        onSuccess: () => {
-          toast({
-            title: "Employee deleted",
-            description: "The employee has been successfully deleted.",
-          });
-        },
-        onError: (error) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to delete employee.",
-            variant: "destructive",
-          });
-        },
-      });
+    const employee = employees.find(emp => emp.id === id);
+    if (employee) {
+      setDeleteDialog({ open: true, employee });
     }
   });
+
+  const confirmDelete = () => {
+    if (!deleteDialog.employee) return;
+    
+    deleteEmployee.mutate(deleteDialog.employee.id, {
+      onSuccess: () => {
+        toast({
+          title: "Employee deleted",
+          description: "The employee has been successfully deleted.",
+        });
+        setDeleteDialog({ open: false, employee: null });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete employee.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
   const handleSetPassword = onSetPassword || ((employee: Employee) => {
     setPasswordDialog({ open: true, employee });
@@ -502,6 +523,36 @@ export default function EmployeeTable({
           });
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, employee: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Employee</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deleteDialog.employee?.first_name} {deleteDialog.employee?.last_name}</strong>? 
+              This action cannot be undone and will permanently remove all employee data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog({ open: false, employee: null })}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteEmployee.isPending}
+              className="w-full sm:w-auto"
+            >
+              {deleteEmployee.isPending ? "Deleting..." : "Delete Employee"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

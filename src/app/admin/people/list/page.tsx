@@ -18,6 +18,14 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people"
 import { useToast } from "@/hooks/use-toast"
 import { LoadingPage } from "@/components/ui/loading-spinner"
@@ -35,6 +43,18 @@ export default function PeopleListPage() {
   const [pageSize, setPageSize] = useState(10)
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState<{
+    open: boolean;
+    count: number;
+  }>({ open: false, count: 0 })
+  const [bulkArchiveDialog, setBulkArchiveDialog] = useState<{
+    open: boolean;
+    count: number;
+  }>({ open: false, count: 0 })
+  const [bulkSuspendDialog, setBulkSuspendDialog] = useState<{
+    open: boolean;
+    count: number;
+  }>({ open: false, count: 0 })
 
   useEffect(() => {
     if (isLoading) return;
@@ -175,83 +195,89 @@ export default function PeopleListPage() {
   // Bulk action handlers
   const handleBulkDelete = () => {
     if (selectedEmployees.size === 0) return;
+    setBulkDeleteDialog({ open: true, count: selectedEmployees.size });
+  };
+
+  const confirmBulkDelete = () => {
+    const deletePromises = Array.from(selectedEmployees).map(id => 
+      deleteEmployee.mutateAsync(id)
+    );
     
-    if (confirm(`Are you sure you want to delete ${selectedEmployees.size} employee(s)? This action cannot be undone.`)) {
-      const deletePromises = Array.from(selectedEmployees).map(id => 
-        deleteEmployee.mutateAsync(id)
-      );
-      
-      Promise.all(deletePromises)
-        .then(() => {
-          toast({
-            title: "Employees deleted",
-            description: `${selectedEmployees.size} employee(s) have been successfully deleted.`,
-          });
-          setSelectedEmployees(new Set());
-          setSelectAll(false);
-        })
-        .catch((error) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to delete some employees.",
-            variant: "destructive",
-          });
+    Promise.all(deletePromises)
+      .then(() => {
+        toast({
+          title: "Employees deleted",
+          description: `${selectedEmployees.size} employee(s) have been successfully deleted.`,
         });
-    }
+        setSelectedEmployees(new Set());
+        setSelectAll(false);
+        setBulkDeleteDialog({ open: false, count: 0 });
+      })
+      .catch((error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete some employees.",
+          variant: "destructive",
+        });
+      });
   };
 
   const handleBulkArchive = () => {
     if (selectedEmployees.size === 0) return;
+    setBulkArchiveDialog({ open: true, count: selectedEmployees.size });
+  };
+
+  const confirmBulkArchive = () => {
+    const updatePromises = Array.from(selectedEmployees).map(id => 
+      updateEmployee.mutateAsync({ id, data: { status: 'INACTIVE' } })
+    );
     
-    if (confirm(`Are you sure you want to archive ${selectedEmployees.size} employee(s)?`)) {
-      const updatePromises = Array.from(selectedEmployees).map(id => 
-        updateEmployee.mutateAsync({ id, data: { status: 'INACTIVE' } })
-      );
-      
-      Promise.all(updatePromises)
-        .then(() => {
-          toast({
-            title: "Employees archived",
-            description: `${selectedEmployees.size} employee(s) have been successfully archived.`,
-          });
-          setSelectedEmployees(new Set());
-          setSelectAll(false);
-        })
-        .catch((error) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to archive some employees.",
-            variant: "destructive",
-          });
+    Promise.all(updatePromises)
+      .then(() => {
+        toast({
+          title: "Employees archived",
+          description: `${selectedEmployees.size} employee(s) have been successfully archived.`,
         });
-    }
+        setSelectedEmployees(new Set());
+        setSelectAll(false);
+        setBulkArchiveDialog({ open: false, count: 0 });
+      })
+      .catch((error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to archive some employees.",
+          variant: "destructive",
+        });
+      });
   };
 
   const handleBulkSuspend = () => {
     if (selectedEmployees.size === 0) return;
+    setBulkSuspendDialog({ open: true, count: selectedEmployees.size });
+  };
+
+  const confirmBulkSuspend = () => {
+    const updatePromises = Array.from(selectedEmployees).map(id => 
+      updateEmployee.mutateAsync({ id, data: { status: 'ON_LEAVE' } })
+    );
     
-    if (confirm(`Are you sure you want to suspend ${selectedEmployees.size} employee(s)?`)) {
-      const updatePromises = Array.from(selectedEmployees).map(id => 
-        updateEmployee.mutateAsync({ id, data: { status: 'ON_LEAVE' } })
-      );
-      
-      Promise.all(updatePromises)
-        .then(() => {
-          toast({
-            title: "Employees suspended",
-            description: `${selectedEmployees.size} employee(s) have been successfully suspended.`,
-          });
-          setSelectedEmployees(new Set());
-          setSelectAll(false);
-        })
-        .catch((error) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to suspend some employees.",
-            variant: "destructive",
-          });
+    Promise.all(updatePromises)
+      .then(() => {
+        toast({
+          title: "Employees suspended",
+          description: `${selectedEmployees.size} employee(s) have been successfully suspended.`,
         });
-    }
+        setSelectedEmployees(new Set());
+        setSelectAll(false);
+        setBulkSuspendDialog({ open: false, count: 0 });
+      })
+      .catch((error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to suspend some employees.",
+          variant: "destructive",
+        });
+      });
   };
 
   if (isLoading) {
@@ -479,6 +505,93 @@ export default function PeopleListPage() {
           )}
         </div>
       </div>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkDeleteDialog.open} onOpenChange={(open) => setBulkDeleteDialog({ open, count: 0 })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Multiple Employees</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{bulkDeleteDialog.count} employee(s)</strong>? 
+              This action cannot be undone and will permanently remove all employee data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteDialog({ open: false, count: 0 })}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBulkDelete}
+              className="w-full sm:w-auto"
+            >
+              Delete {bulkDeleteDialog.count} Employee(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Archive Confirmation Dialog */}
+      <Dialog open={bulkArchiveDialog.open} onOpenChange={(open) => setBulkArchiveDialog({ open, count: 0 })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Archive Multiple Employees</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive <strong>{bulkArchiveDialog.count} employee(s)</strong>? 
+              This will set their status to inactive and they will no longer be able to access the system.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkArchiveDialog({ open: false, count: 0 })}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={confirmBulkArchive}
+              className="w-full sm:w-auto"
+            >
+              Archive {bulkArchiveDialog.count} Employee(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Suspend Confirmation Dialog */}
+      <Dialog open={bulkSuspendDialog.open} onOpenChange={(open) => setBulkSuspendDialog({ open, count: 0 })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Suspend Multiple Employees</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to suspend <strong>{bulkSuspendDialog.count} employee(s)</strong>? 
+              This will set their status to on leave and they will temporarily lose access to the system.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkSuspendDialog({ open: false, count: 0 })}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={confirmBulkSuspend}
+              className="w-full sm:w-auto"
+            >
+              Suspend {bulkSuspendDialog.count} Employee(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

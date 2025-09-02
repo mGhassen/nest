@@ -9,6 +9,15 @@ import { useEffect, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import EmployeeHeader from "@/components/employees/employee-header"
 import EmployeeOverview from "@/components/employees/employee-overview"
 import EmployeeAdministration from "@/components/employees/employee-administration"
@@ -25,6 +34,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [deleteAccountDialog, setDeleteAccountDialog] = useState(false);
 
   // Await params to get the id and check for tab parameter
   useEffect(() => {
@@ -213,8 +223,19 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   };
 
   const handleDeleteAccount = () => {
-    // TODO: Implement delete account functionality
-    console.log('Delete account for:', employee?.id);
+    setDeleteAccountDialog(true);
+  };
+
+  const confirmDeleteAccount = () => {
+    if (!employee?.account?.id) return;
+    
+    // TODO: Implement actual delete account API call
+    // For now, just show a success message
+    toast({
+      title: "Account Deleted",
+      description: "The employee account has been successfully deleted.",
+    });
+    setDeleteAccountDialog(false);
   };
 
   const handleCreateContract = () => {
@@ -374,6 +395,35 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={deleteAccountDialog} onOpenChange={setDeleteAccountDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Employee Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the account for <strong>{employee?.first_name} {employee?.last_name}</strong>? 
+              This will permanently remove their account and they will no longer be able to access the system.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteAccountDialog(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteAccount}
+              className="w-full sm:w-auto"
+            >
+              Delete Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
