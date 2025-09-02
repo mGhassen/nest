@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get user profile to check if admin
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('is_admin')
-      .eq('id', user.id)
+    // Get user account to check if admin
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('role')
+      .eq('auth_user_id', user.id)
       .single();
 
-    if (profileError || !profile?.is_admin) {
+    if (accountError || !account || account.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       .from('leave_requests')
       .select(`
         *,
-        user_profiles!leave_requests_user_id_fkey (
+        employees!leave_requests_employee_id_fkey (
           first_name,
           last_name,
           email
@@ -73,17 +73,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    // Get user account
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (accountError || !account) {
+      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+    }
+
     const body = await request.json();
-    const { start_date, end_date, leave_type, reason, status = 'SUBMITTED' } = body;
+    const { start_date, end_date, leave_policy_id, days_requested, reason, status = 'PENDING' } = body;
+
+    // Get the employee record for this user
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('account_id', account.id)
+      .single();
+
+    if (employeeError || !employee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
 
     // Create leave request
     const { data: leaveRequest, error } = await supabase
       .from('leave_requests')
       .insert({
-        user_id: user.id,
+        employee_id: employee.id,
+        leave_policy_id,
         start_date,
         end_date,
-        leave_type,
+        days_requested,
         reason,
         status
       })

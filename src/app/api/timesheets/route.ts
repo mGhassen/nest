@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get user profile to check if admin
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('is_admin')
-      .eq('id', user.id)
+    // Get user account to check if admin
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('role')
+      .eq('auth_user_id', user.id)
       .single();
 
-    if (profileError || !profile?.is_admin) {
+    if (accountError || !account || account.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       .from('timesheets')
       .select(`
         *,
-        user_profiles!timesheets_user_id_fkey (
+        employees!timesheets_employee_id_fkey (
           first_name,
           last_name,
           email
@@ -70,19 +70,41 @@ export async function POST(request: NextRequest) {
     // Verify the token and get user
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 500 });
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Get user account
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (accountError || !account) {
+      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    const { week_start_date, hours_worked, status = 'SUBMITTED' } = body;
+    const { week_start, total_hours, status = 'SUBMITTED' } = body;
+
+    // Get the employee record for this user
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('account_id', account.id)
+      .single();
+
+    if (employeeError || !employee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
 
     // Create timesheet
     const { data: timesheet, error } = await supabase
       .from('timesheets')
       .insert({
-        user_id: user.id,
-        week_start_date,
-        hours_worked,
+        employee_id: employee.id,
+        week_start,
+        total_hours,
         status
       })
       .select()

@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get user profile to check if admin
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('is_admin')
-      .eq('id', user.id)
+    // Get user account to check if admin
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('role')
+      .eq('auth_user_id', user.id)
       .single();
 
-    if (profileError || !profile?.is_admin) {
+    if (accountError || !account || account.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -37,12 +37,12 @@ export async function GET(request: NextRequest) {
       { count: pendingLeaveRequests },
       { data: recentActivities }
     ] = await Promise.all([
-      supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('accounts').select('*', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('timesheets').select('*', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
-      supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
-      supabase.from('activities').select(`
+      supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabase.from('audit_logs').select(`
         *,
-        user_profiles!activities_user_id_fkey (
+        accounts!audit_logs_actor_id_fkey (
           first_name,
           last_name
         )
