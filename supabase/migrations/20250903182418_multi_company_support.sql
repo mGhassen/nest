@@ -14,12 +14,62 @@ CREATE TABLE account_company_roles (
     UNIQUE(account_id, company_id)
 );
 
--- Add SUPERUSER role to the user_role enum
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SUPERUSER';
+-- Note: SUPERUSER is now handled by accounts.is_superuser flag
+-- Only ADMIN and EMPLOYEE roles are used in account_company_roles
+
+-- ============================================================================
+-- ENHANCE COMPANIES TABLE WITH COMPREHENSIVE DATA FIELDS
+-- ============================================================================
+
+-- Add comprehensive fields to companies table
+ALTER TABLE companies 
+ADD COLUMN IF NOT EXISTS legal_name VARCHAR(255),
+ADD COLUMN IF NOT EXISTS description TEXT,
+ADD COLUMN IF NOT EXISTS industry VARCHAR(100),
+ADD COLUMN IF NOT EXISTS company_size VARCHAR(50),
+ADD COLUMN IF NOT EXISTS founded_year INTEGER,
+ADD COLUMN IF NOT EXISTS website VARCHAR(255),
+ADD COLUMN IF NOT EXISTS email VARCHAR(255),
+ADD COLUMN IF NOT EXISTS phone VARCHAR(50),
+ADD COLUMN IF NOT EXISTS fax VARCHAR(50),
+ADD COLUMN IF NOT EXISTS address TEXT,
+ADD COLUMN IF NOT EXISTS address_line_2 TEXT,
+ADD COLUMN IF NOT EXISTS state VARCHAR(100),
+ADD COLUMN IF NOT EXISTS city VARCHAR(100),
+ADD COLUMN IF NOT EXISTS country VARCHAR(100),
+ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20),
+ADD COLUMN IF NOT EXISTS timezone VARCHAR(50),
+ADD COLUMN IF NOT EXISTS tax_id VARCHAR(100),
+ADD COLUMN IF NOT EXISTS registration_number VARCHAR(100),
+ADD COLUMN IF NOT EXISTS vat_number VARCHAR(100),
+ADD COLUMN IF NOT EXISTS business_type VARCHAR(50),
+ADD COLUMN IF NOT EXISTS legal_structure VARCHAR(50),
+ADD COLUMN IF NOT EXISTS fiscal_year_start DATE,
+ADD COLUMN IF NOT EXISTS fiscal_year_end DATE,
+ADD COLUMN IF NOT EXISTS logo_url TEXT,
+ADD COLUMN IF NOT EXISTS brand_color VARCHAR(7),
+ADD COLUMN IF NOT EXISTS secondary_color VARCHAR(7),
+ADD COLUMN IF NOT EXISTS linkedin_url VARCHAR(255),
+ADD COLUMN IF NOT EXISTS twitter_url VARCHAR(255),
+ADD COLUMN IF NOT EXISTS facebook_url VARCHAR(255),
+ADD COLUMN IF NOT EXISTS instagram_url VARCHAR(255),
+ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ACTIVE',
+ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS verification_date TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES accounts(id),
+ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES accounts(id);
+
+-- Update existing companies with default values
+UPDATE companies SET 
+    country = COALESCE(country, 'United States'),
+    currency = COALESCE(currency, 'USD'),
+    status = COALESCE(status, 'ACTIVE'),
+    is_verified = COALESCE(is_verified, FALSE)
+WHERE country IS NULL OR currency IS NULL OR status IS NULL OR is_verified IS NULL;
 
 -- Add comments
 COMMENT ON TABLE account_company_roles IS 'Simple many-to-many relationship: accounts can have roles in multiple companies';
-COMMENT ON COLUMN account_company_roles.role IS 'User role within this specific company: SUPERUSER, ADMIN, or EMPLOYEE';
+COMMENT ON COLUMN account_company_roles.role IS 'User role within this specific company: ADMIN or EMPLOYEE (SUPERUSER is handled by accounts.is_superuser)';
 
 -- Create indexes for performance
 CREATE INDEX idx_account_company_roles_account_id ON account_company_roles(account_id);
@@ -82,7 +132,9 @@ AND a.id IS NOT NULL
 ON CONFLICT (account_id, company_id) DO NOTHING;
 
 -- Add a simple current_company_id column to accounts table for remembering last choice
-ALTER TABLE accounts ADD COLUMN current_company_id UUID REFERENCES companies(id);
+ALTER TABLE accounts 
+ADD COLUMN current_company_id UUID REFERENCES companies(id),
+ADD COLUMN is_superuser BOOLEAN DEFAULT FALSE;
 
 -- Update existing accounts to have Guepard as current company
 UPDATE accounts 
@@ -241,7 +293,7 @@ RETURNS UUID AS $$
 BEGIN
   RETURN (
     SELECT a.current_company_id
-    FROM accounts a
+FROM accounts a
     WHERE a.id = auth.uid()
   );
 END;
@@ -253,9 +305,9 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1
-    FROM account_company_roles acr
-    WHERE acr.account_id = p_account_id
-    AND acr.role = 'SUPERUSER'
+    FROM accounts a
+    WHERE a.id = p_account_id
+    AND a.is_superuser = TRUE
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

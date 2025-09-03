@@ -125,17 +125,21 @@ export async function GET(req: NextRequest) {
     console.log('Debug - Final currentRole:', currentRole);
     console.log('Debug - Final currentCompanyId:', currentCompanyId);
 
+    // Check if user is superuser
+    const isSuperuser = userData.is_superuser || false;
+    const isAdmin = currentRole === 'ADMIN' || isSuperuser;
+
     // Return user data with multi-company support
     return NextResponse.json({
       success: true,
       user: {
         id: userData.id,
         email: user.email || '',
-        isAdmin: currentRole === 'ADMIN' || currentRole === 'SUPERUSER',
+        isAdmin,
         firstName: userData.first_name || user.email?.split('@')[0] || 'User',
         lastName: userData.last_name || '',
         status: userData.is_active ? 'active' : 'inactive',
-        role: currentRole,
+        role: isSuperuser ? 'SUPERUSER' : (currentRole || 'EMPLOYEE'),
         companyId: currentCompanyId,
         // Multi-company data
         companies: userCompanies || [],

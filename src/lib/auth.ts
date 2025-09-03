@@ -4,7 +4,7 @@ import { supabaseServer } from './supabase';
 // TYPES AND INTERFACES
 // ============================================================================
 
-export type UserRole = 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
+export type UserRole = 'ADMIN' | 'EMPLOYEE';
 
 export interface User {
   id: string;
@@ -60,7 +60,7 @@ export async function getCurrentUserRole(accountId: string): Promise<UserRole | 
  */
 export async function isCurrentUserAdmin(accountId: string): Promise<boolean> {
   const role = await getCurrentUserRole(accountId);
-  return role === 'ADMIN' || role === 'SUPERUSER';
+  return role === 'ADMIN';
 }
 
 /**

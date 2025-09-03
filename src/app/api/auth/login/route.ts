@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-import { getCurrentUserRole } from '@/lib/auth';
+import { getCurrentUserRole, isCurrentUserSuperuser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,13 +51,24 @@ export async function POST(req: NextRequest) {
 
     // Get user's role in their current company
     const currentRole = await getCurrentUserRole(userProfile.id);
-    const isAdmin = currentRole === 'ADMIN' || currentRole === 'SUPERUSER';
+    const isSuperuser = await isCurrentUserSuperuser(userProfile.id);
+    const isAdmin = currentRole === 'ADMIN' || isSuperuser;
+
+    // Get user's companies for frontend logic
+    const { data: userCompanies, error: companiesError } = await supabaseServer()
+      .rpc('get_account_companies', { p_account_id: userProfile.id });
+
+    if (companiesError) {
+      console.log('Error fetching user companies in login:', companiesError);
+    }
 
     console.log('Login API - User role detection:', {
       userId: userProfile.id,
       currentRole,
+      isSuperuser,
       isAdmin,
-      hasRoleField: 'role' in userProfile
+      hasRoleField: 'role' in userProfile,
+      companies: userCompanies
     });
 
     // Return session and user info
@@ -77,7 +88,8 @@ export async function POST(req: NextRequest) {
         firstName: userProfile.first_name || user.email?.split('@')[0] || 'User',
         lastName: userProfile.last_name || '',
         status: userProfile.is_active ? 'active' : 'inactive',
-        role: currentRole || 'EMPLOYEE',
+        role: isSuperuser ? 'SUPERUSER' : (currentRole || 'EMPLOYEE'),
+        companies: userCompanies || [],
       },
     });
   } catch (error: unknown) {

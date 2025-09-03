@@ -8,11 +8,103 @@
 -- 3. Triggers automatically link employees to accounts by matching email
 -- 4. No signup flow - it's invitation-based system
 
--- 1. Create Companies (Multi-company setup)
-INSERT INTO companies (name, country_code, currency) VALUES 
-('Guepard', 'TN', 'TND'),
-('TechCorp', 'US', 'USD'),
-('InnovateLab', 'FR', 'EUR');
+-- 1. Create Companies (Multi-company setup with comprehensive data)
+INSERT INTO companies (
+    name, legal_name, description, industry, company_size, founded_year,
+    website, email, phone, country_code, currency,
+    address, city, state, country, postal_code, timezone,
+    tax_id, business_type, legal_structure,
+    brand_color, secondary_color,
+    linkedin_url, twitter_url, facebook_url,
+    status, is_verified
+) VALUES 
+(
+    'Guepard', 
+    'Guepard Technologies SARL',
+    'Leading technology company specializing in innovative software solutions and digital transformation services.',
+    'Technology',
+    '51-200',
+    2018,
+    'https://guepard.run',
+    'contact@guepard.run',
+    '+216 71 123 456',
+    'TN', 
+    'TND',
+    '123 Avenue Habib Bourguiba',
+    'Tunis',
+    'Tunis',
+    'Tunisia',
+    '1000',
+    'Africa/Tunis',
+    'TN123456789',
+    'Technology Services',
+    'SARL',
+    '#2563EB',
+    '#1E40AF',
+    'https://linkedin.com/company/guepard-tech',
+    'https://twitter.com/guepard_tech',
+    'https://facebook.com/guepard.tech',
+    'ACTIVE',
+    TRUE
+),
+(
+    'TechCorp', 
+    'TechCorp Solutions Inc.',
+    'Global technology corporation providing cutting-edge software solutions and enterprise services.',
+    'Technology',
+    '1001-5000',
+    2015,
+    'https://techcorp.com',
+    'info@techcorp.com',
+    '+1 555 123 4567',
+    'US', 
+    'USD',
+    '456 Silicon Valley Blvd',
+    'San Francisco',
+    'California',
+    'United States',
+    '94105',
+    'America/Los_Angeles',
+    'US123456789',
+    'Software Development',
+    'Corporation',
+    '#059669',
+    '#047857',
+    'https://linkedin.com/company/techcorp-solutions',
+    'https://twitter.com/techcorp_sol',
+    'https://facebook.com/techcorp.solutions',
+    'ACTIVE',
+    TRUE
+),
+(
+    'InnovateLab', 
+    'InnovateLab SAS',
+    'French innovation laboratory focused on research and development of next-generation technologies.',
+    'Research & Development',
+    '11-50',
+    2020,
+    'https://innovatelab.fr',
+    'contact@innovatelab.fr',
+    '+33 1 23 45 67 89',
+    'FR', 
+    'EUR',
+    '789 Rue de la Innovation',
+    'Paris',
+    'Île-de-France',
+    'France',
+    '75001',
+    'Europe/Paris',
+    'FR12345678901',
+    'Research & Development',
+    'SAS',
+    '#DC2626',
+    '#B91C1C',
+    'https://linkedin.com/company/innovatelab-fr',
+    'https://twitter.com/innovatelab_fr',
+    'https://facebook.com/innovatelab.fr',
+    'ACTIVE',
+    TRUE
+);
 
 -- 2. Create Locations
 INSERT INTO locations (company_id, name, country, timezone) 

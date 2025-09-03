@@ -22,11 +22,21 @@ const multiCompanyUsers = [
     password: 'admin123',
     firstName: 'Ahmed',
     lastName: 'Ben Ali',
+    isSuperuser: true,
     companies: [
-      { name: 'Guepard', role: 'SUPERUSER' },
-      { name: 'TechCorp', role: 'SUPERUSER' },
-      { name: 'InnovateLab', role: 'SUPERUSER' }
+      { name: 'Guepard', role: 'ADMIN' },
+      { name: 'TechCorp', role: 'ADMIN' },
+      { name: 'InnovateLab', role: 'ADMIN' }
     ]
+  },
+  // Test Superuser - Superuser with no companies (for onboarding testing)
+  {
+    email: 'superuser@test.com',
+    password: 'superuser123',
+    firstName: 'Test',
+    lastName: 'Superuser',
+    isSuperuser: true,
+    companies: [] // No companies - should trigger onboarding
   },
   // Fatma - HR Manager at Guepard, HR Consultant at TechCorp
   {
@@ -191,7 +201,8 @@ async function createMultiCompanyUsers() {
           email: user.email,
           first_name: user.firstName,
           last_name: user.lastName,
-          is_active: true
+          is_active: true,
+          is_superuser: user.isSuperuser || false
         })
         .select()
         .single();
@@ -229,6 +240,11 @@ async function createMultiCompanyUsers() {
         console.log(`✅ Role created: ${companyRole.role} at ${companyRole.name}`);
       }
       
+      // Special case: If user has no companies but is a superuser
+      if (user.companies.length === 0 && user.isSuperuser) {
+        console.log(`✅ Superuser with no companies - will be redirected to onboarding`);
+      }
+      
       // Step 4: Link employees to account (for each company the user works in)
       for (const companyRole of user.companies) {
         const companyId = companyIds[companyRole.name];
@@ -251,22 +267,26 @@ async function createMultiCompanyUsers() {
         }
       }
       
-      // Step 5: Set current company (prioritize ADMIN role companies)
-      const adminCompany = user.companies.find(c => c.role === 'ADMIN');
-      const defaultCompany = adminCompany || user.companies[0]; // Use ADMIN company if available, otherwise first company
-      const defaultCompanyId = companyIds[defaultCompany.name];
-      
-      const { data: accountUpdate, error: accountUpdateError } = await supabase
-        .from('accounts')
-        .update({ current_company_id: defaultCompanyId })
-        .eq('id', account.id)
-        .select()
-        .single();
-      
-      if (accountUpdateError) {
-        console.error(`❌ Account update error: ${accountUpdateError.message}`);
+      // Step 5: Set current company (only if user has companies)
+      if (user.companies.length > 0) {
+        const adminCompany = user.companies.find(c => c.role === 'ADMIN');
+        const defaultCompany = adminCompany || user.companies[0]; // Use ADMIN company if available, otherwise first company
+        const defaultCompanyId = companyIds[defaultCompany.name];
+        
+        const { data: accountUpdate, error: accountUpdateError } = await supabase
+          .from('accounts')
+          .update({ current_company_id: defaultCompanyId })
+          .eq('id', account.id)
+          .select()
+          .single();
+        
+        if (accountUpdateError) {
+          console.error(`❌ Account update error: ${accountUpdateError.message}`);
+        } else {
+          console.log(`✅ Current company set: ${defaultCompany.name} (${defaultCompany.role})`);
+        }
       } else {
-        console.log(`✅ Current company set: ${defaultCompany.name} (${defaultCompany.role})`);
+        console.log(`✅ No companies assigned - user will be redirected to onboarding`);
       }
       
       console.log(`✅ User ${user.email} completed successfully!\n`);
@@ -290,6 +310,7 @@ async function createMultiCompanyUsers() {
   console.log('5. Employees linked to accounts for each company');
   console.log('\n🏢 Multi-Company Examples:');
   console.log('- Ahmed: SUPERUSER at ALL companies (Guepard, TechCorp, InnovateLab)');
+  console.log('- Test Superuser: SUPERUSER with NO companies (will trigger onboarding)');
   console.log('- John: ADMIN at TechCorp, ADMIN at Guepard');
   console.log('- Pierre: ADMIN at InnovateLab, ADMIN at TechCorp');
   console.log('- Fatma: ADMIN at Guepard, EMPLOYEE at TechCorp');

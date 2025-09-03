@@ -11,7 +11,7 @@ export interface User {
   lastName?: string;
   isAdmin: boolean;
   status?: string;
-  role?: 'admin' | 'member';
+  role?: 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
   companyId?: string;
   // Multi-company support
   companies?: Array<{
@@ -271,13 +271,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoginError(null); // Clear any previous errors
       setAuthError(null); // Clear any previous auth errors
 
-      // Redirect based on user role
+      // Redirect based on user role and company access
       console.log('Login successful, redirecting user:', data.user);
       console.log('User isAdmin value:', data.user.isAdmin);
       console.log('User role value:', data.user.role);
+      console.log('User companies:', data.user.companies);
+      
       // Small delay to ensure state is updated
       setTimeout(() => {
-        if (data.user.isAdmin) {
+        // Check if superuser has no companies (should see onboarding)
+        const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
+        
+        if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
+          console.log('Superuser with no companies, redirecting to onboarding');
+          router.push('/admin/onboarding');
+        } else if (data.user.isAdmin) {
           console.log('Redirecting admin to /admin/dashboard');
           router.push('/admin/dashboard');
         } else {
@@ -330,7 +338,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const value: AuthState = {
-    user: user ? { ...user, role: user.isAdmin ? 'admin' : 'member' } as User & { role: 'admin' | 'member' } : null,
+    user: user ? { ...user } : null,
     isLoading,
     isAuthenticated: !!user,
     isLoggingIn,

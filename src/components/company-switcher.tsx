@@ -4,7 +4,7 @@ import * as React from "react";
 import { ChevronsUpDown, Plus } from "lucide-react";
 import { useUserCompanies, useCurrentCompany, useSwitchCompany } from "@/hooks/use-companies";
 import { useAuth } from "@/hooks/use-auth";
-import { AddCompanyDialog } from "@/components/add-company-dialog";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ export function CompanySwitcher() {
   const { data: currentCompany, isLoading: currentLoading } = useCurrentCompany();
   const switchCompany = useSwitchCompany();
   const { isMobile } = useSidebar();
+  const router = useRouter();
   
   // Check if current user is a superuser
   const isSuperuser = currentCompany?.role === 'SUPERUSER';
@@ -147,14 +148,15 @@ export function CompanySwitcher() {
             {isSuperuser && (
               <>
                 <DropdownMenuSeparator />
-                <AddCompanyDialog>
-                  <DropdownMenuItem className="gap-2 p-2" onSelect={(e) => e.preventDefault()}>
-                    <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                      <Plus className="size-4" />
-                    </div>
-                    <div className="text-muted-foreground font-medium">Add Company</div>
-                  </DropdownMenuItem>
-                </AddCompanyDialog>
+                <DropdownMenuItem 
+                  className="gap-2 p-2" 
+                  onClick={() => router.push('/admin/companies/create')}
+                >
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                    <Plus className="size-4" />
+                  </div>
+                  <div className="text-muted-foreground font-medium">Create Company</div>
+                </DropdownMenuItem>
               </>
             )}
           </DropdownMenuContent>
