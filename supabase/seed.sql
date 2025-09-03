@@ -100,7 +100,7 @@ UPDATE employees
 SET manager_id = (SELECT id FROM employees WHERE email = 'manager@guepard.run')
 WHERE email = 'employee@guepard.run';
 
--- 6.1. Create Employee Profiles (Personal Information)
+abase at -- 6.1. Create Employee Profiles (Personal Information)
 INSERT INTO employee_profiles (employee_id, date_of_birth, gender, nationality, marital_status, personal_phone, blood_type)
 SELECT id, '1985-03-15'::date, 'Male', 'Tunisian', 'Married', '+216 98 123 456', 'O+' FROM employees WHERE email = 'admin@guepard.run'
 UNION ALL

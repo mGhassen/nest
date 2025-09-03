@@ -524,16 +524,10 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           {/* Administration Tab */}
           <TabsContent value="administration" className="space-y-4">
             <EmployeeAdministration 
-              employeeId={transformedEmployee.id}
+              employeeId={employee.id}
               employee={{
-                id: employee.id,
-                first_name: employee.first_name,
-                last_name: employee.last_name,
-                email: employee.email,
+                ...employee,
                 status: employee.status || 'ACTIVE',
-                employment_type: employee.employment_type || 'FULL_TIME',
-                position_title: employee.position_title,
-                hire_date: employee.hire_date,
                 account: employee.account ? {
                   id: employee.account.id,
                   role: employee.account.role,

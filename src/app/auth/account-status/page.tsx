@@ -77,7 +77,7 @@ function AccountStatusContent() {
           });
           setTimeout(() => {
             handleBackToLogin();
-            window.location.href = '/login';
+            window.location.href = '/auth/login';
           }, 2000);
         }
       } else {

@@ -88,7 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setAuthToken(null);
           localStorage.removeItem('refresh_token');
           setUser(null);
-          router.push('/login');
+          router.push('/auth/login');
           setAuthError('Your session has expired or is invalid. Please log in again.');
           return null;
         }
@@ -310,7 +310,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       
       // Redirect to login page
-      router.push('/login');
+      router.push('/auth/login');
     }
   };
 

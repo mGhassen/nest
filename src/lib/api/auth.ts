@@ -263,7 +263,7 @@ export const authApi = {
       localStorage.removeItem('refresh_token');
       
       // Force a full page reload to clear any in-memory state
-      window.location.href = '/login';
+      window.location.href = '/auth/login';
     }
   },
 };

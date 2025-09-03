@@ -31,13 +31,13 @@ export async function GET(
     }
 
     // Get user profile to check if they're admin
-    const { data: userProfile, error: profileError } = await supabaseServer()
+    const { data: userProfile, error: userProfileError } = await supabaseServer()
       .from('accounts')
       .select('*')
       .eq('auth_user_id', user.id)
       .single();
 
-    if (profileError || !userProfile) {
+    if (userProfileError || !userProfile) {
       return NextResponse.json({
         success: false,
         error: 'User profile not found',
@@ -64,7 +64,9 @@ export async function GET(
           last_name,
           role,
           is_active,
-          profile_image_url
+          profile_image_url,
+          last_login,
+          created_at
         ),
         companies!employees_company_id_fkey (
           id,
@@ -99,6 +101,98 @@ export async function GET(
         error: 'Employee not found',
         details: employeeError.message,
       }, { status: 404 });
+    }
+
+    // Create authenticated supabase client for administrative data queries
+    const supabase = supabaseServer();
+    
+    // Fetch administrative data from normalized tables
+    const [
+      { data: profile, error: profileError },
+      { data: addresses, error: addressesError },
+      { data: contacts, error: contactsError },
+      { data: documents, error: documentsError },
+      { data: financialInfo, error: financialError },
+      { data: medicalInfo, error: medicalError },
+      { data: employmentDetails, error: employmentError },
+      { data: documentStatus, error: documentStatusError },
+      { data: administrativeNotes, error: notesError }
+    ] = await Promise.all([
+      // Employee profile
+      supabase
+        .from('employee_profiles')
+        .select('*')
+        .eq('employee_id', id)
+        .single(),
+      
+      // Employee addresses
+      supabase
+        .from('employee_addresses')
+        .select('*')
+        .eq('employee_id', id)
+        .order('is_primary', { ascending: false }),
+      
+      // Employee contacts
+      supabase
+        .from('employee_contacts')
+        .select('*')
+        .eq('employee_id', id)
+        .order('is_primary', { ascending: false }),
+      
+      // Employee documents
+      supabase
+        .from('employee_documents')
+        .select('*')
+        .eq('employee_id', id)
+        .order('document_type'),
+      
+      // Employee financial info
+      supabase
+        .from('employee_financial_info')
+        .select('*')
+        .eq('employee_id', id)
+        .order('is_primary', { ascending: false }),
+      
+      // Employee medical info
+      supabase
+        .from('employee_medical_info')
+        .select('*')
+        .eq('employee_id', id)
+        .single(),
+      
+      // Employee employment details
+      supabase
+        .from('employee_employment_details')
+        .select('*')
+        .eq('employee_id', id)
+        .single(),
+      
+      // Employee document status
+      supabase
+        .from('employee_document_status')
+        .select('*')
+        .eq('employee_id', id)
+        .order('status_type'),
+      
+      // Employee administrative notes
+      supabase
+        .from('employee_administrative_notes')
+        .select('*')
+        .eq('employee_id', id)
+        .order('created_at', { ascending: false })
+    ]);
+
+    // Log any errors from administrative data fetching (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      if (profileError) console.log('Profile error:', profileError);
+      if (addressesError) console.log('Addresses error:', addressesError);
+      if (contactsError) console.log('Contacts error:', contactsError);
+      if (documentsError) console.log('Documents error:', documentsError);
+      if (financialError) console.log('Financial error:', financialError);
+      if (medicalError) console.log('Medical error:', medicalError);
+      if (employmentError) console.log('Employment error:', employmentError);
+      if (documentStatusError) console.log('Document status error:', documentStatusError);
+      if (notesError) console.log('Notes error:', notesError);
     }
 
     // Fetch manager data separately if manager_id exists
@@ -143,7 +237,9 @@ export async function GET(
         last_name: employee.accounts.last_name,
         role: employee.accounts.role,
         is_active: employee.accounts.is_active,
-        profile_image_url: employee.accounts.profile_image_url
+        profile_image_url: employee.accounts.profile_image_url,
+        last_login: employee.accounts.last_login,
+        created_at: employee.accounts.created_at
       } : null,
       company: employee.companies ? {
         id: employee.companies.id,
@@ -172,7 +268,17 @@ export async function GET(
         first_name: manager.first_name,
         last_name: manager.last_name,
         email: manager.email
-      } : null
+      } : null,
+      // Include normalized administrative data
+      profile: profile || null,
+      addresses: addresses || [],
+      contacts: contacts || [],
+      documents: documents || [],
+      financial_info: financialInfo || [],
+      medical_info: medicalInfo || null,
+      employment_details: employmentDetails || null,
+      document_status: documentStatus || [],
+      administrative_notes: administrativeNotes || []
     };
 
     return NextResponse.json({
@@ -219,13 +325,13 @@ export async function PUT(
     }
 
     // Get user profile to check if they're admin
-    const { data: userProfile, error: profileError } = await supabaseServer()
+    const { data: userProfile, error: userProfileError } = await supabaseServer()
       .from('accounts')
       .select('*')
       .eq('auth_user_id', user.id)
       .single();
 
-    if (profileError || !userProfile) {
+    if (userProfileError || !userProfile) {
       return NextResponse.json({
         success: false,
         error: 'User profile not found',
@@ -303,13 +409,13 @@ export async function DELETE(
     }
 
     // Get user profile to check if they're admin
-    const { data: userProfile, error: profileError } = await supabaseServer()
+    const { data: userProfile, error: userProfileError } = await supabaseServer()
       .from('accounts')
       .select('*')
       .eq('auth_user_id', user.id)
       .single();
 
-    if (profileError || !userProfile) {
+    if (userProfileError || !userProfile) {
       return NextResponse.json({
         success: false,
         error: 'User profile not found',

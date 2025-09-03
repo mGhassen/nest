@@ -243,7 +243,7 @@ export default function RegisterPage() {
           <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/auth/login')}
               className="font-medium text-primary hover:underline"
             >
               Sign in
