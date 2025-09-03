@@ -8,103 +8,165 @@
 -- 3. Triggers automatically link employees to accounts by matching email
 -- 4. No signup flow - it's invitation-based system
 
--- 1. Create Companies (Multi-company setup with comprehensive data)
+-- 1. Create Companies (Core information only)
 INSERT INTO companies (
-    name, legal_name, description, industry, company_size, founded_year,
-    website, email, phone, country_code, currency,
-    address, city, state, country, postal_code, timezone,
-    tax_id, business_type, legal_structure,
-    brand_color, secondary_color,
-    linkedin_url, twitter_url, facebook_url,
-    status, is_verified
+    name, country_code, currency, status, is_verified
 ) VALUES 
 (
     'Guepard', 
-    'Guepard Technologies SARL',
-    'Leading technology company specializing in innovative software solutions and digital transformation services.',
-    'Technology',
-    '51-200',
-    2018,
-    'https://guepard.run',
-    'contact@guepard.run',
-    '+216 71 123 456',
     'TN', 
     'TND',
-    '123 Avenue Habib Bourguiba',
-    'Tunis',
-    'Tunis',
-    'Tunisia',
-    '1000',
-    'Africa/Tunis',
-    'TN123456789',
-    'Technology Services',
-    'SARL',
-    '#2563EB',
-    '#1E40AF',
-    'https://linkedin.com/company/guepard-tech',
-    'https://twitter.com/guepard_tech',
-    'https://facebook.com/guepard.tech',
     'ACTIVE',
     TRUE
 ),
 (
     'TechCorp', 
-    'TechCorp Solutions Inc.',
-    'Global technology corporation providing cutting-edge software solutions and enterprise services.',
-    'Technology',
-    '1001-5000',
-    2015,
-    'https://techcorp.com',
-    'info@techcorp.com',
-    '+1 555 123 4567',
     'US', 
     'USD',
-    '456 Silicon Valley Blvd',
-    'San Francisco',
-    'California',
-    'United States',
-    '94105',
-    'America/Los_Angeles',
-    'US123456789',
-    'Software Development',
-    'Corporation',
-    '#059669',
-    '#047857',
-    'https://linkedin.com/company/techcorp-solutions',
-    'https://twitter.com/techcorp_sol',
-    'https://facebook.com/techcorp.solutions',
     'ACTIVE',
     TRUE
 ),
 (
     'InnovateLab', 
+    'FR', 
+    'EUR',
+    'ACTIVE',
+    TRUE
+);
+
+-- 2. Create Company Profiles (Business information)
+INSERT INTO company_profiles (
+    company_id, legal_name, description, industry, company_size, founded_year,
+    business_type, legal_structure, tax_id
+)
+SELECT 
+    c.id, 
+    'Guepard Technologies SARL',
+    'Leading technology company specializing in innovative software solutions and digital transformation services.',
+    'Technology',
+    '51-200',
+    2018,
+    'Technology Services',
+    'SARL',
+    'TN123456789'
+FROM companies c WHERE c.name = 'Guepard'
+
+UNION ALL
+
+SELECT 
+    c.id, 
+    'TechCorp Solutions Inc.',
+    'Global technology corporation providing cutting-edge software solutions and enterprise services.',
+    'Technology',
+    '1001-5000',
+    2015,
+    'Software Development',
+    'Corporation',
+    'US123456789'
+FROM companies c WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+    c.id, 
     'InnovateLab SAS',
     'French innovation laboratory focused on research and development of next-generation technologies.',
     'Research & Development',
     '11-50',
     2020,
-    'https://innovatelab.fr',
-    'contact@innovatelab.fr',
-    '+33 1 23 45 67 89',
-    'FR', 
-    'EUR',
-    '789 Rue de la Innovation',
-    'Paris',
-    'Île-de-France',
-    'France',
-    '75001',
-    'Europe/Paris',
-    'FR12345678901',
     'Research & Development',
     'SAS',
-    '#DC2626',
-    '#B91C1C',
+    'FR12345678901'
+FROM companies c WHERE c.name = 'InnovateLab';
+
+-- 3. Create Company Addresses (Location data)
+INSERT INTO company_addresses (
+    company_id, address_type, address, city, state, country, postal_code, timezone, is_primary
+)
+SELECT 
+    c.id, 'HEADQUARTERS', '123 Avenue Habib Bourguiba', 'Tunis', 'Tunis', 'Tunisia', '1000', 'Africa/Tunis', TRUE
+FROM companies c WHERE c.name = 'Guepard'
+
+UNION ALL
+
+SELECT 
+    c.id, 'HEADQUARTERS', '456 Silicon Valley Blvd', 'San Francisco', 'California', 'United States', '94105', 'America/Los_Angeles', TRUE
+FROM companies c WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+    c.id, 'HEADQUARTERS', '789 Rue de la Innovation', 'Paris', 'Île-de-France', 'France', '75001', 'Europe/Paris', TRUE
+FROM companies c WHERE c.name = 'InnovateLab';
+
+-- 4. Create Company Contacts (Contact information)
+INSERT INTO company_contacts (
+    company_id, contact_type, website, email, phone, is_primary
+)
+SELECT 
+    c.id, 'GENERAL', 'https://guepard.run', 'contact@guepard.run', '+216 71 123 456', TRUE
+FROM companies c WHERE c.name = 'Guepard'
+
+UNION ALL
+
+SELECT 
+    c.id, 'GENERAL', 'https://techcorp.com', 'info@techcorp.com', '+1 555 123 4567', TRUE
+FROM companies c WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+    c.id, 'GENERAL', 'https://innovatelab.fr', 'contact@innovatelab.fr', '+33 1 23 45 67 89', TRUE
+FROM companies c WHERE c.name = 'InnovateLab';
+
+-- 5. Create Company Branding (Visual identity)
+INSERT INTO company_branding (
+    company_id, brand_color, secondary_color
+)
+SELECT 
+    c.id, '#2563EB', '#1E40AF'
+FROM companies c WHERE c.name = 'Guepard'
+
+UNION ALL
+
+SELECT 
+    c.id, '#059669', '#047857'
+FROM companies c WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+    c.id, '#DC2626', '#B91C1C'
+FROM companies c WHERE c.name = 'InnovateLab';
+
+-- 6. Create Company Social (Social media links)
+INSERT INTO company_social (
+    company_id, linkedin_url, twitter_url, facebook_url
+)
+SELECT 
+    c.id, 
+    'https://linkedin.com/company/guepard-tech',
+    'https://twitter.com/guepard_tech',
+    'https://facebook.com/guepard.tech'
+FROM companies c WHERE c.name = 'Guepard'
+
+UNION ALL
+
+SELECT 
+    c.id, 
+    'https://linkedin.com/company/techcorp-solutions',
+    'https://twitter.com/techcorp_sol',
+    'https://facebook.com/techcorp.solutions'
+FROM companies c WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+    c.id, 
     'https://linkedin.com/company/innovatelab-fr',
     'https://twitter.com/innovatelab_fr',
-    'https://facebook.com/innovatelab.fr',
-    'ACTIVE',
-    TRUE
-);
+    'https://facebook.com/innovatelab.fr'
+FROM companies c WHERE c.name = 'InnovateLab';
 
 -- 2. Create Locations
 INSERT INTO locations (company_id, name, country, timezone) 

@@ -3,8 +3,43 @@ import { apiFetch } from './index';
 export interface Company {
   id: string;
   name: string;
+  legal_name?: string;
+  description?: string;
+  industry?: string;
+  company_size?: string;
+  founded_year?: number;
+  website?: string;
+  email?: string;
+  phone?: string;
+  fax?: string;
+  address?: string;
+  address_line_2?: string;
+  city?: string;
+  state?: string;
   country_code: string;
+  country?: string;
+  postal_code?: string;
+  timezone?: string;
+  tax_id?: string;
+  registration_number?: string;
+  vat_number?: string;
+  business_type?: string;
+  legal_structure?: string;
   currency: string;
+  fiscal_year_start?: string;
+  fiscal_year_end?: string;
+  brand_color?: string;
+  secondary_color?: string;
+  logo_url?: string;
+  linkedin_url?: string;
+  twitter_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  status?: string;
+  is_verified?: boolean;
+  verification_date?: string;
+  created_by?: string;
+  updated_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -23,8 +58,37 @@ export interface CurrentCompany {
 
 export interface CreateCompanyData {
   name: string;
+  legal_name?: string;
+  description?: string;
+  industry: string;
+  company_size: string;
+  founded_year?: number;
+  website?: string;
+  email?: string;
+  phone?: string;
+  fax?: string;
+  address?: string;
+  address_line_2?: string;
+  city?: string;
+  state?: string;
   country_code: string;
+  postal_code?: string;
+  timezone?: string;
+  tax_id?: string;
+  registration_number?: string;
+  vat_number?: string;
+  business_type?: string;
+  legal_structure?: string;
   currency: string;
+  fiscal_year_start?: string;
+  fiscal_year_end?: string;
+  brand_color?: string;
+  secondary_color?: string;
+  logo_url?: string;
+  linkedin_url?: string;
+  twitter_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
 }
 
 // Company API service

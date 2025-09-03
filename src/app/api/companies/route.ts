@@ -74,10 +74,10 @@ export async function POST(req: NextRequest) {
     const {
       name, legal_name, description, industry, company_size, founded_year,
       website, email, phone, fax,
-      address, address_line_2, city, state, country, postal_code, timezone,
+      address, address_line_2, city, state, country_code, postal_code, timezone,
       tax_id, registration_number, vat_number, business_type, legal_structure,
       currency, fiscal_year_start, fiscal_year_end,
-      brand_color, secondary_color,
+      brand_color, secondary_color, logo_url,
       linkedin_url, twitter_url, facebook_url, instagram_url
     } = body;
 
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!country || typeof country !== 'string' || country.trim().length === 0) {
+    if (!country_code || typeof country_code !== 'string' || country_code.trim().length === 0) {
       return NextResponse.json({
         success: false,
         error: 'Country is required',
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
         address_line_2: address_line_2?.trim() || null,
         city: city?.trim() || null,
         state: state?.trim() || null,
-        country: country.trim(),
+        country_code: country_code.trim(),
         postal_code: postal_code?.trim() || null,
         timezone: timezone?.trim() || null,
         tax_id: tax_id?.trim() || null,
@@ -141,6 +141,7 @@ export async function POST(req: NextRequest) {
         fiscal_year_end: fiscal_year_end || null,
         brand_color: brand_color?.trim() || null,
         secondary_color: secondary_color?.trim() || null,
+        logo_url: logo_url?.trim() || null,
         linkedin_url: linkedin_url?.trim() || null,
         twitter_url: twitter_url?.trim() || null,
         facebook_url: facebook_url?.trim() || null,
@@ -166,7 +167,7 @@ export async function POST(req: NextRequest) {
       .insert({
         account_id: userProfile.id,
         company_id: newCompany.id,
-        role: 'SUPERUSER',
+        role: 'ADMIN',
       });
 
     if (roleError) {

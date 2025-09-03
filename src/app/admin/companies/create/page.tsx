@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateCompany } from "@/hooks/use-companies";
 import { toast } from "@/hooks/use-toast";
 
+
 // Comprehensive validation schema
 const createCompanySchema = z.object({
   // Basic Information
@@ -51,7 +52,7 @@ const createCompanySchema = z.object({
   address_line_2: z.string().max(255, "Address line 2 is too long").optional(),
   city: z.string().max(100, "City name is too long").optional(),
   state: z.string().max(100, "State name is too long").optional(),
-  country: z.string().min(1, "Country is required"),
+  country_code: z.string().min(1, "Country is required"),
   postal_code: z.string().max(20, "Postal code is too long").optional(),
   timezone: z.string().max(50, "Timezone is too long").optional(),
   
@@ -70,6 +71,7 @@ const createCompanySchema = z.object({
   // Branding
   brand_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format").optional(),
   secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format").optional(),
+  logo_url: z.string().optional(),
   
   // Social Media
   linkedin_url: z.string().url("Invalid LinkedIn URL").optional().or(z.literal("")),
@@ -94,6 +96,11 @@ const industries = [
   "Energy",
   "Government",
   "Non-Profit",
+  "Agriculture",
+  "Construction",
+  "Hospitality",
+  "Legal Services",
+  "Marketing & Advertising",
   "Other"
 ];
 
@@ -109,15 +116,21 @@ const companySizes = [
 ];
 
 const businessTypes = [
-  "Technology Services",
-  "Software Development",
-  "Consulting",
-  "Manufacturing",
-  "Retail",
-  "Healthcare",
-  "Education",
-  "Finance",
-  "Real Estate",
+  "B2B Services",
+  "B2C Services",
+  "E-commerce",
+  "SaaS (Software as a Service)",
+  "Manufacturing & Production",
+  "Distribution & Logistics",
+  "Professional Services",
+  "Creative Agency",
+  "Research & Development",
+  "Franchise",
+  "Non-Profit Organization",
+  "Government Entity",
+  "Educational Institution",
+  "Healthcare Provider",
+  "Financial Services",
   "Other"
 ];
 
@@ -140,12 +153,48 @@ const currencies = [
 ];
 
 const countries = [
-  "United States", "Canada", "United Kingdom", "Germany", "France", "Italy", "Spain",
-  "Netherlands", "Belgium", "Switzerland", "Austria", "Sweden", "Norway", "Denmark",
-  "Finland", "Poland", "Czech Republic", "Hungary", "Portugal", "Ireland", "Luxembourg",
-  "Tunisia", "Morocco", "Algeria", "Egypt", "South Africa", "Nigeria", "Kenya",
-  "Australia", "New Zealand", "Japan", "South Korea", "Singapore", "Hong Kong",
-  "India", "China", "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "Peru"
+  { name: "United States", code: "USA" },
+  { name: "Canada", code: "CAN" },
+  { name: "United Kingdom", code: "GBR" },
+  { name: "Germany", code: "DEU" },
+  { name: "France", code: "FRA" },
+  { name: "Italy", code: "ITA" },
+  { name: "Spain", code: "ESP" },
+  { name: "Netherlands", code: "NLD" },
+  { name: "Belgium", code: "BEL" },
+  { name: "Switzerland", code: "CHE" },
+  { name: "Austria", code: "AUT" },
+  { name: "Sweden", code: "SWE" },
+  { name: "Norway", code: "NOR" },
+  { name: "Denmark", code: "DNK" },
+  { name: "Finland", code: "FIN" },
+  { name: "Poland", code: "POL" },
+  { name: "Czech Republic", code: "CZE" },
+  { name: "Hungary", code: "HUN" },
+  { name: "Portugal", code: "PRT" },
+  { name: "Ireland", code: "IRL" },
+  { name: "Luxembourg", code: "LUX" },
+  { name: "Tunisia", code: "TUN" },
+  { name: "Morocco", code: "MAR" },
+  { name: "Algeria", code: "DZA" },
+  { name: "Egypt", code: "EGY" },
+  { name: "South Africa", code: "ZAF" },
+  { name: "Nigeria", code: "NGA" },
+  { name: "Kenya", code: "KEN" },
+  { name: "Australia", code: "AUS" },
+  { name: "New Zealand", code: "NZL" },
+  { name: "Japan", code: "JPN" },
+  { name: "South Korea", code: "KOR" },
+  { name: "Singapore", code: "SGP" },
+  { name: "Hong Kong", code: "HKG" },
+  { name: "India", code: "IND" },
+  { name: "China", code: "CHN" },
+  { name: "Brazil", code: "BRA" },
+  { name: "Mexico", code: "MEX" },
+  { name: "Argentina", code: "ARG" },
+  { name: "Chile", code: "CHL" },
+  { name: "Colombia", code: "COL" },
+  { name: "Peru", code: "PER" }
 ];
 
 export default function CreateCompanyPage() {
@@ -158,9 +207,10 @@ export default function CreateCompanyPage() {
     resolver: zodResolver(createCompanySchema),
     defaultValues: {
       currency: "USD",
-      country: "United States",
+      country_code: "USA",
       brand_color: "#D97706",
       secondary_color: "#B45309",
+      logo_url: "",
     },
   });
 
@@ -175,6 +225,7 @@ export default function CreateCompanyPage() {
         twitter_url: data.twitter_url || undefined,
         facebook_url: data.facebook_url || undefined,
         instagram_url: data.instagram_url || undefined,
+        logo_url: data.logo_url || undefined,
         fiscal_year_start: data.fiscal_year_start ? new Date(data.fiscal_year_start).toISOString() : undefined,
         fiscal_year_end: data.fiscal_year_end ? new Date(data.fiscal_year_end).toISOString() : undefined,
       };
@@ -306,7 +357,7 @@ export default function CreateCompanyPage() {
                 <CardDescription>
                   {currentStep === 1 && "Provide basic information about your company"}
                   {currentStep === 2 && "Add contact details and location information"}
-                  {currentStep === 3 && "Enter business and legal information"}
+                  {currentStep === 3 && "Enter business details, industry, and legal information"}
                   {currentStep === 4 && "Customize branding and social media presence"}
                   {currentStep === 5 && "Review all information before creating the company"}
                 </CardDescription>
@@ -348,46 +399,14 @@ export default function CreateCompanyPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="industry">Industry *</Label>
-                          <Select onValueChange={(value) => form.setValue("industry", value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select industry" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {industries.map((industry) => (
-                                <SelectItem key={industry} value={industry}>
-                                  {industry}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="company_size">Company Size *</Label>
-                          <Select onValueChange={(value) => form.setValue("company_size", value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {companySizes.map((size) => (
-                                <SelectItem key={size} value={size}>
-                                  {size} employees
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="founded_year">Founded Year</Label>
-                          <Input
-                            id="founded_year"
-                            type="number"
-                            placeholder="2020"
-                            {...form.register("founded_year", { valueAsNumber: true })}
-                          />
-                        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="founded_year">Founded Year</Label>
+                        <Input
+                          id="founded_year"
+                          type="number"
+                          placeholder="2020"
+                          {...form.register("founded_year", { valueAsNumber: true })}
+                        />
                       </div>
                     </div>
                   )}
@@ -487,15 +506,15 @@ export default function CreateCompanyPage() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="country">Country *</Label>
-                            <Select onValueChange={(value) => form.setValue("country", value)}>
+                            <Label htmlFor="country_code">Country *</Label>
+                            <Select onValueChange={(value) => form.setValue("country_code", value)}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select country" />
                               </SelectTrigger>
                               <SelectContent>
                                 {countries.map((country) => (
-                                  <SelectItem key={country} value={country}>
-                                    {country}
+                                  <SelectItem key={country.code} value={country.code}>
+                                    {country.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -525,6 +544,45 @@ export default function CreateCompanyPage() {
                   {/* Step 3: Business Details */}
                   {currentStep === 3 && (
                     <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="industry">Industry *</Label>
+                          <Select onValueChange={(value) => form.setValue("industry", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select industry" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {industries.map((industry) => (
+                                <SelectItem key={industry} value={industry}>
+                                  {industry}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {form.formState.errors.industry && (
+                            <p className="text-sm text-red-600">{form.formState.errors.industry.message}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company_size">Company Size *</Label>
+                          <Select onValueChange={(value) => form.setValue("company_size", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {companySizes.map((size) => (
+                                <SelectItem key={size} value={size}>
+                                  {size} employees
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {form.formState.errors.company_size && (
+                            <p className="text-sm text-red-600">{form.formState.errors.company_size.message}</p>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="business_type">Business Type</Label>
@@ -630,6 +688,21 @@ export default function CreateCompanyPage() {
                   {/* Step 4: Branding & Social */}
                   {currentStep === 4 && (
                     <div className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                          <Palette className="h-5 w-5" />
+                          Company Logo
+                        </h3>
+                        <div className="space-y-2">
+                          <Label htmlFor="logo_url">Logo URL (Optional)</Label>
+                          <Input
+                            id="logo_url"
+                            placeholder="https://example.com/logo.png"
+                            {...form.register("logo_url")}
+                          />
+                        </div>
+                      </div>
+
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold flex items-center gap-2">
                           <Palette className="h-5 w-5" />
@@ -752,7 +825,7 @@ export default function CreateCompanyPage() {
                             <div><strong>Website:</strong> {form.watch("website") || "Not specified"}</div>
                             <div><strong>Email:</strong> {form.watch("email") || "Not specified"}</div>
                             <div><strong>Phone:</strong> {form.watch("phone") || "Not specified"}</div>
-                            <div><strong>Country:</strong> {form.watch("country")}</div>
+                            <div><strong>Country:</strong> {countries.find(c => c.code === form.watch("country_code"))?.name || form.watch("country_code")}</div>
                             <div><strong>City:</strong> {form.watch("city") || "Not specified"}</div>
                           </CardContent>
                         </Card>
