@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
+import { isCurrentUserAdmin, getEmployeeRoleInCompany } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,15 +39,30 @@ export async function GET(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',
       }, { status: 403 });
     }
 
-    // Fetch all employees
+    // Get user's current company ID
+    const { data: currentCompany, error: currentCompanyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
+    
+    if (currentCompanyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No current company found. Please select a company first.',
+      }, { status: 400 });
+    }
+    
+    const currentCompanyId = currentCompany[0].company_id;
+    console.log('Fetching employees for company:', currentCompanyId);
+
+    // Fetch employees ONLY from the current company
     const { data: employees, error: employeesError } = await supabaseServer()
       .from('employees')
       .select(`
@@ -56,10 +72,10 @@ export async function GET(req: NextRequest) {
           email,
           first_name,
           last_name,
-          role,
           is_active
         )
       `)
+      .eq('company_id', currentCompanyId)  // SECURITY: Only show employees from current company
       .order('created_at', { ascending: false });
 
     if (employeesError) {
@@ -72,34 +88,43 @@ export async function GET(req: NextRequest) {
     }
 
     // Transform the data to match the expected format
-    const transformedEmployees = employees.map(employee => ({
-      id: employee.id,
-      email: employee.email,
-      first_name: employee.first_name,
-      last_name: employee.last_name,
-      position_title: employee.position_title,
-      employment_type: employee.employment_type,
-      status: employee.status || 'ACTIVE',
-      hire_date: employee.hire_date,
-      base_salary: employee.base_salary,
-      salary_period: employee.salary_period,
-      company_id: employee.company_id,
-      location_id: employee.location_id,
-      manager_id: employee.manager_id,
-      cost_center_id: employee.cost_center_id,
-      work_schedule_id: employee.work_schedule_id,
-      account_id: employee.account_id,
-      created_at: employee.created_at,
-      updated_at: employee.updated_at,
-      // Include account information if available
-      account: employee.accounts ? {
-        id: employee.accounts.id,
-        email: employee.accounts.email,
-        first_name: employee.accounts.first_name,
-        last_name: employee.accounts.last_name,
-        role: employee.accounts.role,
-        is_active: employee.accounts.is_active
-      } : null
+    const transformedEmployees = await Promise.all(employees.map(async (employee) => {
+      // Get the employee's role in their company
+      let employeeRole = 'EMPLOYEE';
+      if (employee.accounts) {
+        const role = await getEmployeeRoleInCompany(employee.accounts.id, employee.company_id);
+        employeeRole = role || 'EMPLOYEE';
+      }
+
+      return {
+        id: employee.id,
+        email: employee.email,
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        position_title: employee.position_title,
+        employment_type: employee.employment_type,
+        status: employee.status || 'ACTIVE',
+        hire_date: employee.hire_date,
+        base_salary: employee.base_salary,
+        salary_period: employee.salary_period,
+        company_id: employee.company_id,
+        location_id: employee.location_id,
+        manager_id: employee.manager_id,
+        cost_center_id: employee.cost_center_id,
+        work_schedule_id: employee.work_schedule_id,
+        account_id: employee.account_id,
+        created_at: employee.created_at,
+        updated_at: employee.updated_at,
+        // Include account information if available
+        account: employee.accounts ? {
+          id: employee.accounts.id,
+          email: employee.accounts.email,
+          first_name: employee.accounts.first_name,
+          last_name: employee.accounts.last_name,
+          role: employeeRole,
+          is_active: employee.accounts.is_active
+        } : null
+      };
     }));
 
     return NextResponse.json({
@@ -158,50 +183,28 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',
       }, { status: 403 });
     }
 
-    // Get the user's employee record to find their company_id
-    const { data: userEmployee, error: employeeError } = await supabaseServer()
-      .from('employees')
-      .select('company_id')
-      .eq('account_id', userProfile.id)
-      .single();
-
-    console.log('User employee lookup result:', { userEmployee, employeeError });
-
-    let companyId;
+    // Get user's current company ID (SECURITY: Use current company, not any company)
+    const { data: currentCompany, error: currentCompanyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
     
-    if (employeeError || !userEmployee) {
-      console.log('Employee record not found for user, trying to get company from first available company:', employeeError);
-      
-      // Fallback: Get the first company for admin users
-      const { data: firstCompany, error: companyError } = await supabaseServer()
-        .from('companies')
-        .select('id')
-        .limit(1)
-        .single();
-      
-      if (companyError || !firstCompany) {
-        console.log('No company found:', companyError);
-        return NextResponse.json({
-          success: false,
-          error: 'No company found. Please contact administrator.',
-          details: companyError?.message || 'No company available'
-        }, { status: 404 });
-      }
-      
-      companyId = firstCompany.id;
-      console.log('Using fallback company ID:', companyId);
-    } else {
-      companyId = userEmployee.company_id;
-      console.log('Using user company ID:', companyId);
+    if (currentCompanyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No current company found. Please select a company first.',
+      }, { status: 400 });
     }
+    
+    const companyId = currentCompany[0].company_id;
+    console.log('Creating employee in company:', companyId);
 
     const body = await req.json();
     console.log('Received employee creation request:', JSON.stringify(body, null, 2));

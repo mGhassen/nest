@@ -54,7 +54,20 @@ export async function GET(
       }, { status: 403 });
     }
 
-    // Fetch the specific employee with related data
+    // Get user's current company ID first (SECURITY: Check company access)
+    const { data: currentCompany, error: currentCompanyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
+    
+    if (currentCompanyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No current company found. Please select a company first.',
+      }, { status: 400 });
+    }
+    
+    const currentCompanyId = currentCompany[0].company_id;
+
+    // Fetch the specific employee with related data (SECURITY: Only from current company)
     const { data: employee, error: employeeError } = await supabaseServer()
       .from('employees')
       .select(`
@@ -64,7 +77,6 @@ export async function GET(
           email,
           first_name,
           last_name,
-          role,
           is_active,
           profile_image_url,
           last_login,
@@ -94,6 +106,7 @@ export async function GET(
         )
       `)
       .eq('id', id)
+      .eq('company_id', currentCompanyId)  // SECURITY: Only allow access to employees in current company
       .single();
 
     if (employeeError) {
@@ -349,13 +362,27 @@ export async function PUT(
       }, { status: 403 });
     }
 
+    // Get user's current company ID (SECURITY: Ensure employee is in current company)
+    const { data: currentCompany, error: currentCompanyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
+    
+    if (currentCompanyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No current company found. Please select a company first.',
+      }, { status: 400 });
+    }
+    
+    const currentCompanyId = currentCompany[0].company_id;
+
     const body = await req.json();
     
-    // Update employee
+    // Update employee (SECURITY: Only allow updates to employees in current company)
     const { data: updatedEmployee, error: updateError } = await supabaseServer()
       .from('employees')
       .update(body)
       .eq('id', id)
+      .eq('company_id', currentCompanyId)  // SECURITY: Only update employees in current company
       .select()
       .single();
 
@@ -434,11 +461,25 @@ export async function DELETE(
       }, { status: 403 });
     }
 
-    // Delete employee
+    // Get user's current company ID (SECURITY: Ensure employee is in current company)
+    const { data: currentCompany, error: currentCompanyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
+    
+    if (currentCompanyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No current company found. Please select a company first.',
+      }, { status: 400 });
+    }
+    
+    const currentCompanyId = currentCompany[0].company_id;
+
+    // Delete employee (SECURITY: Only allow deletion of employees in current company)
     const { error: deleteError } = await supabaseServer()
       .from('employees')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('company_id', currentCompanyId);  // SECURITY: Only delete employees in current company
 
     if (deleteError) {
       console.error('Error deleting employee:', deleteError);

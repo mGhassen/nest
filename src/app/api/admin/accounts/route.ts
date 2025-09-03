@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer, createSupabaseAdminClient } from '@/lib/supabase';
+import { isCurrentUserAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,8 +39,9 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',
@@ -132,8 +134,9 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',
