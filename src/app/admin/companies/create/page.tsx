@@ -159,8 +159,8 @@ export default function CreateCompanyPage() {
     defaultValues: {
       currency: "USD",
       country: "United States",
-      brand_color: "#2563EB",
-      secondary_color: "#1E40AF",
+      brand_color: "#D97706",
+      secondary_color: "#B45309",
     },
   });
 
@@ -225,9 +225,9 @@ export default function CreateCompanyPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted">
       {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur-sm">
+      <div className="border-b bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
             <Button
@@ -240,7 +240,7 @@ export default function CreateCompanyPage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Create New Company
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -266,10 +266,10 @@ export default function CreateCompanyPage() {
                     <div key={index} className="flex items-center">
                       <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
                         currentStep > index + 1
-                          ? "bg-green-100 text-green-700"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
                           : currentStep === index + 1
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-500"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground"
                       }`}>
                         {currentStep > index + 1 ? (
                           <CheckCircle className="h-4 w-4" />
@@ -280,7 +280,7 @@ export default function CreateCompanyPage() {
                       </div>
                       {index < totalSteps - 1 && (
                         <div className={`w-8 h-0.5 mx-2 ${
-                          currentStep > index + 1 ? "bg-green-300" : "bg-gray-200"
+                          currentStep > index + 1 ? "bg-green-300 dark:bg-green-600" : "bg-border"
                         }`} />
                       )}
                     </div>
@@ -646,7 +646,7 @@ export default function CreateCompanyPage() {
                                 {...form.register("brand_color")}
                               />
                               <Input
-                                placeholder="#2563EB"
+                                placeholder="#D97706"
                                 {...form.register("brand_color")}
                               />
                             </div>
@@ -661,7 +661,7 @@ export default function CreateCompanyPage() {
                                 {...form.register("secondary_color")}
                               />
                               <Input
-                                placeholder="#1E40AF"
+                                placeholder="#B45309"
                                 {...form.register("secondary_color")}
                               />
                             </div>
@@ -720,7 +720,7 @@ export default function CreateCompanyPage() {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                          className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4"
+                          className="w-20 h-20 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-4"
                         >
                           <Sparkles className="h-10 w-10 text-white" />
                         </motion.div>
@@ -779,7 +779,7 @@ export default function CreateCompanyPage() {
                       <Button
                         type="submit"
                         disabled={createCompany.isPending}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                        className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                       >
                         {createCompany.isPending ? (
                           <>
