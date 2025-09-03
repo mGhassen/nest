@@ -5,6 +5,7 @@ import {
   Bell,
   LogOut,
   Sparkles,
+  Crown,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { getInitials } from "@/lib/auth"
@@ -44,6 +45,7 @@ export function NavUser({
     name: string
     email: string
     avatar: string
+    role?: string
   }
 }) {
   const { isMobile } = useSidebar()
@@ -70,12 +72,19 @@ export function NavUser({
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     tooltip={user.name}
                   >
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                        {getInitials(user.name.split(' ')[0] || "A", user.name.split(' ')[1] || "")}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-8 w-8 rounded-lg">
+                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                          {getInitials(user.name.split(' ')[0] || "A", user.name.split(' ')[1] || "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      {user.role === 'SUPERUSER' && (
+                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
+                          <Crown className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">{user.name}</span>
                       <span className="truncate text-xs">{user.email}</span>
@@ -97,12 +106,19 @@ export function NavUser({
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                    {getInitials(user.name.split(' ')[0] || "A", user.name.split(' ')[1] || "")}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                      {getInitials(user.name.split(' ')[0] || "A", user.name.split(' ')[1] || "")}
+                    </AvatarFallback>
+                  </Avatar>
+                  {user.role === 'SUPERUSER' && (
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
+                      <Crown className="h-2.5 w-2.5 text-white" />
+                    </div>
+                  )}
+                </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
                   <span className="truncate text-xs">{user.email}</span>

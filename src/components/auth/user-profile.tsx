@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/hooks/use-auth'
+import { Crown } from 'lucide-react'
 
 export function UserProfile() {
   const { user, logout } = useAuth()
@@ -37,6 +38,11 @@ export function UserProfile() {
             <AvatarImage src={user.profile_image_url} alt={user.email || ''} />
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>
+          {user.role === 'SUPERUSER' && (
+            <div className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
+              <Crown className="h-2.5 w-2.5 text-white" />
+            </div>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>

@@ -133,6 +133,21 @@ export function useSwitchCompany() {
 }
 
 /**
+ * Get detailed company information
+ */
+export function useCompanyDetails(companyId: string) {
+  return useQuery({
+    queryKey: ['company-details', companyId],
+    queryFn: async (): Promise<any> => {
+      const data = await apiFetch(`/api/companies/${companyId}`);
+      return data.company;
+    },
+    enabled: !!companyId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
  * Create a new company (superuser only)
  */
 export function useCreateCompany() {

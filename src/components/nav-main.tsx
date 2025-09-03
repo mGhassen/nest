@@ -3,6 +3,7 @@
 import { type LucideIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 
 import {
   Collapsible,
@@ -40,10 +41,12 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      requireSuperuser?: boolean
     }[]
   }[]
 }) {
   const pathname = usePathname()
+  const { user } = useAuth()
   
   return (
     <SidebarGroup>
@@ -80,6 +83,11 @@ export function NavMain({
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => {
+                          // Filter out superuser-only items if user is not superuser
+                          if (subItem.requireSuperuser && user?.role !== 'SUPERUSER') {
+                            return null
+                          }
+                          
                           const isSubItemActive = pathname === subItem.url
                           return (
                             <SidebarMenuSubItem key={subItem.title}>

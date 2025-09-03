@@ -42,6 +42,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       name: user ? `${user.firstName} ${user.lastName}` : "Admin",
       email: user?.email || "admin@example.com",
       avatar: "",
+      role: user?.role,
     },
     navMain: [
       {
@@ -102,22 +103,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       },
-      {
-        title: "Settings",
-        url: "/admin/settings",
-        icon: Settings,
-        isActive: pathname.startsWith("/admin/settings"),
-        items: [
-          {
-            title: "General",
-            url: "/admin/settings",
-          },
-          {
-            title: "Account Management",
-            url: "/admin/settings/accounts",
-          },
-        ],
-      },
+              {
+          title: "Settings",
+          url: "/admin/settings",
+          icon: Settings,
+          isActive: pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/companies"),
+          items: [
+            {
+              title: "General",
+              url: "/admin/settings",
+            },
+            {
+              title: "Companies",
+              url: "/admin/companies",
+              requireSuperuser: true,
+            },
+            {
+              title: "Account Management",
+              url: "/admin/settings/accounts",
+              requireSuperuser: true,
+            },
+          ],
+        },
     ],
     navSecondary: [
       {

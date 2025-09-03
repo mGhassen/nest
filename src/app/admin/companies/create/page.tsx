@@ -230,14 +230,15 @@ export default function CreateCompanyPage() {
         fiscal_year_end: data.fiscal_year_end ? new Date(data.fiscal_year_end).toISOString() : undefined,
       };
 
-      await createCompany.mutateAsync(cleanedData);
+      const newCompany = await createCompany.mutateAsync(cleanedData);
       
       toast({
         title: "Company created successfully! 🎉",
-        description: `${data.name} has been created and you've been assigned as a superuser.`,
+        description: `${data.name} has been created and you've been assigned as admin.`,
       });
       
-      router.push("/admin/companies");
+      // Redirect to the new company's detail page
+      router.push(`/admin/companies/${newCompany.id}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -297,6 +298,18 @@ export default function CreateCompanyPage() {
               <p className="text-muted-foreground mt-1">
                 Set up a new company with comprehensive information
               </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-sm text-muted-foreground">Settings</span>
+                <span className="text-muted-foreground">›</span>
+                <button 
+                  onClick={() => router.push('/admin/companies')}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Companies
+                </button>
+                <span className="text-muted-foreground">›</span>
+                <span className="text-sm font-medium text-foreground">Create New</span>
+              </div>
             </div>
           </div>
         </div>
