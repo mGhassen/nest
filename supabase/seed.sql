@@ -100,6 +100,130 @@ UPDATE employees
 SET manager_id = (SELECT id FROM employees WHERE email = 'manager@guepard.run')
 WHERE email = 'employee@guepard.run';
 
+-- 6.1. Create Employee Profiles (Personal Information)
+INSERT INTO employee_profiles (employee_id, date_of_birth, gender, nationality, marital_status, personal_phone, blood_type)
+SELECT id, '1985-03-15'::date, 'Male', 'Tunisian', 'Married', '+216 98 123 456', 'O+' FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, '1990-07-22'::date, 'Female', 'Tunisian', 'Single', '+216 98 654 321', 'A+' FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, '1988-11-10'::date, 'Male', 'Tunisian', 'Married', '+216 98 112 233', 'B+' FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, '1995-05-18'::date, 'Female', 'French', 'Single', '+216 98 321 654', 'AB+' FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.2. Create Employee Addresses
+INSERT INTO employee_addresses (employee_id, address_type, address, city, state, country, postal_code, is_primary)
+SELECT id, 'PERSONAL', '123 Avenue Habib Bourguiba, Tunis 1000', 'Tunis', 'Tunis', 'Tunisia', '1000', true FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'PERSONAL', '456 Rue de la République, Tunis 1000', 'Tunis', 'Tunis', 'Tunisia', '1000', true FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'PERSONAL', '789 Avenue de France, Tunis 1000', 'Tunis', 'Tunis', 'Tunisia', '1000', true FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'PERSONAL', '321 Rue de la Paix, Sfax 3000', 'Sfax', 'Sfax', 'Tunisia', '3000', true FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.3. Create Employee Contacts (Emergency Contacts)
+INSERT INTO employee_contacts (employee_id, contact_type, name, phone, relationship, is_primary)
+SELECT id, 'EMERGENCY', 'Aicha Ben Ali', '+216 98 123 457', 'Spouse', true FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'EMERGENCY', 'Mohamed Trabelsi', '+216 98 654 322', 'Father', true FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'EMERGENCY', 'Leila Karray', '+216 98 112 234', 'Spouse', true FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'EMERGENCY', 'Pierre Mansouri', '+33 1 23 45 67 89', 'Father', true FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.4. Create Employee Documents
+INSERT INTO employee_documents (employee_id, document_type, document_number, issuing_authority, expiry_date, is_verified)
+-- Ahmed's documents
+SELECT id, 'NATIONAL_ID', '12345678', 'Tunisian Government', NULL, true FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'PASSPORT', 'TN123456789', 'Tunisian Government', '2030-03-15'::date, true FROM employees WHERE email = 'admin@guepard.run'
+-- Fatma's documents
+UNION ALL
+SELECT id, 'NATIONAL_ID', '87654321', 'Tunisian Government', NULL, true FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'PASSPORT', 'TN987654321', 'Tunisian Government', '2029-07-22'::date, true FROM employees WHERE email = 'hr@guepard.run'
+-- Mohamed's documents
+UNION ALL
+SELECT id, 'NATIONAL_ID', '11223344', 'Tunisian Government', NULL, true FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'PASSPORT', 'TN112233445', 'Tunisian Government', '2028-11-10'::date, true FROM employees WHERE email = 'manager@guepard.run'
+-- Sara's documents (Foreign employee)
+UNION ALL
+SELECT id, 'PASSPORT', 'FR123456789', 'French Government', '2027-05-18'::date, true FROM employees WHERE email = 'employee@guepard.run'
+UNION ALL
+SELECT id, 'WORK_PERMIT', 'WP2024001', 'Tunisian Ministry of Labor', '2025-04-01'::date, false FROM employees WHERE email = 'employee@guepard.run'
+UNION ALL
+SELECT id, 'VISA', 'V123456789', 'Tunisian Embassy', '2025-04-01'::date, false FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.5. Create Employee Financial Info
+INSERT INTO employee_financial_info (employee_id, info_type, bank_name, account_number, routing_number, tax_id, social_security_number, tax_exemptions, is_primary)
+SELECT id, 'BANK_ACCOUNT', 'Banque de Tunisie', '1234567890123456', '123456789', 'TAX123456789', '123456789012', 2, true FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'BANK_ACCOUNT', 'Banque Internationale Arabe de Tunisie', '9876543210987654', '987654321', 'TAX987654321', '987654321098', 1, true FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'BANK_ACCOUNT', 'Attijari Bank', '1122334455667788', '112233445', 'TAX112233445', '112233445566', 2, true FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'BANK_ACCOUNT', 'Société Générale', '3216549876543210', '321654987', 'TAX321654987', NULL, 1, true FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.6. Create Employee Medical Info
+INSERT INTO employee_medical_info (employee_id, insurance_provider, insurance_number, policy_number)
+SELECT id, 'CNAM', 'MED123456789', 'POL123456789' FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'CNAM', 'MED987654321', 'POL987654321' FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'CNAM', 'MED112233445', 'POL112233445' FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'AXA', 'MED321654987', 'POL321654987' FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.7. Create Employee Employment Details
+INSERT INTO employee_employment_details (employee_id, employee_number, department, job_level, reporting_manager, employment_contract_type, probation_period_months, notice_period_days)
+SELECT id, 'EMP001', 'Executive', 'C-Level', 'Board of Directors', 'Permanent', 0, 90 FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'EMP002', 'Human Resources', 'Manager', 'Ahmed Ben Ali', 'Permanent', 0, 60 FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'EMP003', 'Engineering', 'Manager', 'Ahmed Ben Ali', 'Permanent', 0, 60 FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'EMP004', 'Engineering', 'Senior', 'Mohamed Karray', 'Fixed Term', 3, 30 FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.8. Create Employee Document Status
+INSERT INTO employee_document_status (employee_id, status_type, is_complete, completed_at, next_review_date)
+-- Ahmed's status
+SELECT id, 'DOCUMENTS_COMPLETE', true, '2024-01-15'::timestamp, '2025-01-15'::date FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'BACKGROUND_CHECK', true, '2024-01-15'::timestamp, '2025-01-15'::date FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'MEDICAL_CHECK', true, '2024-01-15'::timestamp, '2025-01-15'::date FROM employees WHERE email = 'admin@guepard.run'
+-- Fatma's status
+UNION ALL
+SELECT id, 'DOCUMENTS_COMPLETE', true, '2024-02-01'::timestamp, '2025-02-01'::date FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'BACKGROUND_CHECK', true, '2024-02-01'::timestamp, '2025-02-01'::date FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'MEDICAL_CHECK', true, '2024-02-01'::timestamp, '2025-02-01'::date FROM employees WHERE email = 'hr@guepard.run'
+-- Mohamed's status
+UNION ALL
+SELECT id, 'DOCUMENTS_COMPLETE', true, '2024-03-01'::timestamp, '2025-03-01'::date FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'BACKGROUND_CHECK', true, '2024-03-01'::timestamp, '2025-03-01'::date FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'MEDICAL_CHECK', true, '2024-03-01'::timestamp, '2025-03-01'::date FROM employees WHERE email = 'manager@guepard.run'
+-- Sara's status (Foreign employee - pending)
+UNION ALL
+SELECT id, 'DOCUMENTS_COMPLETE', false, NULL, '2024-10-01'::date FROM employees WHERE email = 'employee@guepard.run'
+UNION ALL
+SELECT id, 'BACKGROUND_CHECK', false, NULL, '2024-10-01'::date FROM employees WHERE email = 'employee@guepard.run'
+UNION ALL
+SELECT id, 'MEDICAL_CHECK', false, NULL, '2024-10-01'::date FROM employees WHERE email = 'employee@guepard.run';
+
+-- 6.9. Create Employee Administrative Notes
+INSERT INTO employee_administrative_notes (employee_id, note_type, title, content)
+SELECT id, 'GENERAL', 'CEO Profile', 'CEO and founder of the company. All documents verified and up to date.' FROM employees WHERE email = 'admin@guepard.run'
+UNION ALL
+SELECT id, 'GENERAL', 'HR Manager Profile', 'HR Manager responsible for all administrative processes. Experienced in employee management.' FROM employees WHERE email = 'hr@guepard.run'
+UNION ALL
+SELECT id, 'GENERAL', 'Engineering Manager Profile', 'Engineering Manager with strong technical background. Leads the development team.' FROM employees WHERE email = 'manager@guepard.run'
+UNION ALL
+SELECT id, 'GENERAL', 'Foreign Employee Status', 'French national working in Tunisia. Work permit and visa documents pending renewal. Requires attention for document compliance.' FROM employees WHERE email = 'employee@guepard.run';
+
 -- 7. Create Leave Policies
 INSERT INTO leave_policies (company_id, code, name, accrual_rule, unit, carry_over_max)
 SELECT 

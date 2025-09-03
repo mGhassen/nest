@@ -18,6 +18,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { 
+  MoreVertical, 
+  Edit, 
+  UserCheck, 
+  UserX, 
+  Archive, 
+  Trash2, 
+  Ban, 
+  Unlock, 
+  Lock, 
+  Key, 
+  RefreshCw, 
+  Shield, 
+  Activity, 
+  Settings,
+  AlertTriangle,
+  CheckCircle,
+  Clock
+} from "lucide-react"
 import EmployeeHeader from "@/components/employees/employee-header"
 import EmployeeOverview from "@/components/employees/employee-overview"
 import EmployeeAdministration from "@/components/employees/employee-administration"
@@ -340,6 +361,124 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           onViewProfile={handleViewProfile}
         />
 
+        {/* Employee Status & Actions Bar */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center space-x-4">
+            {/* Employee Status */}
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                {employee.status === 'ACTIVE' ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : employee.status === 'INACTIVE' ? (
+                  <Clock className="h-4 w-4 text-amber-600" />
+                ) : employee.status === 'TERMINATED' ? (
+                  <UserX className="h-4 w-4 text-red-600" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                )}
+                <span className="text-sm font-medium">Status:</span>
+                <Badge 
+                  variant={employee.status === 'ACTIVE' ? 'default' : 'secondary'}
+                  className={
+                    employee.status === 'ACTIVE' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                    employee.status === 'INACTIVE' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' :
+                    employee.status === 'TERMINATED' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                  }
+                >
+                  {employee.status?.replace('_', ' ') || 'Unknown'}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Account Status */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Account:</span>
+              {employee.account ? (
+                <div className="flex items-center space-x-1">
+                  {employee.account.is_active ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  )}
+                  <Badge variant={employee.account.is_active ? 'default' : 'secondary'}>
+                    {employee.account.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {employee.account.role}
+                  </Badge>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1">
+                  <UserX className="h-4 w-4 text-muted-foreground" />
+                  <Badge variant="outline">No Account</Badge>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreVertical className="h-4 w-4 mr-2" />
+                Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {/* Employee Management */}
+              <DropdownMenuItem onClick={handleEditEmployee}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Employee Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleViewProfile}>
+                <Activity className="h-4 w-4 mr-2" />
+                View Activity Log
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {/* Account Management */}
+              <DropdownMenuItem onClick={handlePasswordReset}>
+                <Key className="h-4 w-4 mr-2" />
+                Reset Password
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleResendInvitation}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Resend Invitation
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleChangeRole}>
+                <Shield className="h-4 w-4 mr-2" />
+                Change Role
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {/* Status Management */}
+              <DropdownMenuItem onClick={handleSuspendAccount}>
+                <Ban className="h-4 w-4 mr-2" />
+                Suspend Account
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleArchiveEmployee}>
+                <Archive className="h-4 w-4 mr-2" />
+                Archive Employee
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {/* Dangerous Actions */}
+              <DropdownMenuItem onClick={handleUnlinkAccount} className="text-amber-600">
+                <UserX className="h-4 w-4 mr-2" />
+                Unlink Account
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDeleteAccount} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Account
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList>
@@ -386,12 +525,36 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           <TabsContent value="administration" className="space-y-4">
             <EmployeeAdministration 
               employeeId={transformedEmployee.id}
+              employee={{
+                id: employee.id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                email: employee.email,
+                status: employee.status || 'ACTIVE',
+                employment_type: employee.employment_type || 'FULL_TIME',
+                position_title: employee.position_title,
+                hire_date: employee.hire_date,
+                account: employee.account ? {
+                  id: employee.account.id,
+                  role: employee.account.role,
+                  is_active: employee.account.is_active || false,
+                  last_login: employee.account.last_login,
+                  created_at: employee.account.created_at || undefined
+                } : null
+              }}
               onPasswordReset={handlePasswordReset}
+              onSetPassword={() => {/* TODO: Implement set password */}}
               onResendInvitation={handleResendInvitation}
               onChangeRole={handleChangeRole}
+              onToggleAccountStatus={() => {/* TODO: Implement toggle account status */}}
               onSuspendAccount={handleSuspendAccount}
               onArchiveEmployee={handleArchiveEmployee}
               onDeleteAccount={handleDeleteAccount}
+              onEditEmployeeDetails={handleEditEmployee}
+              onViewActivityLog={handleViewProfile}
+              onManagePermissions={() => {/* TODO: Implement manage permissions */}}
+              onTransferEmployee={() => {/* TODO: Implement transfer employee */}}
+              onGenerateReport={() => {/* TODO: Implement generate report */}}
             />
           </TabsContent>
 

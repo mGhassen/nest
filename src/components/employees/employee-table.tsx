@@ -21,10 +21,10 @@ import { Eye, Edit, Trash2, MoreVertical, Key, Mail, Archive, Ban, ExternalLink,
 import Link from "next/link";
 import type { Employee } from "@/types/schema";
 import type { EmployeeWithAccount } from "@/lib/api";
-import { usePeopleDelete, usePeopleUpdate, usePeoplePasswordManagement } from "@/hooks/use-people";
+import { usePeopleDelete, usePeopleUpdate } from "@/hooks/use-people";
 import { useToast } from "@/hooks/use-toast";
 import SendInvitationDialog from "./send-invitation-dialog";
-import PasswordManagementDialog from "./password-management-dialog";
+
 
 interface EmployeeTableProps {
   employees: EmployeeWithAccount[];
@@ -76,16 +76,12 @@ export default function EmployeeTable({
   const { toast } = useToast();
   const deleteEmployee = usePeopleDelete();
   const updateEmployee = usePeopleUpdate();
-  const passwordManagement = usePeoplePasswordManagement();
   const [invitationDialog, setInvitationDialog] = useState<{
     open: boolean;
     employee: Employee | null;
   }>({ open: false, employee: null });
   
-  const [passwordDialog, setPasswordDialog] = useState<{
-    open: boolean;
-    employee: Employee | null;
-  }>({ open: false, employee: null });
+
   
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
@@ -126,30 +122,19 @@ export default function EmployeeTable({
   };
 
   const handleSetPassword = onSetPassword || ((employee: Employee) => {
-    setPasswordDialog({ open: true, employee });
+    // Password management is now handled in the account management system
+    toast({
+      title: "Password Management",
+      description: "Password management is available in the employee's account overview page",
+    });
   });
 
   const handleResetPassword = onResetPassword || ((employee: Employee) => {
-    if (confirm(`Send password reset email to ${employee.first_name} ${employee.last_name} (${employee.email})?`)) {
-      passwordManagement.mutate(
-        { id: employee.id, action: 'reset' },
-        {
-          onSuccess: () => {
-            toast({
-              title: "Password reset email sent",
-              description: `A password reset email has been sent to ${employee.email}`,
-            });
-          },
-          onError: (error) => {
-            toast({
-              title: "Error",
-              description: error.message || "Failed to send password reset email",
-              variant: "destructive",
-            });
-          },
-        }
-      );
-    }
+    // Password management is now handled in the account management system
+    toast({
+      title: "Password Management",
+      description: "Password management is available in the employee's account overview page",
+    });
   });
 
   const handleResendInvitation = onResendInvitation || ((employee: Employee) => {
@@ -502,20 +487,7 @@ export default function EmployeeTable({
         }}
       />
 
-      {/* Password Management Dialog */}
-      <PasswordManagementDialog
-        employeeId={passwordDialog.employee?.id || ''}
-        employeeName={passwordDialog.employee ? `${passwordDialog.employee.first_name} ${passwordDialog.employee.last_name}` : ''}
-        open={passwordDialog.open}
-        onOpenChange={(open) => setPasswordDialog({ open, employee: null })}
-        onSuccess={() => {
-          // Refresh the data or show success message
-          toast({
-            title: "Success",
-            description: "Password updated successfully.",
-          });
-        }}
-      />
+
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, employee: null })}>
