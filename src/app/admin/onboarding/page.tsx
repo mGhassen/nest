@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import RouteGuard from "@/components/auth/route-guard";
 
 export default function SuperuserOnboardingPage() {
   const router = useRouter();
@@ -66,13 +67,18 @@ export default function SuperuserOnboardingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <RouteGuard 
+      requireAuth={true}
+      requireSuperuser={true}
+      requireCompany={false}
+    >
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur-sm">
+      <div className="border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Welcome, {user?.firstName || 'Superuser'}! 👋
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -100,15 +106,15 @@ export default function SuperuserOnboardingPage() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-24 h-24 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-24 h-24 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-6"
             >
-              <Building2 className="h-12 w-12 text-white" />
+              <Building2 className="h-12 w-12 text-primary-foreground" />
             </motion.div>
             
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-foreground mb-4">
               Ready to Get Started?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
               As a superuser, you can either link to existing companies or create new ones. 
               Choose the path that works best for you.
             </p>
@@ -124,16 +130,16 @@ export default function SuperuserOnboardingPage() {
                   className="flex items-center gap-4"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold">
+                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-semibold">
                       {step.number}
                     </div>
                     <div className="text-left">
-                      <div className="font-semibold text-gray-900">{step.title}</div>
-                      <div className="text-sm text-gray-600">{step.description}</div>
+                      <div className="font-semibold text-foreground">{step.title}</div>
+                      <div className="text-sm text-muted-foreground">{step.description}</div>
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <ArrowRight className="h-5 w-5 text-gray-400" />
+                    <ArrowRight className="h-5 w-5 text-muted-foreground" />
                   )}
                 </motion.div>
               ))}
@@ -147,14 +153,14 @@ export default function SuperuserOnboardingPage() {
             transition={{ delay: 0.6 }}
             className="max-w-2xl mx-auto mb-16"
           >
-            <Card className="border-2 hover:border-blue-300 transition-all duration-300 hover:shadow-lg">
+            <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
               <CardHeader className="text-center pb-4">
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   transition={{ type: "spring", stiffness: 300 }}
-                  className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"
+                  className="w-20 h-20 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-6"
                 >
-                  <Plus className="h-10 w-10 text-white" />
+                  <Plus className="h-10 w-10 text-primary-foreground" />
                 </motion.div>
                 <CardTitle className="text-3xl">Create Your First Company</CardTitle>
                 <CardDescription className="text-lg">
@@ -183,7 +189,7 @@ export default function SuperuserOnboardingPage() {
                 
                 <Button 
                   onClick={() => router.push('/admin/companies/create')}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  className="w-full"
                   size="lg"
                 >
                   <Plus className="mr-2 h-5 w-5" />
@@ -217,13 +223,13 @@ export default function SuperuserOnboardingPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 1.2 + index * 0.1 }}
-                      className="text-center p-4 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100"
+                      className="text-center p-4 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30"
                     >
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3 text-white">
+                      <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-3 text-primary-foreground">
                         {feature.icon}
                       </div>
-                      <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                      <p className="text-sm text-gray-600">{feature.description}</p>
+                      <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground">{feature.description}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -238,12 +244,12 @@ export default function SuperuserOnboardingPage() {
             transition={{ delay: 1.4 }}
             className="text-center mt-12"
           >
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <Card className="bg-gradient-to-r from-muted/50 to-muted/30 border-border">
               <CardContent className="py-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Need Help Getting Started?
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Our support team is here to help you set up your companies and get the most out of your superuser privileges.
                 </p>
                 <div className="flex justify-center gap-4">
@@ -259,6 +265,7 @@ export default function SuperuserOnboardingPage() {
           </motion.div>
         </div>
       </div>
-    </div>
+      </div>
+    </RouteGuard>
   );
 }

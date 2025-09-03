@@ -26,14 +26,51 @@ export interface Company {
 }
 
 export interface CreateCompanyData {
+  // Basic Information
   name: string;
+  legal_name?: string;
   description?: string;
+  industry: string;
+  company_size: string;
+  founded_year?: number;
+  
+  // Contact Information
+  website?: string;
+  email?: string;
+  phone?: string;
+  fax?: string;
+  
+  // Address Information
   address?: string;
+  address_line_2?: string;
   city?: string;
   state?: string;
-  country?: string;
+  country_code: string;
   postal_code?: string;
   timezone?: string;
+  
+  // Business Information
+  tax_id?: string;
+  registration_number?: string;
+  vat_number?: string;
+  business_type?: string;
+  legal_structure?: string;
+  
+  // Financial Information
+  currency?: string;
+  fiscal_year_start?: string;
+  fiscal_year_end?: string;
+  
+  // Branding
+  brand_color?: string;
+  secondary_color?: string;
+  logo_url?: string;
+  
+  // Social Media
+  linkedin_url?: string;
+  twitter_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
 }
 
 // ============================================================================

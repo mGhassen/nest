@@ -110,42 +110,13 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Create the company
+    // Create the company (basic info only)
     const { data: newCompany, error: createError } = await supabaseServer()
       .from('companies')
       .insert({
         name: name.trim(),
-        legal_name: legal_name?.trim() || null,
-        description: description?.trim() || null,
-        industry: industry.trim(),
-        company_size: company_size.trim(),
-        founded_year: founded_year || null,
-        website: website?.trim() || null,
-        email: email?.trim() || null,
-        phone: phone?.trim() || null,
-        fax: fax?.trim() || null,
-        address: address?.trim() || null,
-        address_line_2: address_line_2?.trim() || null,
-        city: city?.trim() || null,
-        state: state?.trim() || null,
         country_code: country_code.trim(),
-        postal_code: postal_code?.trim() || null,
-        timezone: timezone?.trim() || null,
-        tax_id: tax_id?.trim() || null,
-        registration_number: registration_number?.trim() || null,
-        vat_number: vat_number?.trim() || null,
-        business_type: business_type?.trim() || null,
-        legal_structure: legal_structure?.trim() || null,
         currency: currency?.trim() || 'USD',
-        fiscal_year_start: fiscal_year_start || null,
-        fiscal_year_end: fiscal_year_end || null,
-        brand_color: brand_color?.trim() || null,
-        secondary_color: secondary_color?.trim() || null,
-        logo_url: logo_url?.trim() || null,
-        linkedin_url: linkedin_url?.trim() || null,
-        twitter_url: twitter_url?.trim() || null,
-        facebook_url: facebook_url?.trim() || null,
-        instagram_url: instagram_url?.trim() || null,
         created_by: userProfile.id,
         updated_by: userProfile.id,
       })
@@ -159,6 +130,91 @@ export async function POST(req: NextRequest) {
         error: 'Failed to create company',
         details: createError.message,
       }, { status: 500 });
+    }
+
+    // Create company profile
+    const { error: profileError } = await supabaseServer()
+      .from('company_profiles')
+      .insert({
+        company_id: newCompany.id,
+        legal_name: legal_name?.trim() || null,
+        description: description?.trim() || null,
+        industry: industry.trim(),
+        company_size: company_size.trim(),
+        founded_year: founded_year || null,
+        business_type: business_type?.trim() || null,
+        legal_structure: legal_structure?.trim() || null,
+        tax_id: tax_id?.trim() || null,
+        registration_number: registration_number?.trim() || null,
+        vat_number: vat_number?.trim() || null,
+        fiscal_year_start: fiscal_year_start || null,
+        fiscal_year_end: fiscal_year_end || null,
+      });
+
+    if (profileError) {
+      console.error('Error creating company profile:', profileError);
+    }
+
+    // Create company address
+    const { error: addressError } = await supabaseServer()
+      .from('company_addresses')
+      .insert({
+        company_id: newCompany.id,
+        address: address?.trim() || null,
+        address_line_2: address_line_2?.trim() || null,
+        city: city?.trim() || null,
+        state: state?.trim() || null,
+        country: country_code.trim(),
+        postal_code: postal_code?.trim() || null,
+        timezone: timezone?.trim() || null,
+      });
+
+    if (addressError) {
+      console.error('Error creating company address:', addressError);
+    }
+
+    // Create company contact
+    const { error: contactError } = await supabaseServer()
+      .from('company_contacts')
+      .insert({
+        company_id: newCompany.id,
+        website: website?.trim() || null,
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        fax: fax?.trim() || null,
+      });
+
+    if (contactError) {
+      console.error('Error creating company contact:', contactError);
+    }
+
+    // Create company branding
+    const { error: brandingError } = await supabaseServer()
+      .from('company_branding')
+      .insert({
+        company_id: newCompany.id,
+        brand_color: brand_color?.trim() || null,
+        secondary_color: secondary_color?.trim() || null,
+        logo_url: logo_url?.trim() || null,
+      });
+
+    if (brandingError) {
+      console.error('Error creating company branding:', brandingError);
+    }
+
+    // Create company social
+    const { error: socialError } = await supabaseServer()
+      .from('company_social')
+      .insert({
+        company_id: newCompany.id,
+        linkedin_url: linkedin_url?.trim() || null,
+        twitter_url: twitter_url?.trim() || null,
+        facebook_url: facebook_url?.trim() || null,
+        instagram_url: instagram_url?.trim() || null,
+      });
+
+    if (socialError) {
+      console.error('Error creating company social:', socialError);
     }
 
     // Add the superuser as admin of the new company

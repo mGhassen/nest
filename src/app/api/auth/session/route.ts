@@ -81,14 +81,18 @@ export async function GET(req: NextRequest) {
       console.log('Error fetching current company:', currentCompanyError);
     }
 
+    // Check if user is superuser first
+    const isSuperuser = userData.is_superuser || false;
+    
     // Determine current role and company
     let currentCompanyData = currentCompany && currentCompany.length > 0 ? currentCompany[0] : null;
-    let currentRole = 'EMPLOYEE'; // Default fallback
+    let currentRole = isSuperuser ? 'SUPERUSER' : 'EMPLOYEE'; // Default based on superuser status
     let currentCompanyId = null;
 
     console.log('Debug - userCompanies:', userCompanies);
     console.log('Debug - currentCompany:', currentCompany);
     console.log('Debug - account current_company_id:', userData.current_company_id);
+    console.log('Debug - isSuperuser:', isSuperuser);
 
     // If no current company is set, get the first available company for the user
     if (!currentCompanyData && userCompanies && userCompanies.length > 0) {
@@ -120,13 +124,15 @@ export async function GET(req: NextRequest) {
       console.log('Debug - Using existing current company:', currentCompanyData);
     } else {
       console.log('Debug - No companies found for user');
+      // For superusers with no companies, keep SUPERUSER role
+      if (isSuperuser) {
+        currentRole = 'SUPERUSER';
+      }
     }
 
     console.log('Debug - Final currentRole:', currentRole);
     console.log('Debug - Final currentCompanyId:', currentCompanyId);
 
-    // Check if user is superuser
-    const isSuperuser = userData.is_superuser || false;
     const isAdmin = currentRole === 'ADMIN' || isSuperuser;
 
     // Return user data with multi-company support
@@ -139,7 +145,7 @@ export async function GET(req: NextRequest) {
         firstName: userData.first_name || user.email?.split('@')[0] || 'User',
         lastName: userData.last_name || '',
         status: userData.is_active ? 'active' : 'inactive',
-        role: isSuperuser ? 'SUPERUSER' : (currentRole || 'EMPLOYEE'),
+        role: currentRole,
         companyId: currentCompanyId,
         // Multi-company data
         companies: userCompanies || [],
