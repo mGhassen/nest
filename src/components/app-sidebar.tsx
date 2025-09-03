@@ -136,27 +136,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="/admin/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Dumbbell className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Nest HR</span>
-                  <span className="truncate text-xs">Admin Portal</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        {/* Company Switcher */}
-        {user && (
-          <div className="px-2 py-2">
-            <CompanySwitcher />
-          </div>
-        )}
+        {/* Company Switcher only - no logo/name */}
+        {user && <CompanySwitcher />}
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

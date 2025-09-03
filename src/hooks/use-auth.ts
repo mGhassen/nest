@@ -17,14 +17,14 @@ export interface User {
   companies?: Array<{
     company_id: string;
     company_name: string;
-    role: 'ADMIN' | 'EMPLOYEE';
+    role: 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
     is_active: boolean;
     joined_at: string;
   }>;
   currentCompany?: {
     company_id: string;
     company_name: string;
-    role: 'ADMIN' | 'EMPLOYEE';
+    role: 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
   };
 }
 

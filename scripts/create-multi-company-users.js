@@ -16,16 +16,16 @@ const supabase = createClient(supabaseUrl, anonKey);
 
 // Multi-company users with their roles in different companies
 const multiCompanyUsers = [
-  // Ahmed - Super Admin with access to ALL companies
+  // Ahmed - Super User with access to ALL companies
   {
     email: 'admin@guepard.run',
     password: 'admin123',
     firstName: 'Ahmed',
     lastName: 'Ben Ali',
     companies: [
-      { name: 'Guepard', role: 'ADMIN' },
-      { name: 'TechCorp', role: 'ADMIN' },
-      { name: 'InnovateLab', role: 'ADMIN' }
+      { name: 'Guepard', role: 'SUPERUSER' },
+      { name: 'TechCorp', role: 'SUPERUSER' },
+      { name: 'InnovateLab', role: 'SUPERUSER' }
     ]
   },
   // Fatma - HR Manager at Guepard, HR Consultant at TechCorp
@@ -289,7 +289,7 @@ async function createMultiCompanyUsers() {
   console.log('4. Current company set in accounts.current_company_id');
   console.log('5. Employees linked to accounts for each company');
   console.log('\n🏢 Multi-Company Examples:');
-  console.log('- Ahmed: SUPER ADMIN at ALL companies (Guepard, TechCorp, InnovateLab)');
+  console.log('- Ahmed: SUPERUSER at ALL companies (Guepard, TechCorp, InnovateLab)');
   console.log('- John: ADMIN at TechCorp, ADMIN at Guepard');
   console.log('- Pierre: ADMIN at InnovateLab, ADMIN at TechCorp');
   console.log('- Fatma: ADMIN at Guepard, EMPLOYEE at TechCorp');

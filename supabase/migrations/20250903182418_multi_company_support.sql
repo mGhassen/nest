@@ -14,9 +14,12 @@ CREATE TABLE account_company_roles (
     UNIQUE(account_id, company_id)
 );
 
+-- Add SUPERUSER role to the user_role enum
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SUPERUSER';
+
 -- Add comments
 COMMENT ON TABLE account_company_roles IS 'Simple many-to-many relationship: accounts can have roles in multiple companies';
-COMMENT ON COLUMN account_company_roles.role IS 'User role within this specific company: ADMIN or EMPLOYEE';
+COMMENT ON COLUMN account_company_roles.role IS 'User role within this specific company: SUPERUSER, ADMIN, or EMPLOYEE';
 
 -- Create indexes for performance
 CREATE INDEX idx_account_company_roles_account_id ON account_company_roles(account_id);
@@ -238,11 +241,27 @@ RETURNS UUID AS $$
 BEGIN
   RETURN (
     SELECT a.current_company_id
-FROM accounts a
+    FROM accounts a
     WHERE a.id = auth.uid()
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to check if user is a superuser
+CREATE OR REPLACE FUNCTION is_superuser(p_account_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM account_company_roles acr
+    WHERE acr.account_id = p_account_id
+    AND acr.role = 'SUPERUSER'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission for is_superuser function
+GRANT EXECUTE ON FUNCTION is_superuser TO authenticated;
 
 -- ============================================================================
 -- GRANT NECESSARY PERMISSIONS
@@ -375,6 +394,7 @@ BEGIN
     RAISE NOTICE '- get_current_company_info(account_id): Get current company details';
     RAISE NOTICE '- is_admin_in_current_company(): Check if user is admin in current company';
     RAISE NOTICE '- get_user_current_company_id(): Get user current company ID';
+    RAISE NOTICE '- is_superuser(account_id): Check if user is superuser';
     RAISE NOTICE '';
     RAISE NOTICE 'Security features:';
     RAISE NOTICE '- Row Level Security (RLS) enabled on all tables';

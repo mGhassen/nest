@@ -1,31 +1,45 @@
 "use client";
 
 import * as React from "react";
-import { ChevronsUpDown, Building2, Check } from "lucide-react";
+import { ChevronsUpDown, Plus } from "lucide-react";
 import { useUserCompanies, useCurrentCompany, useSwitchCompany } from "@/hooks/use-companies";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
+import { AddCompanyDialog } from "@/components/add-company-dialog";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 export function CompanySwitcher() {
-  const [open, setOpen] = React.useState(false);
   const { user } = useAuth();
   const { data: companies = [], isLoading: companiesLoading } = useUserCompanies();
   const { data: currentCompany, isLoading: currentLoading } = useCurrentCompany();
   const switchCompany = useSwitchCompany();
+  const { isMobile } = useSidebar();
+  
+  // Check if current user is a superuser
+  const isSuperuser = currentCompany?.role === 'SUPERUSER';
+  
+  // Debug logging
+  console.log('CompanySwitcher Debug:', {
+    user: !!user,
+    companies: companies.length,
+    currentCompany,
+    isSuperuser,
+    companiesLoading,
+    currentLoading
+  });
 
   // Don't render if user is not authenticated
   if (!user) {
@@ -34,13 +48,11 @@ export function CompanySwitcher() {
 
   const handleSelect = (companyId: string) => {
     if (companyId === currentCompany?.company_id) {
-      setOpen(false);
       return;
     }
 
     switchCompany.mutate(companyId, {
       onSuccess: (newCompany) => {
-        setOpen(false);
         // Refresh the page to update the UI with new company context
         window.location.reload();
       },
@@ -50,87 +62,104 @@ export function CompanySwitcher() {
     });
   };
 
-  if (companiesLoading || currentLoading) {
+  if (companiesLoading || currentLoading || !currentCompany) {
     return (
-      <div className="flex items-center space-x-2 px-2 py-1.5">
-        <Building2 className="h-4 w-4" />
-        <span className="text-sm text-muted-foreground">Loading...</span>
-      </div>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              <div className="size-4 rounded-sm bg-current" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">Loading...</span>
+              <span className="truncate text-xs">Please wait</span>
+            </div>
+            <ChevronsUpDown className="ml-auto" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
     );
   }
 
   if (!companies || companies.length === 0) {
     return (
-      <div className="flex items-center space-x-2 px-2 py-1.5">
-        <Building2 className="h-4 w-4" />
-        <span className="text-sm text-muted-foreground">No companies</span>
-      </div>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              <div className="size-4 rounded-sm bg-current" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">No companies</span>
+              <span className="truncate text-xs">Contact admin</span>
+            </div>
+            <ChevronsUpDown className="ml-auto" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
     );
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between px-2 py-1.5 h-auto"
-        >
-          <div className="flex items-center space-x-2">
-            <Building2 className="h-4 w-4" />
-            <div className="flex flex-col items-start">
-              <span className="text-sm font-medium">
-                {currentCompany?.company_name || "Select company"}
-              </span>
-              {currentCompany && (
-                <span className="text-xs text-muted-foreground">
-                  {currentCompany.role === 'ADMIN' ? 'Administrator' : 'Employee'}
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <div className="size-4 rounded-sm bg-current" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">{currentCompany.company_name}</span>
+                <span className="truncate text-xs">
+                  {currentCompany.role === 'ADMIN' ? 'Administrator' : 
+                   currentCompany.role === 'SUPERUSER' ? 'Superuser' : 'Employee'}
                 </span>
-              )}
-            </div>
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search companies..." />
-          <CommandList>
-            <CommandEmpty>No companies found.</CommandEmpty>
-            <CommandGroup>
-              {companies.map((company) => (
-                <CommandItem
-                  key={company.company_id}
-                  value={company.company_name}
-                  onSelect={() => handleSelect(company.company_id)}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Building2 className="h-4 w-4" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {company.company_name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {company.role === 'ADMIN' ? 'Administrator' : 'Employee'}
-                      </span>
+              </div>
+              <ChevronsUpDown className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            align="start"
+            side={isMobile ? "bottom" : "right"}
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="text-muted-foreground text-xs">
+              Teams
+            </DropdownMenuLabel>
+            {companies.map((company, index) => (
+              <DropdownMenuItem
+                key={company.company_id}
+                onClick={() => handleSelect(company.company_id)}
+                className="gap-2 p-2"
+              >
+                <div className="flex size-6 items-center justify-center rounded-md border">
+                  <div className="size-3.5 rounded-sm bg-current" />
+                </div>
+                {company.company_name}
+                <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            ))}
+            {isSuperuser && (
+              <>
+                <DropdownMenuSeparator />
+                <AddCompanyDialog>
+                  <DropdownMenuItem className="gap-2 p-2" onSelect={(e) => e.preventDefault()}>
+                    <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                      <Plus className="size-4" />
                     </div>
-                  </div>
-                  <Check
-                    className={cn(
-                      "ml-auto h-4 w-4",
-                      currentCompany?.company_id === company.company_id
-                        ? "opacity-100"
-                        : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                    <div className="text-muted-foreground font-medium">Add Company</div>
+                  </DropdownMenuItem>
+                </AddCompanyDialog>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }

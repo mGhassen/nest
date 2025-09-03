@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
       user: {
         id: userData.id,
         email: user.email || '',
-        isAdmin: currentRole === 'ADMIN',
+        isAdmin: currentRole === 'ADMIN' || currentRole === 'SUPERUSER',
         firstName: userData.first_name || user.email?.split('@')[0] || 'User',
         lastName: userData.last_name || '',
         status: userData.is_active ? 'active' : 'inactive',

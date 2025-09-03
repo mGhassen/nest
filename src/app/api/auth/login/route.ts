@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Get user's role in their current company
     const currentRole = await getCurrentUserRole(userProfile.id);
-    const isAdmin = currentRole === 'ADMIN';
+    const isAdmin = currentRole === 'ADMIN' || currentRole === 'SUPERUSER';
 
     console.log('Login API - User role detection:', {
       userId: userProfile.id,

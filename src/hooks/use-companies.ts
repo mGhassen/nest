@@ -1,89 +1,121 @@
-"use client";
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesApi, Company, UserCompany, CurrentCompany, CreateCompanyData } from '@/lib/api/companies';
-import { useAuth } from '@/hooks/use-auth';
+import { apiFetch } from '@/lib/api';
 
-// Query keys
-export const companyKeys = {
-  all: ['companies'] as const,
-  lists: () => [...companyKeys.all, 'list'] as const,
-  list: (filters: string) => [...companyKeys.lists(), { filters }] as const,
-  details: () => [...companyKeys.all, 'detail'] as const,
-  detail: (id: string) => [...companyKeys.details(), id] as const,
-  userCompanies: () => [...companyKeys.all, 'user'] as const,
-  currentCompany: () => [...companyKeys.all, 'current'] as const,
-};
+// ============================================================================
+// TYPES
+// ============================================================================
 
-// Hook to get all companies
-export function useCompanies() {
+export interface UserCompany {
+  company_id: string;
+  company_name: string;
+  role: 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  timezone?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCompanyData {
+  name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  timezone?: string;
+}
+
+// ============================================================================
+// HOOKS
+// ============================================================================
+
+/**
+ * Get all companies the current user has access to
+ */
+export function useUserCompanies() {
   return useQuery({
-    queryKey: companyKeys.lists(),
-    queryFn: companiesApi.getAll,
+    queryKey: ['user-companies'],
+    queryFn: async (): Promise<UserCompany[]> => {
+      const data = await apiFetch('/api/user/companies');
+      console.log('useUserCompanies response:', data);
+      return data.companies || [];
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
-// Hook to get user's companies
-export function useUserCompanies() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: companyKeys.userCompanies(),
-    queryFn: companiesApi.getUserCompanies,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    enabled: !!user, // Only run query if user is authenticated
-  });
-}
-
-// Hook to get current company
+/**
+ * Get current company information
+ */
 export function useCurrentCompany() {
-  const { user } = useAuth();
   return useQuery({
-    queryKey: companyKeys.currentCompany(),
-    queryFn: companiesApi.getCurrentCompany,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    enabled: !!user, // Only run query if user is authenticated
-  });
-}
-
-// Hook to create a company
-export function useCreateCompany() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (companyData: CreateCompanyData) => companiesApi.create(companyData),
-    onSuccess: () => {
-      // Invalidate and refetch companies list
-      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    queryKey: ['current-company'],
+    queryFn: async (): Promise<UserCompany | null> => {
+      const data = await apiFetch('/api/user/current-company');
+      console.log('useCurrentCompany response:', data);
+      return data.currentCompany || null;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
-// Hook to switch company
+/**
+ * Switch to a different company
+ */
 export function useSwitchCompany() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (companyId: string) => companiesApi.switchCompany(companyId),
+    mutationFn: async (companyId: string): Promise<UserCompany> => {
+      const data = await apiFetch('/api/user/current-company', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ company_id: companyId }),
+      });
+      
+      return data.currentCompany;
+    },
     onSuccess: () => {
-      // Invalidate current company and user companies
-      queryClient.invalidateQueries({ queryKey: companyKeys.currentCompany() });
-      queryClient.invalidateQueries({ queryKey: companyKeys.userCompanies() });
-      // Also invalidate user session data
-      queryClient.invalidateQueries({ queryKey: ['auth', 'session'] });
+      // Invalidate and refetch current company
+      queryClient.invalidateQueries({ queryKey: ['current-company'] });
     },
   });
 }
 
-// Hook to get company by ID
-export function useCompany(id: string) {
-  return useQuery({
-    queryKey: companyKeys.detail(id),
-    queryFn: async () => {
-      const companies = await companiesApi.getAll();
-      return companies.find(company => company.id === id);
+/**
+ * Create a new company (superuser only)
+ */
+export function useCreateCompany() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (companyData: CreateCompanyData): Promise<Company> => {
+      const data = await apiFetch('/api/companies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(companyData),
+      });
+      
+      return data.company;
     },
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    onSuccess: () => {
+      // Invalidate user companies to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['user-companies'] });
+    },
   });
 }

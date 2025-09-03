@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase';
+import { isCurrentUserAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,11 +23,17 @@ export async function GET(request: NextRequest) {
     // Get user account to check if admin
     const { data: account, error: accountError } = await supabase
       .from('accounts')
-      .select('role')
+      .select('id')
       .eq('auth_user_id', user.id)
       .single();
 
-    if (accountError || !account || account.role !== 'ADMIN') {
+    if (accountError || !account) {
+      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+    }
+
+    // Check if user is admin (including SUPERUSER)
+    const isAdmin = await isCurrentUserAdmin(account.id);
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

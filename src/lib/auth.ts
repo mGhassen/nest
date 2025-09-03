@@ -4,7 +4,7 @@ import { supabaseServer } from './supabase';
 // TYPES AND INTERFACES
 // ============================================================================
 
-export type UserRole = 'ADMIN' | 'EMPLOYEE';
+export type UserRole = 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
 
 export interface User {
   id: string;
@@ -60,7 +60,27 @@ export async function getCurrentUserRole(accountId: string): Promise<UserRole | 
  */
 export async function isCurrentUserAdmin(accountId: string): Promise<boolean> {
   const role = await getCurrentUserRole(accountId);
-  return role === 'ADMIN';
+  return role === 'ADMIN' || role === 'SUPERUSER';
+}
+
+/**
+ * Check if a user is a superuser
+ */
+export async function isCurrentUserSuperuser(accountId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabaseServer()
+      .rpc('is_superuser', { p_account_id: accountId });
+    
+    if (error) {
+      console.error('Error checking superuser status:', error);
+      return false;
+    }
+    
+    return data === true;
+  } catch (error) {
+    console.error('Error in isCurrentUserSuperuser:', error);
+    return false;
+  }
 }
 
 /**
