@@ -20,6 +20,7 @@ import { usePathname } from "next/navigation"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { CompanySwitcher } from "@/components/company-switcher"
 import { useAuth } from "@/hooks/use-auth"
 import {
   Sidebar,
@@ -150,6 +151,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        {/* Company Switcher */}
+        {user && (
+          <div className="px-2 py-2">
+            <CompanySwitcher />
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

@@ -65,18 +65,81 @@ export async function GET(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // Return user data
+    // Get user's companies
+    const { data: userCompanies, error: companiesError } = await supabaseServer()
+      .rpc('get_account_companies', { p_account_id: userData.id });
+
+    if (companiesError) {
+      console.log('Error fetching user companies:', companiesError);
+    }
+
+    // Get current company info
+    const { data: currentCompany, error: currentCompanyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userData.id });
+
+    if (currentCompanyError) {
+      console.log('Error fetching current company:', currentCompanyError);
+    }
+
+    // Determine current role and company
+    let currentCompanyData = currentCompany && currentCompany.length > 0 ? currentCompany[0] : null;
+    let currentRole = 'EMPLOYEE'; // Default fallback
+    let currentCompanyId = null;
+
+    console.log('Debug - userCompanies:', userCompanies);
+    console.log('Debug - currentCompany:', currentCompany);
+    console.log('Debug - account current_company_id:', userData.current_company_id);
+
+    // If no current company is set, get the first available company for the user
+    if (!currentCompanyData && userCompanies && userCompanies.length > 0) {
+      const firstCompany = userCompanies[0];
+      currentCompanyData = {
+        company_id: firstCompany.company_id,
+        company_name: firstCompany.company_name,
+        role: firstCompany.role
+      };
+      currentRole = firstCompany.role;
+      currentCompanyId = firstCompany.company_id;
+      
+      console.log('Debug - Setting first company as current:', firstCompany);
+      
+      // Set the first company as current
+      try {
+        await supabaseServer()
+          .from('accounts')
+          .update({ current_company_id: firstCompany.company_id })
+          .eq('id', userData.id);
+        console.log('Debug - Successfully set current company');
+      } catch (updateError) {
+        console.log('Error setting current company:', updateError);
+      }
+    } else if (currentCompanyData) {
+      // Use the current company data
+      currentRole = currentCompanyData.role;
+      currentCompanyId = currentCompanyData.company_id;
+      console.log('Debug - Using existing current company:', currentCompanyData);
+    } else {
+      console.log('Debug - No companies found for user');
+    }
+
+    console.log('Debug - Final currentRole:', currentRole);
+    console.log('Debug - Final currentCompanyId:', currentCompanyId);
+
+    // Return user data with multi-company support
     return NextResponse.json({
       success: true,
       user: {
         id: userData.id,
         email: user.email || '',
-        isAdmin: userData.role === 'ADMIN',
+        isAdmin: currentRole === 'ADMIN',
         firstName: userData.first_name || user.email?.split('@')[0] || 'User',
         lastName: userData.last_name || '',
         status: userData.is_active ? 'active' : 'inactive',
-        role: userData.role,
-        companyId: userData.company_id,
+        role: currentRole,
+        companyId: currentCompanyId,
+        // Multi-company data
+        companies: userCompanies || [],
+        currentCompany: currentCompanyData,
       },
     });
   } catch (error: unknown) {

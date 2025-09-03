@@ -1,13 +1,13 @@
 "use client"
 
 import AuthGuard from "@/components/auth/auth-guard"
-import MainLayout from "@/components/layout/main-layout"
+import EmployeeLayout from "@/components/layout/employee-layout"
 
 export default function LeaveCalendarPage() {
 
   return (
     <AuthGuard requireEmployee={true}>
-      <MainLayout>
+      <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Leave Calendar</h2>
@@ -32,7 +32,7 @@ export default function LeaveCalendarPage() {
           </div>
         </div>
       </div>
-      </MainLayout>
+      </EmployeeLayout>
     </AuthGuard>
   )
 }

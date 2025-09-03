@@ -11,6 +11,8 @@ export function getAuthToken(): string | null {
   return window.__authToken || localStorage.getItem('access_token');
 }
 
+// Session token helpers removed - using simplified company system
+
 // Helper to set the auth token
 export function setAuthToken(token: string | null): void {
   if (typeof window === 'undefined') return;
@@ -100,3 +102,4 @@ export { timesheetsApi, type Timesheet, type CreateTimesheetData } from './api/t
 export { leaveApi, type LeaveRequest, type CreateLeaveRequestData } from './api/leave';
 export { healthApi, type HealthStatus } from './api/health';
 export { debugApi, type DebugResponse } from './api/debug';
+export { companiesApi, type Company, type UserCompany, type CurrentCompany, type CreateCompanyData } from './api/companies';

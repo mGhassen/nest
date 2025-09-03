@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Upload, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AuthGuard from "@/components/auth/auth-guard";
-import MainLayout from "@/components/layout/main-layout";
+import EmployeeLayout from "@/components/layout/employee-layout";
 
 export default function DocumentsPage() {
   const { toast } = useToast();
@@ -26,7 +26,7 @@ export default function DocumentsPage() {
 
   return (
     <AuthGuard requireEmployee={true}>
-      <MainLayout>
+      <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="mb-6">
             <div className="flex items-center justify-between">
@@ -154,7 +154,7 @@ export default function DocumentsPage() {
             </CardContent>
           </Card>
         </div>
-      </MainLayout>
+      </EmployeeLayout>
     </AuthGuard>
   );
 }

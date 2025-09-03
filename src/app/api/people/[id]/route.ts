@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
+import { isCurrentUserAdmin, getEmployeeRoleInCompany } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
@@ -44,8 +45,9 @@ export async function GET(
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',
@@ -235,7 +237,7 @@ export async function GET(
         email: employee.accounts.email,
         first_name: employee.accounts.first_name,
         last_name: employee.accounts.last_name,
-        role: employee.accounts.role,
+        role: await getEmployeeRoleInCompany(employee.accounts.id, employee.company_id) || 'EMPLOYEE',
         is_active: employee.accounts.is_active,
         profile_image_url: employee.accounts.profile_image_url,
         last_login: employee.accounts.last_login,
@@ -338,8 +340,9 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',
@@ -422,8 +425,9 @@ export async function DELETE(
       }, { status: 404 });
     }
 
-    // Check if user is admin
-    if (userProfile.role !== 'ADMIN') {
+    // Check if user is admin in their current company
+    const isAdmin = await isCurrentUserAdmin(userProfile.id);
+    if (!isAdmin) {
       return NextResponse.json({
         success: false,
         error: 'Access denied. Admin privileges required.',

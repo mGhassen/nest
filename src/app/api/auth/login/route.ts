@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
+import { getCurrentUserRole } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,6 +49,17 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+    // Get user's role in their current company
+    const currentRole = await getCurrentUserRole(userProfile.id);
+    const isAdmin = currentRole === 'ADMIN';
+
+    console.log('Login API - User role detection:', {
+      userId: userProfile.id,
+      currentRole,
+      isAdmin,
+      hasRoleField: 'role' in userProfile
+    });
+
     // Return session and user info
     console.log('Login API returning session:', {
       access_token: session?.access_token ? 'present' : 'missing',
@@ -61,11 +73,11 @@ export async function POST(req: NextRequest) {
       user: {
         id: userProfile.id,
         email: user.email || '',
-        isAdmin: userProfile.role === 'ADMIN',
+        isAdmin,
         firstName: userProfile.first_name || user.email?.split('@')[0] || 'User',
         lastName: userProfile.last_name || '',
         status: userProfile.is_active ? 'active' : 'inactive',
-        role: userProfile.role,
+        role: currentRole || 'EMPLOYEE',
       },
     });
   } catch (error: unknown) {

@@ -8,29 +8,72 @@
 -- 3. Triggers automatically link employees to accounts by matching email
 -- 4. No signup flow - it's invitation-based system
 
--- 1. Create Company
+-- 1. Create Companies (Multi-company setup)
 INSERT INTO companies (name, country_code, currency) VALUES 
-('Guepard', 'TN', 'TND');
+('Guepard', 'TN', 'TND'),
+('TechCorp', 'US', 'USD'),
+('InnovateLab', 'FR', 'EUR');
 
 -- 2. Create Locations
 INSERT INTO locations (company_id, name, country, timezone) 
+-- Guepard locations
 SELECT id, 'Tunis', 'Tunisia', 'Africa/Tunis' FROM companies WHERE name = 'Guepard'
 UNION ALL
-SELECT id, 'Sfax', 'Tunisia', 'Africa/Tunis' FROM companies WHERE name = 'Guepard';
+SELECT id, 'Sfax', 'Tunisia', 'Africa/Tunis' FROM companies WHERE name = 'Guepard'
+-- TechCorp locations
+UNION ALL
+SELECT id, 'San Francisco', 'United States', 'America/Los_Angeles' FROM companies WHERE name = 'TechCorp'
+UNION ALL
+SELECT id, 'New York', 'United States', 'America/New_York' FROM companies WHERE name = 'TechCorp'
+-- InnovateLab locations
+UNION ALL
+SELECT id, 'Paris', 'France', 'Europe/Paris' FROM companies WHERE name = 'InnovateLab'
+UNION ALL
+SELECT id, 'Lyon', 'France', 'Europe/Paris' FROM companies WHERE name = 'InnovateLab';
 
 -- 3. Create Cost Centers
 INSERT INTO cost_centers (company_id, code, name)
+-- Guepard cost centers
 SELECT id, 'ENG', 'Engineering' FROM companies WHERE name = 'Guepard'
 UNION ALL
 SELECT id, 'SALES', 'Sales & Marketing' FROM companies WHERE name = 'Guepard'
 UNION ALL
-SELECT id, 'HR', 'Human Resources' FROM companies WHERE name = 'Guepard';
+SELECT id, 'HR', 'Human Resources' FROM companies WHERE name = 'Guepard'
+-- TechCorp cost centers
+UNION ALL
+SELECT id, 'ENG', 'Engineering' FROM companies WHERE name = 'TechCorp'
+UNION ALL
+SELECT id, 'SALES', 'Sales & Marketing' FROM companies WHERE name = 'TechCorp'
+UNION ALL
+SELECT id, 'HR', 'Human Resources' FROM companies WHERE name = 'TechCorp'
+UNION ALL
+SELECT id, 'PROD', 'Product Management' FROM companies WHERE name = 'TechCorp'
+-- InnovateLab cost centers
+UNION ALL
+SELECT id, 'R&D', 'Research & Development' FROM companies WHERE name = 'InnovateLab'
+UNION ALL
+SELECT id, 'SALES', 'Sales & Marketing' FROM companies WHERE name = 'InnovateLab'
+UNION ALL
+SELECT id, 'HR', 'Human Resources' FROM companies WHERE name = 'InnovateLab';
 
 -- 4. Create Work Schedules
 INSERT INTO work_schedules (company_id, name, weekly_hours)
+-- Guepard work schedules
 SELECT id, 'Full Time (40h)', 40 FROM companies WHERE name = 'Guepard'
 UNION ALL
-SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'Guepard';
+SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'Guepard'
+-- TechCorp work schedules
+UNION ALL
+SELECT id, 'Full Time (40h)', 40 FROM companies WHERE name = 'TechCorp'
+UNION ALL
+SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'TechCorp'
+UNION ALL
+SELECT id, 'Contractor (30h)', 30 FROM companies WHERE name = 'TechCorp'
+-- InnovateLab work schedules
+UNION ALL
+SELECT id, 'Full Time (35h)', 35 FROM companies WHERE name = 'InnovateLab'
+UNION ALL
+SELECT id, 'Part Time (20h)', 20 FROM companies WHERE name = 'InnovateLab';
 
 -- 5. Create Employees WITHOUT accounts (accounts will be created by create-test-users.js script)
 INSERT INTO employees (
@@ -82,9 +125,108 @@ SELECT
   (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
   6000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
 FROM companies c
-WHERE c.name = 'Guepard';
+WHERE c.name = 'Guepard'
+
+-- TechCorp employees
+UNION ALL
+
+SELECT 
+  c.id, 'John', 'Smith', 'admin@techcorp.com',
+  '2022-01-15'::date, 'FULL_TIME'::employment_type, 'CEO',
+  (SELECT id FROM locations WHERE name = 'San Francisco' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
+  200000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+  c.id, 'Emily', 'Johnson', 'hr@techcorp.com',
+  '2022-03-01'::date, 'FULL_TIME'::employment_type, 'HR Director',
+  (SELECT id FROM locations WHERE name = 'New York' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
+  120000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+  c.id, 'Michael', 'Brown', 'manager@techcorp.com',
+  '2022-06-01'::date, 'FULL_TIME'::employment_type, 'Engineering Manager',
+  (SELECT id FROM locations WHERE name = 'San Francisco' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'ENG' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
+  150000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+SELECT 
+  c.id, 'Sarah', 'Davis', 'employee@techcorp.com',
+  '2023-01-15'::date, 'FULL_TIME'::employment_type, 'Senior Developer',
+  (SELECT id FROM locations WHERE name = 'New York' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'ENG' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (40h)' AND company_id = c.id),
+  110000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'TechCorp'
+
+-- InnovateLab employees
+UNION ALL
+
+SELECT 
+  c.id, 'Pierre', 'Dubois', 'admin@innovatelab.fr',
+  '2021-09-01'::date, 'FULL_TIME'::employment_type, 'Directeur Général',
+  (SELECT id FROM locations WHERE name = 'Paris' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (35h)' AND company_id = c.id),
+  80000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'InnovateLab'
+
+UNION ALL
+
+SELECT 
+  c.id, 'Marie', 'Martin', 'hr@innovatelab.fr',
+  '2022-02-01'::date, 'FULL_TIME'::employment_type, 'Responsable RH',
+  (SELECT id FROM locations WHERE name = 'Lyon' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (35h)' AND company_id = c.id),
+  55000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'InnovateLab'
+
+UNION ALL
+
+SELECT 
+  c.id, 'Jean', 'Leroy', 'manager@innovatelab.fr',
+  '2022-05-01'::date, 'FULL_TIME'::employment_type, 'Chef de Projet R&D',
+  (SELECT id FROM locations WHERE name = 'Paris' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'R&D' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (35h)' AND company_id = c.id),
+  65000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'InnovateLab'
+
+UNION ALL
+
+SELECT 
+  c.id, 'Sophie', 'Moreau', 'employee@innovatelab.fr',
+  '2023-03-01'::date, 'FULL_TIME'::employment_type, 'Ingénieur R&D',
+  (SELECT id FROM locations WHERE name = 'Lyon' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'R&D' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Full Time (35h)' AND company_id = c.id),
+  45000, 'YEARLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'InnovateLab';
 
 -- 6. Update employee manager relationships
+-- Guepard relationships
 -- Fatma (HR Manager) reports to Ahmed (CEO)
 UPDATE employees 
 SET manager_id = (SELECT id FROM employees WHERE email = 'admin@guepard.run')
@@ -100,7 +242,39 @@ UPDATE employees
 SET manager_id = (SELECT id FROM employees WHERE email = 'manager@guepard.run')
 WHERE email = 'employee@guepard.run';
 
-abase at -- 6.1. Create Employee Profiles (Personal Information)
+-- TechCorp relationships
+-- Emily (HR Director) reports to John (CEO)
+UPDATE employees 
+SET manager_id = (SELECT id FROM employees WHERE email = 'admin@techcorp.com')
+WHERE email = 'hr@techcorp.com';
+
+-- Michael (Engineering Manager) reports to John (CEO)
+UPDATE employees 
+SET manager_id = (SELECT id FROM employees WHERE email = 'admin@techcorp.com')
+WHERE email = 'manager@techcorp.com';
+
+-- Sarah (Senior Developer) reports to Michael (Engineering Manager)
+UPDATE employees 
+SET manager_id = (SELECT id FROM employees WHERE email = 'manager@techcorp.com')
+WHERE email = 'employee@techcorp.com';
+
+-- InnovateLab relationships
+-- Marie (Responsable RH) reports to Pierre (Directeur Général)
+UPDATE employees 
+SET manager_id = (SELECT id FROM employees WHERE email = 'admin@innovatelab.fr')
+WHERE email = 'hr@innovatelab.fr';
+
+-- Jean (Chef de Projet R&D) reports to Pierre (Directeur Général)
+UPDATE employees 
+SET manager_id = (SELECT id FROM employees WHERE email = 'admin@innovatelab.fr')
+WHERE email = 'manager@innovatelab.fr';
+
+-- Sophie (Ingénieur R&D) reports to Jean (Chef de Projet R&D)
+UPDATE employees 
+SET manager_id = (SELECT id FROM employees WHERE email = 'manager@innovatelab.fr')
+WHERE email = 'employee@innovatelab.fr';
+
+-- 6.1. Create Employee Profiles (Personal Information)
 INSERT INTO employee_profiles (employee_id, date_of_birth, gender, nationality, marital_status, personal_phone, blood_type)
 SELECT id, '1985-03-15'::date, 'Male', 'Tunisian', 'Married', '+216 98 123 456', 'O+' FROM employees WHERE email = 'admin@guepard.run'
 UNION ALL
@@ -262,28 +436,77 @@ SELECT
   'UPLOADED'::payroll_status
 FROM companies c WHERE c.name = 'Guepard';
 
+-- 7. Add cross-company employees (users who work in multiple companies)
+-- These will be created as additional employees for existing users
+-- Example: Ahmed (Guepard CEO) also works as consultant at TechCorp
+
+INSERT INTO employees (
+  company_id, first_name, last_name, email, 
+  hire_date, employment_type, position_title, location_id, 
+  cost_center_id, work_schedule_id, base_salary, salary_period, status
+)
+-- Ahmed (Guepard CEO) also works as consultant at TechCorp
+SELECT 
+  c.id, 'Ahmed', 'Ben Ali', 'admin@guepard.run',
+  '2023-06-01'::date, 'CONTRACTOR'::employment_type, 'Strategic Consultant',
+  (SELECT id FROM locations WHERE name = 'San Francisco' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'HR' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Contractor (30h)' AND company_id = c.id),
+  5000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'TechCorp'
+
+UNION ALL
+
+-- Sarah (TechCorp Developer) also works part-time at InnovateLab
+SELECT 
+  c.id, 'Sarah', 'Davis', 'employee@techcorp.com',
+  '2023-09-01'::date, 'PART_TIME'::employment_type, 'Technical Advisor',
+  (SELECT id FROM locations WHERE name = 'Paris' AND company_id = c.id),
+  (SELECT id FROM cost_centers WHERE code = 'R&D' AND company_id = c.id),
+  (SELECT id FROM work_schedules WHERE name = 'Part Time (20h)' AND company_id = c.id),
+  3000, 'MONTHLY'::salary_period, 'ACTIVE'::employee_status
+FROM companies c
+WHERE c.name = 'InnovateLab';
+
 -- Print summary
 DO $$
 BEGIN
-  RAISE NOTICE 'Seed completed successfully!';
-  RAISE NOTICE 'Company: Guepard';
-  RAISE NOTICE 'Employees: 4 employees created WITHOUT accounts';
+  RAISE NOTICE 'Multi-company seed completed successfully!';
+  RAISE NOTICE 'Companies created: 3';
+  RAISE NOTICE '- Guepard (Tunisia) - 4 employees';
+  RAISE NOTICE '- TechCorp (USA) - 4 employees + 1 cross-company';
+  RAISE NOTICE '- InnovateLab (France) - 4 employees + 1 cross-company';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Total employees: 10 (including 2 cross-company)';
   RAISE NOTICE 'Company structure: Complete with locations, cost centers, work schedules';
   RAISE NOTICE '';
-  RAISE NOTICE 'Employees Created:';
+  RAISE NOTICE 'Guepard Employees:';
   RAISE NOTICE 'Ahmed: admin@guepard.run - CEO & Founder';
   RAISE NOTICE 'Fatma: hr@guepard.run - HR Manager';
   RAISE NOTICE 'Mohamed: manager@guepard.run - Engineering Manager';
   RAISE NOTICE 'Sara: employee@guepard.run - Software Developer';
   RAISE NOTICE '';
-  RAISE NOTICE 'Next Steps:';
-  RAISE NOTICE '1. Run create-test-users.js to create auth users with simplified roles';
-  RAISE NOTICE '2. Script will create accounts with ADMIN/EMPLOYEE roles and link employees';
-  RAISE NOTICE '3. Users can then login and access the system based on their role';
+  RAISE NOTICE 'TechCorp Employees:';
+  RAISE NOTICE 'John: admin@techcorp.com - CEO';
+  RAISE NOTICE 'Emily: hr@techcorp.com - HR Director';
+  RAISE NOTICE 'Michael: manager@techcorp.com - Engineering Manager';
+  RAISE NOTICE 'Sarah: employee@techcorp.com - Senior Developer';
+  RAISE NOTICE 'Ahmed: admin@guepard.run - Strategic Consultant (cross-company)';
   RAISE NOTICE '';
-  RAISE NOTICE 'Role Assignment:';
-  RAISE NOTICE 'CEO (Ahmed) → ADMIN role';
-  RAISE NOTICE 'HR Manager (Fatma) → ADMIN role';
-  RAISE NOTICE 'Engineering Manager (Mohamed) → EMPLOYEE role';
-  RAISE NOTICE 'Software Developer (Sara) → EMPLOYEE role';
+  RAISE NOTICE 'InnovateLab Employees:';
+  RAISE NOTICE 'Pierre: admin@innovatelab.fr - Directeur Général';
+  RAISE NOTICE 'Marie: hr@innovatelab.fr - Responsable RH';
+  RAISE NOTICE 'Jean: manager@innovatelab.fr - Chef de Projet R&D';
+  RAISE NOTICE 'Sophie: employee@innovatelab.fr - Ingénieur R&D';
+  RAISE NOTICE 'Sarah: employee@techcorp.com - Technical Advisor (cross-company)';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Next Steps:';
+  RAISE NOTICE '1. Run create-multi-company-users.js to create auth users with multi-company roles';
+  RAISE NOTICE '2. Script will create accounts and account_company_roles entries';
+  RAISE NOTICE '3. Users can switch between companies and have different roles per company';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Multi-Company Role Examples:';
+  RAISE NOTICE 'Ahmed: ADMIN at Guepard, EMPLOYEE at TechCorp';
+  RAISE NOTICE 'Sarah: EMPLOYEE at TechCorp, EMPLOYEE at InnovateLab';
 END $$;

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import MainLayout from "@/components/layout/main-layout"
+import EmployeeLayout from "@/components/layout/employee-layout"
 import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function EmployeeDashboardPage() {
@@ -26,7 +26,7 @@ export default function EmployeeDashboardPage() {
   if (!user || user.isAdmin) return null;
 
   return (
-    <MainLayout>
+    <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-between space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">
@@ -106,6 +106,6 @@ export default function EmployeeDashboardPage() {
           </div>
         </div>
               </div>
-    </MainLayout>
+    </EmployeeLayout>
   );
 }

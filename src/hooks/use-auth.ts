@@ -13,6 +13,19 @@ export interface User {
   status?: string;
   role?: 'admin' | 'member';
   companyId?: string;
+  // Multi-company support
+  companies?: Array<{
+    company_id: string;
+    company_name: string;
+    role: 'ADMIN' | 'EMPLOYEE';
+    is_active: boolean;
+    joined_at: string;
+  }>;
+  currentCompany?: {
+    company_id: string;
+    company_name: string;
+    role: 'ADMIN' | 'EMPLOYEE';
+  };
 }
 
 interface AuthState {
@@ -260,6 +273,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Redirect based on user role
       console.log('Login successful, redirecting user:', data.user);
+      console.log('User isAdmin value:', data.user.isAdmin);
+      console.log('User role value:', data.user.role);
       // Small delay to ensure state is updated
       setTimeout(() => {
         if (data.user.isAdmin) {
