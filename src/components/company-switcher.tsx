@@ -30,11 +30,15 @@ export function CompanySwitcher() {
   const router = useRouter();
   
   // Check if current user is a superuser
-  const isSuperuser = currentCompany?.role === 'SUPERUSER';
+  const isSuperuser = user?.role === 'SUPERUSER';
+  
+  // Force re-render when user changes
+  console.log('CompanySwitcher render - user role:', user?.role, 'isSuperuser:', isSuperuser);
   
   // Debug logging
   console.log('CompanySwitcher Debug:', {
     user: !!user,
+    userRole: user?.role,
     companies: companies.length,
     currentCompany,
     isSuperuser,
@@ -130,7 +134,7 @@ export function CompanySwitcher() {
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-muted-foreground text-xs">
-              Teams
+              Companies
             </DropdownMenuLabel>
             {companies.map((company, index) => (
               <DropdownMenuItem

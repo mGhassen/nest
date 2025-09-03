@@ -114,6 +114,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('Session API success response:', data);
       
       if (data.success && data.user) {
+        console.log('Setting user data from session API:', data.user);
+        console.log('User role from session API:', data.user.role);
         setUser(data.user);
         setAuthError(null); // Clear any previous errors
         return data.user;
@@ -267,6 +269,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoginError(new Error('Failed to load user profile'));
         return;
       }
+      console.log('Setting user data from login API:', data.user);
+      console.log('User role from login API:', data.user.role);
       setUser(data.user);
       setLoginError(null); // Clear any previous errors
       setAuthError(null); // Clear any previous auth errors
