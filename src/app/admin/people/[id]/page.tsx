@@ -41,7 +41,7 @@ import {
 } from "lucide-react"
 import EmployeeHeader from "@/components/employees/employee-header"
 import EmployeeOverview from "@/components/employees/employee-overview"
-import EmployeeAdministration from "@/components/employees/employee-administration"
+import EmployeeAdministrationSubmenu from "@/components/employees/employee-administration-submenu"
 import EmployeeContracts from "@/components/employees/employee-contracts"
 import EmployeePayroll from "@/components/employees/employee-payroll"
 import EmployeeDocuments from "@/components/employees/employee-documents"
@@ -523,7 +523,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
 
           {/* Administration Tab */}
           <TabsContent value="administration" className="space-y-4">
-            <EmployeeAdministration 
+            <EmployeeAdministrationSubmenu 
               employeeId={employee.id}
               employee={{
                 ...employee,
