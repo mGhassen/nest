@@ -121,22 +121,22 @@ FROM companies c WHERE c.name = 'InnovateLab';
 
 -- 5. Create Company Branding (Visual identity)
 INSERT INTO company_branding (
-    company_id, brand_color, secondary_color
+    company_id, brand_color, secondary_color, icon_name
 )
 SELECT 
-    c.id, '#2563EB', '#1E40AF'
+    c.id, '#2563EB', '#1E40AF', 'Building2'
 FROM companies c WHERE c.name = 'Guepard'
 
 UNION ALL
 
 SELECT 
-    c.id, '#059669', '#047857'
+    c.id, '#059669', '#047857', 'Users'
 FROM companies c WHERE c.name = 'TechCorp'
 
 UNION ALL
 
 SELECT 
-    c.id, '#DC2626', '#B91C1C'
+    c.id, '#DC2626', '#B91C1C', 'Lightbulb'
 FROM companies c WHERE c.name = 'InnovateLab';
 
 -- 6. Create Company Social (Social media links)

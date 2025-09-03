@@ -46,6 +46,7 @@ CREATE TABLE company_branding (
     logo_url TEXT,
     brand_color VARCHAR(7),
     secondary_color VARCHAR(7),
+    icon_name VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(company_id)
@@ -225,6 +226,7 @@ COMMENT ON TABLE company_social IS 'Social media links and online presence for c
 COMMENT ON TABLE company_contacts IS 'Contact information and communication channels for companies';
 
 COMMENT ON TABLE companies IS 'Core company information - now normalized with related tables for detailed information';
+COMMENT ON COLUMN company_branding.icon_name IS 'Icon name for company switcher display (e.g., Building2, Users, etc.)';
 
 -- 11. Create views for easy access to complete company data
 CREATE VIEW companies_complete AS
@@ -270,6 +272,7 @@ SELECT
     cb.logo_url,
     cb.brand_color,
     cb.secondary_color,
+    cb.icon_name,
     -- Social media
     cs.linkedin_url,
     cs.twitter_url,

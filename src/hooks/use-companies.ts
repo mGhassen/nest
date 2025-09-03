@@ -9,6 +9,7 @@ export interface UserCompany {
   company_id: string;
   company_name: string;
   role: 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
+  icon_name?: string;
 }
 
 export interface Company {

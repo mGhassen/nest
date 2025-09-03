@@ -9,12 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, X, Palette, Image } from "lucide-react";
+import { Save, X, Palette, Image, 
+  Building2, Users, Lightbulb, Briefcase, 
+  Heart, Star, Zap, Shield, Globe, 
+  Target, Rocket, Coffee, Home, 
+  Car, Plane, Ship, Truck } from "lucide-react";
 
 const brandingSchema = z.object({
   brand_color: z.string().optional(),
   secondary_color: z.string().optional(),
   logo_url: z.string().url().optional().or(z.literal("")),
+  icon_name: z.string().optional(),
 });
 
 type BrandingFormData = z.infer<typeof brandingSchema>;
@@ -25,6 +30,26 @@ interface CompanyBrandingFormProps {
   onSave?: (data: BrandingFormData) => void;
   onCancel?: () => void;
 }
+
+const iconOptions = [
+  { name: 'Building2', component: Building2, label: 'Building' },
+  { name: 'Users', component: Users, label: 'Users' },
+  { name: 'Lightbulb', component: Lightbulb, label: 'Lightbulb' },
+  { name: 'Briefcase', component: Briefcase, label: 'Briefcase' },
+  { name: 'Heart', component: Heart, label: 'Heart' },
+  { name: 'Star', component: Star, label: 'Star' },
+  { name: 'Zap', component: Zap, label: 'Zap' },
+  { name: 'Shield', component: Shield, label: 'Shield' },
+  { name: 'Globe', component: Globe, label: 'Globe' },
+  { name: 'Target', component: Target, label: 'Target' },
+  { name: 'Rocket', component: Rocket, label: 'Rocket' },
+  { name: 'Coffee', component: Coffee, label: 'Coffee' },
+  { name: 'Home', component: Home, label: 'Home' },
+  { name: 'Car', component: Car, label: 'Car' },
+  { name: 'Plane', component: Plane, label: 'Plane' },
+  { name: 'Ship', component: Ship, label: 'Ship' },
+  { name: 'Truck', component: Truck, label: 'Truck' },
+];
 
 export default function CompanyBrandingForm({ 
   companyId, 
@@ -41,6 +66,7 @@ export default function CompanyBrandingForm({
       brand_color: initialData?.brand_color || "",
       secondary_color: initialData?.secondary_color || "",
       logo_url: initialData?.logo_url || "",
+      icon_name: initialData?.icon_name || "",
     },
   });
 
@@ -174,6 +200,52 @@ export default function CompanyBrandingForm({
                     e.currentTarget.style.display = 'none';
                   }}
                 />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Company Icon
+            </Label>
+            <div className="grid grid-cols-6 gap-2">
+              {iconOptions.map((icon) => {
+                const IconComponent = icon.component;
+                const isSelected = form.watch("icon_name") === icon.name;
+                return (
+                  <button
+                    key={icon.name}
+                    type="button"
+                    onClick={() => form.setValue("icon_name", icon.name)}
+                    disabled={!isEditing}
+                    className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-colors ${
+                      isSelected 
+                        ? 'border-primary bg-primary/10 text-primary' 
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    } ${!isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <IconComponent className="h-5 w-5" />
+                    <span className="text-xs text-center">{icon.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {form.watch("icon_name") && (
+              <div className="mt-2 p-2 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Selected icon:</span>
+                  {(() => {
+                    const selectedIcon = iconOptions.find(icon => icon.name === form.watch("icon_name"));
+                    const IconComponent = selectedIcon?.component;
+                    return IconComponent ? (
+                      <>
+                        <IconComponent className="h-4 w-4" />
+                        <span className="text-sm font-medium">{selectedIcon.label}</span>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
               </div>
             )}
           </div>

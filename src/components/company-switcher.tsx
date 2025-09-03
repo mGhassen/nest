@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { ChevronsUpDown, Plus } from "lucide-react";
+import { ChevronsUpDown, Plus, 
+  Building2, Users, Lightbulb, Briefcase, 
+  Heart, Star, Zap, Shield, Globe, 
+  Target, Rocket, Coffee, Home, 
+  Car, Plane, Ship, Truck } from "lucide-react";
 import { useUserCompanies, useCurrentCompany, useSwitchCompany } from "@/hooks/use-companies";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -20,6 +24,21 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+
+// Icon mapping for company icons
+const iconMap = {
+  Building2, Users, Lightbulb, Briefcase, 
+  Heart, Star, Zap, Shield, Globe, 
+  Target, Rocket, Coffee, Home, 
+  Car, Plane, Ship, Truck
+};
+
+const getCompanyIcon = (iconName?: string) => {
+  if (!iconName || !(iconName in iconMap)) {
+    return Building2; // Default icon
+  }
+  return iconMap[iconName as keyof typeof iconMap];
+};
 
 export function CompanySwitcher() {
   const { user } = useAuth();
@@ -115,7 +134,10 @@ export function CompanySwitcher() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <div className="size-4 rounded-sm bg-current" />
+                {(() => {
+                  const IconComponent = getCompanyIcon(currentCompany.icon_name);
+                  return <IconComponent className="size-4" />;
+                })()}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{currentCompany.company_name}</span>
@@ -136,19 +158,22 @@ export function CompanySwitcher() {
             <DropdownMenuLabel className="text-muted-foreground text-xs">
               Companies
             </DropdownMenuLabel>
-            {companies.map((company, index) => (
-              <DropdownMenuItem
-                key={company.company_id}
-                onClick={() => handleSelect(company.company_id)}
-                className="gap-2 p-2"
-              >
-                <div className="flex size-6 items-center justify-center rounded-md border">
-                  <div className="size-3.5 rounded-sm bg-current" />
-                </div>
-                {company.company_name}
-                <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
-              </DropdownMenuItem>
-            ))}
+            {companies.map((company, index) => {
+              const IconComponent = getCompanyIcon(company.icon_name);
+              return (
+                <DropdownMenuItem
+                  key={company.company_id}
+                  onClick={() => handleSelect(company.company_id)}
+                  className="gap-2 p-2"
+                >
+                  <div className="flex size-6 items-center justify-center rounded-md border">
+                    <IconComponent className="size-3.5" />
+                  </div>
+                  {company.company_name}
+                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                </DropdownMenuItem>
+              );
+            })}
             {isSuperuser && (
               <>
                 <DropdownMenuSeparator />

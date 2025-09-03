@@ -97,16 +97,19 @@ CREATE OR REPLACE FUNCTION get_account_companies(p_account_id UUID)
 RETURNS TABLE (
     company_id UUID,
     company_name VARCHAR(255),
-    role user_role
+    role user_role,
+    icon_name VARCHAR(50)
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
         c.id,
         c.name,
-        acr.role
+        acr.role,
+        cb.icon_name
     FROM account_company_roles acr
     JOIN companies c ON c.id = acr.company_id
+    LEFT JOIN company_branding cb ON c.id = cb.company_id
     WHERE acr.account_id = p_account_id
     ORDER BY c.name;
 END;
