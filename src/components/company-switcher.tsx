@@ -76,7 +76,12 @@ export function CompanySwitcher() {
   }
 
   const handleSelect = (companyId: string) => {
+    // Always allow portal selection, even if it's the same company
+    // This allows users to switch between admin/employee portals for the same company
+    
     if (companyId === currentCompany?.company_id) {
+      // If it's the same company, just redirect to portal selection directly
+      window.location.href = '/portal-selection';
       return;
     }
 
