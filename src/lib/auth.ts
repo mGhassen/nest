@@ -48,7 +48,8 @@ export async function getCurrentUserRole(accountId: string): Promise<UserRole | 
       return null;
     }
     
-    return currentCompany[0].role;
+    // Convert is_admin boolean to UserRole
+    return currentCompany[0].is_admin ? 'ADMIN' : 'EMPLOYEE';
   } catch (error) {
     console.error('Error in getCurrentUserRole:', error);
     return null;
@@ -100,7 +101,7 @@ export async function getEmployeeRoleInCompany(accountId: string, companyId: str
     
     const { data: roleData, error } = await supabase
       .from('account_company_roles')
-      .select('role')
+      .select('is_admin')
       .eq('account_id', accountId)
       .eq('company_id', companyId)
       .single();
@@ -109,7 +110,8 @@ export async function getEmployeeRoleInCompany(accountId: string, companyId: str
       return null;
     }
     
-    return roleData.role;
+    // Convert is_admin boolean to UserRole
+    return roleData.is_admin ? 'ADMIN' : 'EMPLOYEE';
   } catch (error) {
     console.error('Error in getEmployeeRoleInCompany:', error);
     return null;
