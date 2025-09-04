@@ -46,7 +46,7 @@ export default function CompaniesPage() {
   const [selectAll, setSelectAll] = useState(false);
 
   const handleCreateCompany = () => {
-    router.push("/admin/companies/create");
+    router.push("/admin/settings/companies/create");
   };
 
   // Filter and sort companies

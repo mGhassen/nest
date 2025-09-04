@@ -209,7 +209,7 @@ export default function SuperuserOnboardingPage() {
                 </div>
                 
                 <Button 
-                  onClick={() => router.push('/admin/companies/create')}
+                  onClick={() => router.push('/admin/settings/companies/create')}
                   className="w-full"
                   size="lg"
                 >

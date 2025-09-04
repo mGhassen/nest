@@ -216,7 +216,7 @@ export function CompanySwitcher() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="gap-2 p-2" 
-                  onClick={() => router.push('/admin/companies/create')}
+                  onClick={() => router.push('/admin/settings/companies/create')}
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                     <Plus className="size-4" />
