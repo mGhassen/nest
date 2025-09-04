@@ -53,11 +53,33 @@ export async function GET(
       }, { status: 403 });
     }
 
-    // Fetch the specific account
+    // Get current company info
+    const { data: currentCompany, error: companyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
+
+    if (companyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Unable to determine current company',
+      }, { status: 400 });
+    }
+
+    const currentCompanyId = currentCompany[0].company_id;
+
+    // Fetch the specific account and verify it belongs to the current company
     const { data: account, error: accountError } = await supabaseServer()
       .from('accounts')
-      .select('*')
+      .select(`
+        *,
+        account_company_roles!inner(
+          company_id,
+          is_admin,
+          is_active,
+          joined_at
+        )
+      `)
       .eq('id', id)
+      .eq('account_company_roles.company_id', currentCompanyId)
       .single();
 
     if (accountError || !account) {
@@ -67,20 +89,46 @@ export async function GET(
       }, { status: 404 });
     }
 
-    // Fetch linked employee if exists
+    // Fetch all company relationships for this account
+    const { data: allCompanyRoles, error: companyRolesError } = await supabaseServer()
+      .from('account_company_roles')
+      .select(`
+        company_id,
+        is_admin,
+        is_active,
+        joined_at,
+        companies!inner(
+          id,
+          name,
+          status
+        )
+      `)
+      .eq('account_id', id);
+
+    if (companyRolesError) {
+      console.error('Error fetching company roles:', companyRolesError);
+    }
+
+    // Fetch linked employee if exists (from current company)
     const { data: employee, error: employeeError } = await supabaseServer()
       .from('employees')
       .select('*')
       .eq('account_id', id)
+      .eq('company_id', currentCompanyId)
       .single();
 
     if (employeeError && employeeError.code !== 'PGRST116') {
       console.error('Error fetching employee:', employeeError);
     }
 
-    // Combine account with employee data
-    const accountWithEmployee = {
+    // Get current company role
+    const currentCompanyRole = account.account_company_roles?.[0];
+
+    // Combine account with comprehensive data
+    const accountWithData = {
       ...account,
+      current_company_role: currentCompanyRole,
+      all_company_roles: allCompanyRoles || [],
       employee: employee ? {
         id: employee.id,
         first_name: employee.first_name,
@@ -92,7 +140,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: accountWithEmployee
+      data: accountWithData
     });
 
   } catch (error) {

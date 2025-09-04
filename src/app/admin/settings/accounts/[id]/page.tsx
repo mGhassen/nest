@@ -153,13 +153,29 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
     );
   };
 
-  const getRoleBadge = (role: string) => {
-    return (
-      <Badge variant={role === 'ADMIN' ? 'default' : 'secondary'}>
-        <Shield className="w-3 h-3 mr-1" />
-        {role}
-      </Badge>
-    );
+  const getRoleBadge = (account: any) => {
+    if (account.is_superuser) {
+      return (
+        <Badge variant="default" className="bg-purple-100 text-purple-800">
+          <Shield className="w-3 h-3 mr-1" />
+          Superuser
+        </Badge>
+      );
+    } else if (account.current_company_role?.is_admin) {
+      return (
+        <Badge variant="default">
+          <Shield className="w-3 h-3 mr-1" />
+          Admin
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="secondary">
+          <User className="w-3 h-3 mr-1" />
+          Employee
+        </Badge>
+      );
+    }
   };
 
   if (isLoading || accountLoading) {
@@ -269,7 +285,7 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                       {account.first_name} {account.last_name}
                     </h2>
                     {getStatusBadge(account)}
-                    {getRoleBadge(account.role)}
+                    {getRoleBadge(account)}
                   </div>
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-1">
@@ -349,7 +365,7 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Role</span>
-                      {getRoleBadge(account.role)}
+                      {getRoleBadge(account)}
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Active</span>
@@ -429,6 +445,47 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                       <Badge variant={account.password_reset_completed_at ? "default" : "secondary"}>
                         {account.password_reset_completed_at ? "Completed" : "Pending"}
                       </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Company Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center space-x-2">
+                    <Building2 className="h-4 w-4" />
+                    <span>Company Information</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Company</span>
+                      <span className="text-sm font-medium">
+                        {account.current_company_role?.companies?.name || 'Not Set'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Company Role</span>
+                      <Badge variant={account.current_company_role?.is_admin ? "default" : "secondary"}>
+                        {account.current_company_role?.is_admin ? "Admin" : "Employee"}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Joined Company</span>
+                      <span className="text-sm font-medium">
+                        {account.current_company_role?.joined_at 
+                          ? formatDistanceToNow(new Date(account.current_company_role.joined_at), { addSuffix: true })
+                          : "Unknown"
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Total Companies</span>
+                      <span className="text-sm font-medium">
+                        {account.all_company_roles?.length || 0}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -607,14 +664,15 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Permissions Tab */}
           <TabsContent value="permissions" className="space-y-6">
+            {/* Account Status & Basic Permissions */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Settings className="h-5 w-5" />
-                  <span>Account Permissions</span>
+                  <span>Account Status & Permissions</span>
                 </CardTitle>
                 <CardDescription>
-                  Manage account access and permissions
+                  Current account status and system access permissions
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -623,14 +681,22 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     <h4 className="font-medium">System Access</h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Admin Portal</span>
-                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
-                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
+                        <span className="text-sm">Superuser</span>
+                        <Badge variant={account.is_superuser ? "default" : "secondary"}>
+                          {account.is_superuser ? "Yes" : "No"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Employee Portal</span>
-                        <Badge variant="default">Allowed</Badge>
+                        <span className="text-sm">Admin in Current Company</span>
+                        <Badge variant={account.current_company_role?.is_admin ? "default" : "secondary"}>
+                          {account.current_company_role?.is_admin ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Employee Record</span>
+                        <Badge variant={account.employee ? "default" : "secondary"}>
+                          {account.employee ? "Linked" : "Not Linked"}
+                        </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">API Access</span>
@@ -640,24 +706,135 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   
                   <div className="space-y-3">
-                    <h4 className="font-medium">Data Access</h4>
+                    <h4 className="font-medium">Account Status</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Account Status</span>
+                        <Badge variant={account.account_status === 'ACTIVE' ? "default" : "destructive"}>
+                          {account.account_status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Email Verified</span>
+                        <Badge variant={account.is_active ? "default" : "secondary"}>
+                          {account.is_active ? "Verified" : "Unverified"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Last Login</span>
+                        <span className="text-sm text-muted-foreground">
+                          {account.last_login ? formatDistanceToNow(new Date(account.last_login), { addSuffix: true }) : 'Never'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Company Relationships */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Building2 className="h-5 w-5" />
+                  <span>Company Relationships</span>
+                </CardTitle>
+                <CardDescription>
+                  Companies this account is associated with and their roles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {account.all_company_roles && account.all_company_roles.length > 0 ? (
+                    <div className="space-y-3">
+                      {account.all_company_roles.map((role: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="space-y-1">
+                            <div className="font-medium">{role.companies?.name || 'Unknown Company'}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Joined: {formatDistanceToNow(new Date(role.joined_at), { addSuffix: true })}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={role.is_admin ? "default" : "secondary"}>
+                              {role.is_admin ? "Admin" : "Employee"}
+                            </Badge>
+                            <Badge variant={role.is_active ? "default" : "destructive"}>
+                              {role.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                            {role.company_id === account.current_company_id && (
+                              <Badge variant="outline">Current</Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No company relationships found</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data Access Permissions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Shield className="h-5 w-5" />
+                  <span>Data Access Permissions</span>
+                </CardTitle>
+                <CardDescription>
+                  What data this account can access and modify
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Account Management</h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">View Accounts</span>
-                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
-                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
+                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
+                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Manage Employees</span>
-                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
-                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
+                        <span className="text-sm">Create Accounts</span>
+                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
+                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">View Reports</span>
-                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
-                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
+                        <span className="text-sm">Manage Account Status</span>
+                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
+                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Employee Management</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">View Employees</span>
+                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
+                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Create Employees</span>
+                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
+                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Manage Companies</span>
+                        <Badge variant={account.is_superuser ? "default" : "secondary"}>
+                          {account.is_superuser ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                     </div>

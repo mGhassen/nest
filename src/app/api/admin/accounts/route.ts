@@ -48,10 +48,30 @@ export async function GET(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // Fetch all accounts
+    // Get current company info
+    const { data: currentCompany, error: companyError } = await supabaseServer()
+      .rpc('get_current_company_info', { p_account_id: userProfile.id });
+
+    if (companyError || !currentCompany || currentCompany.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Unable to determine current company',
+      }, { status: 400 });
+    }
+
+    const currentCompanyId = currentCompany[0].company_id;
+
+    // Fetch accounts that belong to the current company
     const { data: accounts, error: accountsError } = await supabaseServer()
       .from('accounts')
-      .select('*')
+      .select(`
+        *,
+        account_company_roles!inner(
+          company_id,
+          is_admin
+        )
+      `)
+      .eq('account_company_roles.company_id', currentCompanyId)
       .order('created_at', { ascending: false });
 
     if (accountsError) {
@@ -63,10 +83,11 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Fetch all employees
+    // Fetch employees from the current company
     const { data: employees, error: employeesError } = await supabaseServer()
       .from('employees')
-      .select('*');
+      .select('*')
+      .eq('company_id', currentCompanyId);
 
     if (employeesError) {
       console.error('Error fetching employees:', employeesError);

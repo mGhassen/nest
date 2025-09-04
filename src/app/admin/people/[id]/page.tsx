@@ -6,6 +6,7 @@ import { usePerson } from "@/hooks/use-people";
 import { useEmployeeInvitation, useAccountPasswordReset, useEmployeeLinkAccount, useEmployeeUnlinkAccount } from "@/hooks/use-accounts";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import AdminLayout from "@/components/layout/admin-layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,15 +38,15 @@ import {
   Settings,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
+  User,
+  Eye
 } from "lucide-react"
-import EmployeeHeader from "@/components/employees/employee-header"
 import EmployeeOverview from "@/components/employees/employee-overview"
 import EmployeeAdministrationSubmenu from "@/components/employees/employee-administration-submenu"
 import EmployeeContracts from "@/components/employees/employee-contracts"
 import EmployeePayroll from "@/components/employees/employee-payroll"
 import EmployeeDocuments from "@/components/employees/employee-documents"
-import EmployeeAccountOverview from "@/components/employees/employee-account-overview"
 import type { EmployeeDetail, PayrollRecord } from "@/types/employee"
 import { LoadingPage } from "@/components/ui/loading-spinner"
 
@@ -67,7 +68,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     // Check for tab parameter in URL on initial load
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
-    const validTabs = ['overview', 'account', 'administration', 'contracts', 'payroll', 'documents'];
+    const validTabs = ['overview', 'administration', 'contracts', 'payroll', 'documents'];
     
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
@@ -94,7 +95,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     const handlePopState = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      const validTabs = ['overview', 'account', 'administration', 'contracts', 'payroll', 'documents'];
+      const validTabs = ['overview', 'administration', 'contracts', 'payroll', 'documents'];
       
       if (tabParam && validTabs.includes(tabParam)) {
         setActiveTab(tabParam);
@@ -355,11 +356,46 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     <AdminLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         {/* Header */}
-        <EmployeeHeader 
-          employee={transformedEmployee}
-          onEditEmployee={handleEditEmployee}
-          onViewProfile={handleViewProfile}
-        />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/people/list">
+                ← Back to People
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {employee.first_name} {employee.last_name}
+              </h1>
+              <p className="text-muted-foreground">{employee.position_title}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Badge variant={employee.status === 'ACTIVE' ? 'default' : 'secondary'}>
+              {employee.status}
+            </Badge>
+            {employee.account && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                asChild
+                title="View Account"
+              >
+                <Link href={`/admin/settings/accounts/${employee.account.id}`}>
+                  <User className="mr-2 h-4 w-4" />
+                  Account
+                </Link>
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={handleViewProfile}>
+              <Eye className="mr-2 h-4 w-4" />
+              View Profile
+            </Button>
+            <Button size="sm" onClick={handleEditEmployee}>
+              Edit Employee
+            </Button>
+          </div>
+        </div>
 
         {/* Employee Status & Actions Bar */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
@@ -483,7 +519,6 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="administration">Administration</TabsTrigger>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
@@ -495,31 +530,6 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             <EmployeeOverview employee={transformedEmployee} />
           </TabsContent>
 
-          {/* Account Tab */}
-          <TabsContent value="account" className="space-y-4">
-            <EmployeeAccountOverview 
-              employee={{
-                id: employee.id,
-                first_name: employee.first_name,
-                last_name: employee.last_name,
-                email: employee.email,
-                account: employee.account ? {
-                  id: employee.account.id,
-                  email: employee.account.email,
-                  first_name: employee.account.first_name,
-                  last_name: employee.account.last_name,
-                  role: employee.account.role,
-                  is_active: employee.account.is_active || false,
-                  profile_image_url: employee.account.profile_image_url
-                } : null
-              }}
-              onCreateAccount={handleCreateAccount}
-              onLinkAccount={handleLinkAccount}
-              onUnlinkAccount={handleUnlinkAccount}
-              onPasswordReset={handlePasswordReset}
-              onResendInvitation={handleResendInvitation}
-            />
-          </TabsContent>
 
           {/* Administration Tab */}
           <TabsContent value="administration" className="space-y-4">
