@@ -84,20 +84,22 @@ export function CompanySwitcher() {
       onSuccess: (newCompany) => {
         // Determine which portal to redirect to based on permissions
         const isAdmin = newCompany.is_admin || false;
-        const hasEmployeeAccess = true; // For now, assume all companies have employee access
+        const hasEmployeeAccess = newCompany.hasEmployeeAccess || false;
         
-        if (isAdmin && !hasEmployeeAccess) {
+        console.log('Company switch - permissions:', { isAdmin, hasEmployeeAccess, companyId });
+        
+        if (isAdmin && hasEmployeeAccess) {
+          // Both admin and employee access - go to admin portal (can switch)
+          window.location.href = '/admin/dashboard';
+        } else if (isAdmin && !hasEmployeeAccess) {
           // Admin only - go to admin portal
           window.location.href = '/admin/dashboard';
         } else if (!isAdmin && hasEmployeeAccess) {
           // Employee only - go to employee portal
           window.location.href = '/employee/dashboard';
-        } else if (isAdmin && hasEmployeeAccess) {
-          // Both admin and employee - default to admin portal
-          window.location.href = '/admin/dashboard';
         } else {
-          // Fallback - refresh page
-          window.location.reload();
+          // No access - redirect to unauthorized page
+          window.location.href = '/unauthorized';
         }
       },
       onError: (error) => {

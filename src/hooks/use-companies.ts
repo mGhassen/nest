@@ -10,6 +10,7 @@ export interface UserCompany {
   company_name: string;
   is_admin: boolean;
   icon_name?: string;
+  hasEmployeeAccess?: boolean;
 }
 
 export interface Company {

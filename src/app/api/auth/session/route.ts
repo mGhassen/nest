@@ -144,6 +144,25 @@ export async function GET(req: NextRequest) {
 
     const isAdmin = currentRole === 'ADMIN' || isSuperuser;
 
+    // Check if user has employee access in current company
+    let hasEmployeeAccess = false;
+    if (currentCompanyId) {
+      const { data: employeeRecord, error: employeeError } = await supabaseServer()
+        .from('employees')
+        .select('id, status')
+        .eq('account_id', userData.id)
+        .eq('company_id', currentCompanyId)
+        .eq('status', 'ACTIVE')
+        .single();
+      
+      hasEmployeeAccess = !employeeError && !!employeeRecord;
+      console.log('Debug - Employee access check:', { 
+        hasEmployeeAccess, 
+        employeeError: employeeError?.message,
+        employeeRecord: !!employeeRecord 
+      });
+    }
+
     // Return user data with multi-company support
     return NextResponse.json({
       success: true,
@@ -158,7 +177,10 @@ export async function GET(req: NextRequest) {
         companyId: currentCompanyId,
         // Multi-company data
         companies: userCompanies || [],
-        currentCompany: currentCompanyData,
+        currentCompany: currentCompanyData ? {
+          ...currentCompanyData,
+          hasEmployeeAccess
+        } : null,
       },
     });
   } catch (error: unknown) {

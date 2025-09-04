@@ -25,6 +25,7 @@ export interface User {
     company_id: string;
     company_name: string;
     is_admin: boolean;
+    hasEmployeeAccess?: boolean;
   };
 }
 
@@ -227,20 +228,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
               } else {
                 // Determine portal based on user permissions
                 const isAdmin = data.user.currentCompany?.is_admin || false;
-                const hasEmployeeAccess = true; // For now, assume all users have employee access
+                const hasEmployeeAccess = data.user.currentCompany?.hasEmployeeAccess || false;
                 
-                if (isAdmin && !hasEmployeeAccess) {
-                  // Admin only - go directly to admin portal
+                if (isAdmin && hasEmployeeAccess) {
+                  // Both admin and employee access - go to admin portal (can switch)
+                  window.location.href = '/admin/dashboard';
+                } else if (isAdmin && !hasEmployeeAccess) {
+                  // Admin only - go to admin portal
                   window.location.href = '/admin/dashboard';
                 } else if (!isAdmin && hasEmployeeAccess) {
-                  // Employee only - go directly to employee portal
+                  // Employee only - go to employee portal
                   window.location.href = '/employee/dashboard';
-                } else if (isAdmin && hasEmployeeAccess) {
-                  // Both admin and employee - default to admin portal (user can switch)
-                  window.location.href = '/admin/dashboard';
                 } else {
-                  // Fallback to employee portal
-                  window.location.href = '/employee/dashboard';
+                  // No access - redirect to unauthorized page
+                  window.location.href = '/unauthorized';
                 }
               }
     } catch (error) {

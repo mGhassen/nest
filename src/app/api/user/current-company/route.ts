@@ -191,9 +191,31 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Check if user has employee access in the new company
+    let hasEmployeeAccess = false;
+    if (currentCompany[0]) {
+      const { data: employeeRecord, error: employeeError } = await supabase
+        .from('employees')
+        .select('id, status')
+        .eq('account_id', account.id)
+        .eq('company_id', currentCompany[0].company_id)
+        .eq('status', 'ACTIVE')
+        .single();
+      
+      hasEmployeeAccess = !employeeError && !!employeeRecord;
+      console.log('Company switch - employee access check:', { 
+        hasEmployeeAccess, 
+        employeeError: employeeError?.message,
+        employeeRecord: !!employeeRecord 
+      });
+    }
+    
     return NextResponse.json({
       success: true,
-      currentCompany: currentCompany[0],
+      currentCompany: {
+        ...currentCompany[0],
+        hasEmployeeAccess
+      },
       message: 'Company switched successfully'
     });
   } catch (error) {

@@ -59,7 +59,9 @@ export function NavUser({
   // Determine current portal and permissions
   const currentPortal = pathname.startsWith('/admin') ? 'admin' : 'employee'
   const isAdmin = authUser?.currentCompany?.is_admin || false
-  const hasEmployeeAccess = true // For now, assume all users have employee access
+  const hasEmployeeAccess = authUser?.currentCompany?.hasEmployeeAccess || false
+  
+  // Portal switcher only shows if user has BOTH admin AND employee access
   const canSwitchPortals = isAdmin && hasEmployeeAccess
 
   const handleLogout = async () => {
@@ -72,9 +74,9 @@ export function NavUser({
 
   const handlePortalSwitch = (portal: 'admin' | 'employee') => {
     if (portal === 'admin') {
-      router.push('/admin/dashboard')
+      window.location.href = '/admin/dashboard'
     } else {
-      router.push('/employee/dashboard')
+      window.location.href = '/employee/dashboard'
     }
   }
 
