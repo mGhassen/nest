@@ -7,10 +7,17 @@
 ALTER TABLE account_company_roles 
 ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
 
--- Migrate existing data: set is_admin = true where role = 'ADMIN'
-UPDATE account_company_roles 
-SET is_admin = true 
-WHERE role = 'ADMIN';
+-- Migrate existing data: set is_admin = true where role = 'ADMIN' (if role column exists)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'account_company_roles' 
+               AND column_name = 'role') THEN
+        UPDATE account_company_roles 
+        SET is_admin = true 
+        WHERE role = 'ADMIN';
+    END IF;
+END $$;
 
 -- Add is_active column if it doesn't exist
 ALTER TABLE account_company_roles 
@@ -24,6 +31,7 @@ ADD COLUMN IF NOT EXISTS joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE account_company_roles DROP COLUMN IF EXISTS role;
 
 -- Update the get_account_companies function to use is_admin
+DROP FUNCTION IF EXISTS get_account_companies(UUID);
 CREATE OR REPLACE FUNCTION get_account_companies(p_account_id UUID)
 RETURNS TABLE (
     company_id UUID,
@@ -47,6 +55,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Update the get_current_company_info function to use is_admin
+DROP FUNCTION IF EXISTS get_current_company_info(UUID);
 CREATE OR REPLACE FUNCTION get_current_company_info(p_account_id UUID)
 RETURNS TABLE (
     company_id UUID,
@@ -71,6 +80,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Update the set_current_company function to use is_admin
+DROP FUNCTION IF EXISTS set_current_company(UUID, UUID);
 CREATE OR REPLACE FUNCTION set_current_company(p_account_id UUID, p_company_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE

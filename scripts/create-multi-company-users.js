@@ -7,12 +7,35 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-// Supabase configuration
-const supabaseUrl = 'http://127.0.0.1:54421';
-const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+// Supabase configuration from environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+// Added to allow creating users without signup
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Validate required environment variables
+if (!supabaseUrl) {
+  console.error('❌ Error: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL environment variable is required');
+  process.exit(1);
+}
+
+if (!anonKey) {
+  console.error('❌ Error: NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY environment variable is required');
+  process.exit(1);
+}
+
+// Validate service role for admin user creation
+if (!serviceRoleKey) {
+  console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is required to create users without signup');
+  process.exit(1);
+}
+
+console.log(`🔗 Using Supabase URL: ${supabaseUrl}`);
 const supabase = createClient(supabaseUrl, anonKey);
+// Admin client used only for creating auth users
+const admin = createClient(supabaseUrl, serviceRoleKey);
 
 // Multi-company users with their roles in different companies
 const multiCompanyUsers = [
@@ -169,15 +192,14 @@ async function createMultiCompanyUsers() {
     try {
       console.log(`📝 Creating user: ${user.email}`);
       
-      // Step 1: Create auth user
-      const { data: authUser, error: authError } = await supabase.auth.signUp({
+      // Step 1: Create auth user (changed to Admin API, no signup)
+      const { data: authUser, error: authError } = await admin.auth.admin.createUser({
         email: user.email,
         password: user.password,
-        options: {
-          data: {
-            first_name: user.firstName,
-            last_name: user.lastName
-          }
+        email_confirm: true,
+        user_metadata: {
+          first_name: user.firstName,
+          last_name: user.lastName
         }
       });
       
@@ -186,7 +208,7 @@ async function createMultiCompanyUsers() {
         continue;
       }
       
-      if (!authUser.user) {
+      if (!authUser || !authUser.user) {
         console.error(`❌ No user returned for ${user.email}`);
         continue;
       }
@@ -269,8 +291,8 @@ async function createMultiCompanyUsers() {
       
       // Step 5: Set current company (only if user has companies)
       if (user.companies.length > 0) {
-        const adminCompany = user.companies.find(c => c.role === 'ADMIN');
-        const defaultCompany = adminCompany || user.companies[0]; // Use ADMIN company if available, otherwise first company
+        const adminCompany = user.companies.find(c => c.role === 'ADMIN'); // kept as is
+        const defaultCompany = adminCompany || user.companies[0]; // kept as is
         const defaultCompanyId = companyIds[defaultCompany.name];
         
         const { data: accountUpdate, error: accountUpdateError } = await supabase

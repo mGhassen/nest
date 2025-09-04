@@ -2,7 +2,7 @@
 -- This migration creates separate tables for different aspects of company data
 
 -- 1. Create company_profiles table for business information
-CREATE TABLE company_profiles (
+CREATE TABLE IF NOT EXISTS company_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     legal_name VARCHAR(255),
@@ -23,7 +23,7 @@ CREATE TABLE company_profiles (
 );
 
 -- 2. Create company_addresses table for location data
-CREATE TABLE company_addresses (
+CREATE TABLE IF NOT EXISTS company_addresses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     address_type VARCHAR(20) DEFAULT 'HEADQUARTERS' CHECK (address_type IN ('HEADQUARTERS', 'BRANCH', 'MAILING', 'BILLING')),
@@ -40,7 +40,7 @@ CREATE TABLE company_addresses (
 );
 
 -- 3. Create company_branding table for visual identity
-CREATE TABLE company_branding (
+CREATE TABLE IF NOT EXISTS company_branding (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     logo_url TEXT,
@@ -53,7 +53,7 @@ CREATE TABLE company_branding (
 );
 
 -- 4. Create company_social table for social media links
-CREATE TABLE company_social (
+CREATE TABLE IF NOT EXISTS company_social (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     linkedin_url VARCHAR(255),
@@ -66,7 +66,7 @@ CREATE TABLE company_social (
 );
 
 -- 5. Create company_contacts table for contact information
-CREATE TABLE company_contacts (
+CREATE TABLE IF NOT EXISTS company_contacts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     contact_type VARCHAR(20) DEFAULT 'GENERAL' CHECK (contact_type IN ('GENERAL', 'SUPPORT', 'SALES', 'BILLING', 'LEGAL')),

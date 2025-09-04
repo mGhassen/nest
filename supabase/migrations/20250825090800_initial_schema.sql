@@ -19,16 +19,50 @@
 --    and employee records (employees) while maintaining proper relationships.
 
 -- Create custom types
-CREATE TYPE user_role AS ENUM ('ADMIN', 'EMPLOYEE');
-CREATE TYPE employment_type AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'INTERN');
-CREATE TYPE salary_period AS ENUM ('HOURLY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY');
-CREATE TYPE employee_status AS ENUM ('ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE');
-CREATE TYPE timesheet_status AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED');
-CREATE TYPE leave_request_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
-CREATE TYPE payroll_status AS ENUM ('DRAFT', 'UPLOADED', 'APPROVED', 'PROCESSED');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('ADMIN', 'EMPLOYEE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE employment_type AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'INTERN');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE salary_period AS ENUM ('HOURLY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE employee_status AS ENUM ('ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE timesheet_status AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE leave_request_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payroll_status AS ENUM ('DRAFT', 'UPLOADED', 'APPROVED', 'PROCESSED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Create companies table
-CREATE TABLE companies (
+CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     country_code VARCHAR(3) NOT NULL,
@@ -38,7 +72,7 @@ CREATE TABLE companies (
 );
 
 -- Create locations table
-CREATE TABLE locations (
+CREATE TABLE IF NOT EXISTS locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -53,7 +87,7 @@ CREATE TABLE locations (
 );
 
 -- Create cost_centers table
-CREATE TABLE cost_centers (
+CREATE TABLE IF NOT EXISTS cost_centers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     code VARCHAR(10) NOT NULL,
@@ -64,7 +98,7 @@ CREATE TABLE cost_centers (
 );
 
 -- Create work_schedules table
-CREATE TABLE work_schedules (
+CREATE TABLE IF NOT EXISTS work_schedules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -75,7 +109,7 @@ CREATE TABLE work_schedules (
 
 -- Create accounts table (linked to Supabase auth)
 -- This table contains user authentication and role information
-CREATE TABLE accounts (
+CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -97,7 +131,7 @@ COMMENT ON COLUMN accounts.auth_user_id IS 'Reference to Supabase auth.users(id)
 COMMENT ON COLUMN accounts.role IS 'User role for access control and permissions';
 
 -- Create employees table with company_id (main business entity)
-CREATE TABLE employees (
+CREATE TABLE IF NOT EXISTS employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
@@ -129,7 +163,7 @@ COMMENT ON TABLE employees IS 'Employee business records with optional user acco
 COMMENT ON COLUMN accounts.role IS 'Simplified user role: ADMIN (can access everything) or EMPLOYEE (limited access)';
 
 -- Create leave_policies table
-CREATE TABLE leave_policies (
+CREATE TABLE IF NOT EXISTS leave_policies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     code VARCHAR(20) NOT NULL,
@@ -143,7 +177,7 @@ CREATE TABLE leave_policies (
 );
 
 -- Create payroll_cycles table
-CREATE TABLE payroll_cycles (
+CREATE TABLE IF NOT EXISTS payroll_cycles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
@@ -157,7 +191,7 @@ CREATE TABLE payroll_cycles (
 );
 
 -- Create timesheets table
-CREATE TABLE timesheets (
+CREATE TABLE IF NOT EXISTS timesheets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     week_start DATE NOT NULL,
@@ -169,7 +203,7 @@ CREATE TABLE timesheets (
 );
 
 -- Create timesheet_entries table
-CREATE TABLE timesheet_entries (
+CREATE TABLE IF NOT EXISTS timesheet_entries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     timesheet_id UUID NOT NULL REFERENCES timesheets(id) ON DELETE CASCADE,
     date DATE NOT NULL,
@@ -181,7 +215,7 @@ CREATE TABLE timesheet_entries (
 );
 
 -- Create leave_requests table
-CREATE TABLE leave_requests (
+CREATE TABLE IF NOT EXISTS leave_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     leave_policy_id UUID NOT NULL REFERENCES leave_policies(id),
@@ -197,7 +231,7 @@ CREATE TABLE leave_requests (
 );
 
 -- Create audit_logs table for system auditing
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     entity_type VARCHAR(50) NOT NULL,
     entity_id UUID,

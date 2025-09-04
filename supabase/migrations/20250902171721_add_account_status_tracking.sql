@@ -2,14 +2,18 @@
 -- This migration adds fields to track account status and password reset events
 
 -- Add account status enum
-CREATE TYPE account_status AS ENUM (
-    'ACTIVE',           -- Account is active and can login
-    'PENDING_SETUP',    -- Account created but not yet set up
-    'PASSWORD_RESET_PENDING', -- Password reset email sent, waiting for user action
-    'PASSWORD_RESET_COMPLETED', -- Password reset completed successfully
-    'SUSPENDED',        -- Account suspended by admin
-    'INACTIVE'          -- Account deactivated
-);
+DO $$ BEGIN
+    CREATE TYPE account_status AS ENUM (
+        'ACTIVE',           -- Account is active and can login
+        'PENDING_SETUP',    -- Account created but not yet set up
+        'PASSWORD_RESET_PENDING', -- Password reset email sent, waiting for user action
+        'PASSWORD_RESET_COMPLETED', -- Password reset completed successfully
+        'SUSPENDED',        -- Account suspended by admin
+        'INACTIVE'          -- Account deactivated
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Add password reset tracking fields to accounts table
 ALTER TABLE accounts 
@@ -36,7 +40,7 @@ CREATE INDEX idx_accounts_password_reset_requested_at ON accounts(password_reset
 CREATE INDEX idx_accounts_locked_until ON accounts(locked_until);
 
 -- Create account_events table for detailed tracking
-CREATE TABLE account_events (
+CREATE TABLE IF NOT EXISTS account_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     event_type VARCHAR(50) NOT NULL,

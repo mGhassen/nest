@@ -4,7 +4,7 @@
 
 -- Create simple account_company_roles table
 -- This is the core many-to-many relationship: account -> company with admin status
-CREATE TABLE account_company_roles (
+CREATE TABLE IF NOT EXISTS account_company_roles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,

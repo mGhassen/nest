@@ -2,7 +2,7 @@
 -- This migration creates separate tables for different types of administrative data
 
 -- Create employee_profiles table for personal information
-CREATE TABLE employee_profiles (
+CREATE TABLE IF NOT EXISTS employee_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     date_of_birth DATE,
@@ -17,7 +17,7 @@ CREATE TABLE employee_profiles (
 );
 
 -- Create employee_addresses table for address information
-CREATE TABLE employee_addresses (
+CREATE TABLE IF NOT EXISTS employee_addresses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     address_type VARCHAR(20) NOT NULL DEFAULT 'PERSONAL', -- PERSONAL, EMERGENCY, etc.
@@ -32,7 +32,7 @@ CREATE TABLE employee_addresses (
 );
 
 -- Create employee_contacts table for emergency contacts
-CREATE TABLE employee_contacts (
+CREATE TABLE IF NOT EXISTS employee_contacts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     contact_type VARCHAR(20) NOT NULL DEFAULT 'EMERGENCY', -- EMERGENCY, SPOUSE, etc.
@@ -46,7 +46,7 @@ CREATE TABLE employee_contacts (
 );
 
 -- Create employee_documents table for identity documents
-CREATE TABLE employee_documents (
+CREATE TABLE IF NOT EXISTS employee_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     document_type VARCHAR(50) NOT NULL, -- NATIONAL_ID, PASSPORT, WORK_PERMIT, VISA, etc.
@@ -63,7 +63,7 @@ CREATE TABLE employee_documents (
 );
 
 -- Create employee_financial_info table for banking and tax information
-CREATE TABLE employee_financial_info (
+CREATE TABLE IF NOT EXISTS employee_financial_info (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     info_type VARCHAR(50) NOT NULL, -- BANK_ACCOUNT, TAX_INFO, SOCIAL_SECURITY, etc.
@@ -80,7 +80,7 @@ CREATE TABLE employee_financial_info (
 );
 
 -- Create employee_medical_info table for medical information
-CREATE TABLE employee_medical_info (
+CREATE TABLE IF NOT EXISTS employee_medical_info (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     insurance_provider VARCHAR(255),
@@ -94,7 +94,7 @@ CREATE TABLE employee_medical_info (
 );
 
 -- Create employee_employment_details table for employment-specific information
-CREATE TABLE employee_employment_details (
+CREATE TABLE IF NOT EXISTS employee_employment_details (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     employee_number VARCHAR(50),
@@ -110,7 +110,7 @@ CREATE TABLE employee_employment_details (
 );
 
 -- Create employee_document_status table for tracking document completion
-CREATE TABLE employee_document_status (
+CREATE TABLE IF NOT EXISTS employee_document_status (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     status_type VARCHAR(50) NOT NULL, -- DOCUMENTS_COMPLETE, BACKGROUND_CHECK, MEDICAL_CHECK, etc.
@@ -125,7 +125,7 @@ CREATE TABLE employee_document_status (
 );
 
 -- Create employee_administrative_notes table for notes and comments
-CREATE TABLE employee_administrative_notes (
+CREATE TABLE IF NOT EXISTS employee_administrative_notes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     note_type VARCHAR(50) NOT NULL DEFAULT 'GENERAL', -- GENERAL, DOCUMENT_REVIEW, etc.
