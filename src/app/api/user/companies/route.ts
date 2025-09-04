@@ -71,21 +71,63 @@ export async function GET(request: NextRequest) {
             });
           }
           
-          // Map all companies with their admin status (true for superusers if not assigned)
-          companies = allCompanies.map(company => ({
-            company_id: company.id,
-            company_name: company.name,
-            is_admin: adminMap.get(company.id) ?? true, // Default to true for superusers
-            icon_name: company.company_branding?.[0]?.icon_name
+          // Map all companies with their admin status and employee access
+          companies = await Promise.all(allCompanies.map(async (company) => {
+            const isAdmin = adminMap.get(company.id) ?? true; // Default to true for superusers
+            
+            // Check if user has employee access in this company
+            let hasEmployeeAccess = false;
+            if (isAdmin) {
+              // For superusers, they have employee access to all companies
+              hasEmployeeAccess = true;
+            } else {
+              // For regular users, check if they have an active employee record
+              const { data: employeeRecord } = await supabase
+                .from('employees')
+                .select('id, status')
+                .eq('account_id', account.id)
+                .eq('company_id', company.id)
+                .eq('status', 'ACTIVE')
+                .single();
+              
+              hasEmployeeAccess = !!employeeRecord;
+            }
+            
+            return {
+              company_id: company.id,
+              company_name: company.name,
+              is_admin: isAdmin,
+              hasEmployeeAccess,
+              icon_name: company.company_branding?.[0]?.icon_name
+            };
           }));
         }
       }
     } else {
-      // For regular users, use the existing function
+      // For regular users, use the existing function and add employee access info
       const result = await supabase
         .rpc('get_account_companies', { p_account_id: account.id });
-      companies = result.data;
-      error = result.error;
+      
+      if (result.error) {
+        error = result.error;
+      } else {
+        // Add employee access information for each company
+        companies = await Promise.all(result.data.map(async (company: any) => {
+          // Check if user has employee access in this company
+          const { data: employeeRecord } = await supabase
+            .from('employees')
+            .select('id, status')
+            .eq('account_id', account.id)
+            .eq('company_id', company.company_id)
+            .eq('status', 'ACTIVE')
+            .single();
+          
+          return {
+            ...company,
+            hasEmployeeAccess: !!employeeRecord
+          };
+        }));
+      }
     }
     
     if (error) {

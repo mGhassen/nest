@@ -184,6 +184,33 @@ export function CompanySwitcher() {
             </DropdownMenuLabel>
             {companies.map((company, index) => {
               const IconComponent = getCompanyIcon(company.icon_name);
+              const hasEmployeeAccess = company.hasEmployeeAccess || false;
+              const isAdmin = company.is_admin || false;
+              
+              // Determine access level and icons
+              let accessIcons = [];
+              let accessText = '';
+              
+              if (isSuperuser) {
+                accessIcons = [<Shield className="size-3 text-purple-500" />];
+                accessText = 'Superuser';
+              } else if (isAdmin && hasEmployeeAccess) {
+                accessIcons = [
+                  <Shield className="size-3 text-blue-500" />,
+                  <Users className="size-3 text-green-500" />
+                ];
+                accessText = 'Admin & Employee';
+              } else if (isAdmin && !hasEmployeeAccess) {
+                accessIcons = [<Shield className="size-3 text-blue-500" />];
+                accessText = 'Admin Only';
+              } else if (!isAdmin && hasEmployeeAccess) {
+                accessIcons = [<Users className="size-3 text-green-500" />];
+                accessText = 'Employee Only';
+              } else {
+                accessIcons = [<Building2 className="size-3 text-gray-400" />];
+                accessText = 'No Access';
+              }
+              
               return (
                 <DropdownMenuItem
                   key={company.company_id}
@@ -196,14 +223,13 @@ export function CompanySwitcher() {
                   <div className="flex flex-col">
                     <span className="font-medium">{company.company_name}</span>
                     <div className="flex items-center gap-1">
-                      {company.is_admin ? (
-                        <Shield className="size-3 text-blue-500" />
-                      ) : (
-                        <Users className="size-3 text-green-500" />
-                      )}
+                      <div className="flex items-center gap-1">
+                        {accessIcons.map((icon, iconIndex) => (
+                          <span key={iconIndex}>{icon}</span>
+                        ))}
+                      </div>
                       <span className="text-xs text-muted-foreground">
-                        {isSuperuser ? 'Superuser' : 
-                         company.is_admin ? 'Admin Access' : 'Employee Access'}
+                        {accessText}
                       </span>
                     </div>
                   </div>
