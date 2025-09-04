@@ -9,6 +9,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { usePathname } from "next/navigation";
 import { UserProfile } from "@/components/auth/user-profile";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -19,6 +20,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, isLoading, isAuthenticated } = useAuth();
+  const pathname = usePathname();
 
   // Show loading state
   if (isLoading) {

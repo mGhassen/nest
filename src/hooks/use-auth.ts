@@ -220,15 +220,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthError(null);
 
       // Redirect based on user role
-      const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
-      
-      if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
-        window.location.href = '/admin/onboarding';
-      } else if (data.user.role === 'SUPERUSER' || data.user.role === 'ADMIN') {
-        window.location.href = '/admin/dashboard';
-      } else {
-        window.location.href = '/employee/dashboard';
-      }
+                    const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
+              
+              if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
+                window.location.href = '/admin/onboarding';
+              } else {
+                // Determine portal based on user permissions
+                const isAdmin = data.user.currentCompany?.is_admin || false;
+                const hasEmployeeAccess = true; // For now, assume all users have employee access
+                
+                if (isAdmin && !hasEmployeeAccess) {
+                  // Admin only - go directly to admin portal
+                  window.location.href = '/admin/dashboard';
+                } else if (!isAdmin && hasEmployeeAccess) {
+                  // Employee only - go directly to employee portal
+                  window.location.href = '/employee/dashboard';
+                } else if (isAdmin && hasEmployeeAccess) {
+                  // Both admin and employee - default to admin portal (user can switch)
+                  window.location.href = '/admin/dashboard';
+                } else {
+                  // Fallback to employee portal
+                  window.location.href = '/employee/dashboard';
+                }
+              }
     } catch (error) {
       console.error('Login error:', error);
       localStorage.removeItem('access_token');

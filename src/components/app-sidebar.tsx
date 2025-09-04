@@ -143,7 +143,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
-        {/* Company Switcher only - no logo/name */}
+        {/* Company Switcher only */}
         {user && <CompanySwitcher />}
       </SidebarHeader>
       <SidebarContent>

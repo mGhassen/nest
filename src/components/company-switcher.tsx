@@ -77,8 +77,23 @@ export function CompanySwitcher() {
 
     switchCompany.mutate(companyId, {
       onSuccess: (newCompany) => {
-        // Refresh the page to update the UI with new company context
-        window.location.reload();
+        // Determine which portal to redirect to based on permissions
+        const isAdmin = newCompany.is_admin || false;
+        const hasEmployeeAccess = true; // For now, assume all companies have employee access
+        
+        if (isAdmin && !hasEmployeeAccess) {
+          // Admin only - go to admin portal
+          window.location.href = '/admin/dashboard';
+        } else if (!isAdmin && hasEmployeeAccess) {
+          // Employee only - go to employee portal
+          window.location.href = '/employee/dashboard';
+        } else if (isAdmin && hasEmployeeAccess) {
+          // Both admin and employee - default to admin portal
+          window.location.href = '/admin/dashboard';
+        } else {
+          // Fallback - refresh page
+          window.location.reload();
+        }
       },
       onError: (error) => {
         console.error('Failed to switch company:', error);

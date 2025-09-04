@@ -6,9 +6,12 @@ import {
   LogOut,
   Sparkles,
   Crown,
+  Shield,
+  Users,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { getInitials } from "@/lib/auth"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
   Avatar,
@@ -49,13 +52,29 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuth()
+  const { logout, user: authUser } = useAuth()
+  const pathname = usePathname()
+  const router = useRouter()
+  
+  // Determine current portal and permissions
+  const currentPortal = pathname.startsWith('/admin') ? 'admin' : 'employee'
+  const isAdmin = authUser?.currentCompany?.is_admin || false
+  const hasEmployeeAccess = true // For now, assume all users have employee access
+  const canSwitchPortals = isAdmin && hasEmployeeAccess
 
   const handleLogout = async () => {
     try {
       await logout()
     } catch (error) {
       console.error('Logout error:', error)
+    }
+  }
+
+  const handlePortalSwitch = (portal: 'admin' | 'employee') => {
+    if (portal === 'admin') {
+      router.push('/admin/dashboard')
+    } else {
+      router.push('/employee/dashboard')
     }
   }
 
@@ -126,6 +145,36 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {canSwitchPortals && (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-muted-foreground text-xs">
+                    Portal Access
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => handlePortalSwitch('admin')}
+                    className={currentPortal === 'admin' ? 'bg-accent' : ''}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Portal
+                    {currentPortal === 'admin' && (
+                      <span className="ml-auto text-xs text-muted-foreground">Current</span>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handlePortalSwitch('employee')}
+                    className={currentPortal === 'employee' ? 'bg-accent' : ''}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    Employee Portal
+                    {currentPortal === 'employee' && (
+                      <span className="ml-auto text-xs text-muted-foreground">Current</span>
+                    )}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles className="mr-2 h-4 w-4" />
