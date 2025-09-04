@@ -101,10 +101,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Get user's account
+    // Get user's account with superuser status
     const { data: account, error: accountError } = await supabase
       .from('accounts')
-      .select('id')
+      .select('id, is_superuser')
       .eq('auth_user_id', user.id)
       .single();
     
@@ -115,15 +115,38 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if user has access to this company first
-    const { data: hasAccess, error: accessError } = await supabase
-      .from('account_company_roles')
-      .select('role')
-      .eq('account_id', account.id)
-      .eq('company_id', company_id)
-      .single();
+    // Check if user has access to this company
+    let hasAccess = null;
+    let accessError = null;
     
-    console.log('Debug - Company switch access check:', { hasAccess, accessError, accountId: account.id, companyId: company_id });
+    if (account.is_superuser) {
+      // Superusers can access any company - check if company exists
+      const { data: companyExists, error: companyError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('id', company_id)
+        .single();
+      
+      if (companyError || !companyExists) {
+        accessError = companyError;
+        hasAccess = null;
+      } else {
+        hasAccess = { is_admin: true }; // Superusers get admin access to any company
+      }
+    } else {
+      // Regular users need to have access to the company
+      const result = await supabase
+        .from('account_company_roles')
+        .select('is_admin')
+        .eq('account_id', account.id)
+        .eq('company_id', company_id)
+        .single();
+      
+      hasAccess = result.data;
+      accessError = result.error;
+    }
+    
+    console.log('Debug - Company switch access check:', { hasAccess, accessError, accountId: account.id, companyId: company_id, isSuperuser: account.is_superuser });
     
     if (accessError || !hasAccess) {
       console.error('Access denied - user does not have access to company:', accessError);

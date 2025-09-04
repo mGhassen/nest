@@ -3,12 +3,14 @@
 -- Clean and simple: account -> company with role, no complex session tracking
 
 -- Create simple account_company_roles table
--- This is the core many-to-many relationship: account -> company with role
+-- This is the core many-to-many relationship: account -> company with admin status
 CREATE TABLE account_company_roles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    role user_role NOT NULL DEFAULT 'EMPLOYEE',
+    is_admin BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(account_id, company_id)
@@ -69,12 +71,12 @@ WHERE country IS NULL OR currency IS NULL OR status IS NULL OR is_verified IS NU
 
 -- Add comments
 COMMENT ON TABLE account_company_roles IS 'Simple many-to-many relationship: accounts can have roles in multiple companies';
-COMMENT ON COLUMN account_company_roles.role IS 'User role within this specific company: ADMIN or EMPLOYEE (SUPERUSER is handled by accounts.is_superuser)';
+COMMENT ON COLUMN account_company_roles.is_admin IS 'Whether user has admin access to this company (SUPERUSER is handled by accounts.is_superuser)';
 
 -- Create indexes for performance
 CREATE INDEX idx_account_company_roles_account_id ON account_company_roles(account_id);
 CREATE INDEX idx_account_company_roles_company_id ON account_company_roles(company_id);
-CREATE INDEX idx_account_company_roles_role ON account_company_roles(role);
+CREATE INDEX idx_account_company_roles_is_admin ON account_company_roles(is_admin);
 
 -- Add updated_at trigger
 CREATE TRIGGER update_account_company_roles_updated_at 
@@ -97,7 +99,7 @@ CREATE OR REPLACE FUNCTION get_account_companies(p_account_id UUID)
 RETURNS TABLE (
     company_id UUID,
     company_name VARCHAR(255),
-    role user_role,
+    is_admin BOOLEAN,
     icon_name VARCHAR(50)
 ) AS $$
 BEGIN
@@ -105,7 +107,7 @@ BEGIN
     SELECT 
         c.id,
         c.name,
-        acr.role,
+        acr.is_admin,
         cb.icon_name
     FROM account_company_roles acr
     JOIN companies c ON c.id = acr.company_id
@@ -122,12 +124,12 @@ GRANT EXECUTE ON FUNCTION get_account_companies TO authenticated;
 ALTER TABLE accounts DROP COLUMN IF EXISTS role;
 
 -- Migrate existing data from the old system
--- All existing users get roles in the "Guepard" company
-INSERT INTO account_company_roles (account_id, company_id, role)
+-- All existing users get access to the "Guepard" company as employees
+INSERT INTO account_company_roles (account_id, company_id, is_admin)
 SELECT 
     a.id as account_id,
     c.id as company_id,
-    'EMPLOYEE' as role  -- Default role since we removed the role field
+    false as is_admin  -- Default to employee access
 FROM accounts a
 CROSS JOIN companies c
 WHERE c.name = 'Guepard'
@@ -176,14 +178,14 @@ CREATE OR REPLACE FUNCTION get_current_company_info(p_account_id UUID)
 RETURNS TABLE (
     company_id UUID,
     company_name VARCHAR(255),
-    role user_role
+    is_admin BOOLEAN
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
         c.id,
         c.name,
-        acr.role
+        acr.is_admin
     FROM accounts a
     JOIN companies c ON c.id = a.current_company_id
     JOIN account_company_roles acr ON acr.account_id = a.id AND acr.company_id = c.id

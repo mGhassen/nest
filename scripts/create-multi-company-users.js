@@ -24,9 +24,9 @@ const multiCompanyUsers = [
     lastName: 'Ben Ali',
     isSuperuser: true,
     companies: [
-      { name: 'Guepard', role: 'ADMIN' },
-      { name: 'TechCorp', role: 'ADMIN' },
-      { name: 'InnovateLab', role: 'ADMIN' }
+      { name: 'Guepard', is_admin: true },
+      { name: 'TechCorp', is_admin: true },
+      { name: 'InnovateLab', is_admin: true }
     ]
   },
   // Test Superuser - Superuser with no companies (for onboarding testing)
@@ -45,8 +45,8 @@ const multiCompanyUsers = [
     firstName: 'Fatma',
     lastName: 'Trabelsi',
     companies: [
-      { name: 'Guepard', role: 'ADMIN' },
-      { name: 'TechCorp', role: 'EMPLOYEE' }
+      { name: 'Guepard', is_admin: true },
+      { name: 'TechCorp', is_admin: false }
     ]
   },
   // Mohamed - Engineering Manager at Guepard, Technical Advisor at InnovateLab
@@ -56,8 +56,8 @@ const multiCompanyUsers = [
     firstName: 'Mohamed',
     lastName: 'Karray',
     companies: [
-      { name: 'Guepard', role: 'EMPLOYEE' },
-      { name: 'InnovateLab', role: 'EMPLOYEE' }
+      { name: 'Guepard', is_admin: false },
+      { name: 'InnovateLab', is_admin: false }
     ]
   },
   // Sara - Developer at Guepard only
@@ -67,7 +67,7 @@ const multiCompanyUsers = [
     firstName: 'Sara',
     lastName: 'Mansouri',
     companies: [
-      { name: 'Guepard', role: 'EMPLOYEE' }
+      { name: 'Guepard', is_admin: false }
     ]
   },
   // John - CEO at TechCorp, Board Member at Guepard
@@ -77,8 +77,8 @@ const multiCompanyUsers = [
     firstName: 'John',
     lastName: 'Smith',
     companies: [
-      { name: 'TechCorp', role: 'ADMIN' },
-      { name: 'Guepard', role: 'ADMIN' }
+      { name: 'TechCorp', is_admin: true },
+      { name: 'Guepard', is_admin: true }
     ]
   },
   // Emily - HR Director at TechCorp, HR Consultant at InnovateLab
@@ -88,8 +88,8 @@ const multiCompanyUsers = [
     firstName: 'Emily',
     lastName: 'Johnson',
     companies: [
-      { name: 'TechCorp', role: 'ADMIN' },
-      { name: 'InnovateLab', role: 'EMPLOYEE' }
+      { name: 'TechCorp', is_admin: true },
+      { name: 'InnovateLab', is_admin: false }
     ]
   },
   // Michael - Engineering Manager at TechCorp only
@@ -99,7 +99,7 @@ const multiCompanyUsers = [
     firstName: 'Michael',
     lastName: 'Brown',
     companies: [
-      { name: 'TechCorp', role: 'EMPLOYEE' }
+      { name: 'TechCorp', is_admin: false }
     ]
   },
   // Sarah - Developer at TechCorp, Technical Advisor at InnovateLab
@@ -109,8 +109,8 @@ const multiCompanyUsers = [
     firstName: 'Sarah',
     lastName: 'Davis',
     companies: [
-      { name: 'TechCorp', role: 'EMPLOYEE' },
-      { name: 'InnovateLab', role: 'EMPLOYEE' }
+      { name: 'TechCorp', is_admin: false },
+      { name: 'InnovateLab', is_admin: false }
     ]
   },
   // Pierre - CEO at InnovateLab, Technical Partner at TechCorp
@@ -120,8 +120,8 @@ const multiCompanyUsers = [
     firstName: 'Pierre',
     lastName: 'Dubois',
     companies: [
-      { name: 'InnovateLab', role: 'ADMIN' },
-      { name: 'TechCorp', role: 'ADMIN' }
+      { name: 'InnovateLab', is_admin: true },
+      { name: 'TechCorp', is_admin: true }
     ]
   },
   // Marie - HR Manager at InnovateLab, HR Consultant at Guepard
@@ -131,8 +131,8 @@ const multiCompanyUsers = [
     firstName: 'Marie',
     lastName: 'Martin',
     companies: [
-      { name: 'InnovateLab', role: 'ADMIN' },
-      { name: 'Guepard', role: 'EMPLOYEE' }
+      { name: 'InnovateLab', is_admin: true },
+      { name: 'Guepard', is_admin: false }
     ]
   },
   // Jean - R&D Manager at InnovateLab, Technical Advisor at Guepard
@@ -142,8 +142,8 @@ const multiCompanyUsers = [
     firstName: 'Jean',
     lastName: 'Leroy',
     companies: [
-      { name: 'InnovateLab', role: 'EMPLOYEE' },
-      { name: 'Guepard', role: 'EMPLOYEE' }
+      { name: 'InnovateLab', is_admin: false },
+      { name: 'Guepard', is_admin: false }
     ]
   },
   // Sophie - R&D Engineer at InnovateLab only
@@ -153,7 +153,7 @@ const multiCompanyUsers = [
     firstName: 'Sophie',
     lastName: 'Moreau',
     companies: [
-      { name: 'InnovateLab', role: 'EMPLOYEE' }
+      { name: 'InnovateLab', is_admin: false }
     ]
   }
 ];
@@ -227,7 +227,7 @@ async function createMultiCompanyUsers() {
           .insert({
             account_id: account.id,
             company_id: companyId,
-            role: companyRole.role
+            is_admin: companyRole.is_admin
           })
           .select()
           .single();

@@ -142,8 +142,8 @@ export function CompanySwitcher() {
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{currentCompany.company_name}</span>
                 <span className="truncate text-xs">
-                  {currentCompany.role === 'ADMIN' ? 'Administrator' : 
-                   currentCompany.role === 'SUPERUSER' ? 'Superuser' : 'Employee'}
+                  {isSuperuser ? 'Superuser' : 
+                   currentCompany.is_admin ? 'Administrator' : 'Employee'}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
@@ -169,7 +169,13 @@ export function CompanySwitcher() {
                   <div className="flex size-6 items-center justify-center rounded-md border">
                     <IconComponent className="size-3.5" />
                   </div>
-                  {company.company_name}
+                  <div className="flex flex-col">
+                    <span className="font-medium">{company.company_name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {isSuperuser ? 'Superuser' : 
+                       company.is_admin ? 'Administrator' : 'Employee'}
+                    </span>
+                  </div>
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
               );

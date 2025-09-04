@@ -100,13 +100,13 @@ export async function GET(req: NextRequest) {
       currentCompanyData = {
         company_id: firstCompany.company_id,
         company_name: firstCompany.company_name,
-        role: firstCompany.role
+        is_admin: firstCompany.is_admin
       };
-      // Keep SUPERUSER role for superusers, otherwise use company role
+      // Keep SUPERUSER role for superusers, otherwise determine role based on is_admin
       if (isSuperuser) {
         currentRole = 'SUPERUSER';
       } else {
-        currentRole = firstCompany.role;
+        currentRole = firstCompany.is_admin ? 'ADMIN' : 'EMPLOYEE';
       }
       currentCompanyId = firstCompany.company_id;
       
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
       if (isSuperuser) {
         currentRole = 'SUPERUSER';
       } else {
-        currentRole = currentCompanyData.role;
+        currentRole = currentCompanyData.is_admin ? 'ADMIN' : 'EMPLOYEE';
       }
       currentCompanyId = currentCompanyData.company_id;
       console.log('Debug - Using existing current company:', currentCompanyData);

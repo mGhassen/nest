@@ -8,7 +8,7 @@ import { apiFetch } from '@/lib/api';
 export interface UserCompany {
   company_id: string;
   company_name: string;
-  role: 'SUPERUSER' | 'ADMIN' | 'EMPLOYEE';
+  is_admin: boolean;
   icon_name?: string;
 }
 

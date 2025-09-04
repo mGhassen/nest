@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get user's account
+    // Get user's account with superuser status
     const { data: account, error: accountError } = await supabase
       .from('accounts')
-      .select('id')
+      .select('id, is_superuser')
       .eq('auth_user_id', user.id)
       .single();
     
@@ -37,9 +37,56 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get user's companies using the simplified function
-    const { data: companies, error } = await supabase
-      .rpc('get_account_companies', { p_account_id: account.id });
+    let companies;
+    let error;
+    
+    if (account.is_superuser) {
+      // For superusers, get ALL companies with their assigned role or default to ADMIN
+      const { data: allCompanies, error: allCompaniesError } = await supabase
+        .from('companies')
+        .select(`
+          id,
+          name,
+          company_branding!inner(icon_name)
+        `)
+        .order('name');
+      
+      if (allCompaniesError) {
+        error = allCompaniesError;
+      } else {
+        // Get user's actual admin status for companies they're assigned to
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('account_company_roles')
+          .select('company_id, is_admin')
+          .eq('account_id', account.id);
+        
+        if (rolesError) {
+          error = rolesError;
+        } else {
+          // Create a map of company_id to is_admin
+          const adminMap = new Map();
+          if (userRoles) {
+            userRoles.forEach(role => {
+              adminMap.set(role.company_id, role.is_admin);
+            });
+          }
+          
+          // Map all companies with their admin status (true for superusers if not assigned)
+          companies = allCompanies.map(company => ({
+            company_id: company.id,
+            company_name: company.name,
+            is_admin: adminMap.get(company.id) ?? true, // Default to true for superusers
+            icon_name: company.company_branding?.[0]?.icon_name
+          }));
+        }
+      }
+    } else {
+      // For regular users, use the existing function
+      const result = await supabase
+        .rpc('get_account_companies', { p_account_id: account.id });
+      companies = result.data;
+      error = result.error;
+    }
     
     if (error) {
       console.error('Error fetching user companies:', error);
