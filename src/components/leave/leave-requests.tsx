@@ -2,10 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Eye } from "lucide-react";
 import { format } from "date-fns";
-import type { LeaveRequest } from "@shared/schema";
-
 interface LeaveRequestsProps {
-  requests: LeaveRequest[];
+  requests: any[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   isLoading?: boolean;

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Plus } from "lucide-react";
 import { useCreateCompany } from "@/hooks/use-companies";
+import { CreateCompanyData } from "@/lib/api/companies";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -71,7 +72,7 @@ export function AddCompanyDialog({ children }: AddCompanyDialogProps) {
           key,
           value === "" ? undefined : value,
         ])
-      );
+      ) as unknown as CreateCompanyData;
 
       await createCompany.mutateAsync(cleanedData);
       

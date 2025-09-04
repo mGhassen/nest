@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserCompanies, useCompanyDetails } from "@/hooks/use-companies";
+import { UserCompany } from "@/lib/api/companies";
 import { useAuth } from "@/hooks/use-auth";
 import AdminLayout from "@/components/layout/admin-layout";
 import CompanyProfileForm from "@/components/companies/company-profile-form";
@@ -41,7 +42,7 @@ export default function CompanyDetailPage() {
   
   const companyId = params.id as string;
   const { data: companyDetails, isLoading: detailsLoading, error: detailsError } = useCompanyDetails(companyId);
-  const company = companies?.find(c => c.company_id === companyId);
+  const company = companies?.find(c => c.company_id === companyId) as UserCompany | undefined;
 
   if (companiesLoading || detailsLoading) {
     return (

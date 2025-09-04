@@ -107,7 +107,7 @@ export default function AccountTable({ accounts, onEdit, onDelete }: AccountTabl
                   {account.last_login ? new Date(account.last_login).toLocaleDateString() : 'Never'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                  {new Date(account.created_at).toLocaleDateString()}
+                  {account.created_at ? new Date(account.created_at).toLocaleDateString() : 'N/A'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center space-x-2">

@@ -1,4 +1,4 @@
-import { User } from "@shared/schema";
+import { User } from "@/shared/schema";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
@@ -9,8 +9,8 @@ interface UserAvatarProps {
 
 export default function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   const getInitials = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
     }
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
@@ -24,11 +24,11 @@ export default function UserAvatar({ user, size = "md", className }: UserAvatarP
     lg: "w-12 h-12 text-base",
   };
 
-  if (user?.profileImageUrl) {
+  if (user?.profile_image_url) {
     return (
       <img
-        src={user.profileImageUrl}
-        alt={user.firstName ? `${user.firstName} ${user.lastName}` : user.email || "User"}
+        src={user.profile_image_url}
+        alt={user.first_name ? `${user.first_name} ${user.last_name}` : user.email || "User"}
         className={cn(
           "rounded-full object-cover",
           sizeClasses[size],

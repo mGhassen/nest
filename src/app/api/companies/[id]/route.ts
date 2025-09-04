@@ -4,10 +4,10 @@ import { isCurrentUserSuperuser } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const companyId = params.id;
+    const { id: companyId } = await params;
 
     // Get the authorization header
     const authHeader = req.headers.get('authorization');

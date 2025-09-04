@@ -56,7 +56,7 @@ export default function LeavePage() {
   const { user, isLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showNewPolicy, setShowNewPolicy] = useState(false);
   const { toast } = useToast();
@@ -120,7 +120,7 @@ export default function LeavePage() {
   });
 
   // Filter leave requests
-  const filteredRequests = leaveRequests.filter((request: any) => {
+  const filteredRequests = (leaveRequests as any[]).filter((request: any) => {
     const matchesSearch = request.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.reason?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || request.status === statusFilter;
@@ -144,7 +144,7 @@ export default function LeavePage() {
   };
 
   const getEmployeeName = (employeeId: string) => {
-    const employee = employees.find((emp: any) => emp.id === employeeId);
+    const employee = (employees as any[]).find((emp: any) => emp.id === employeeId);
     return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
   };
 
@@ -317,7 +317,7 @@ export default function LeavePage() {
           </Dialog>
 
           {/* New Policy Dialog */}
-          <NewPolicyDialog open={showNewPolicy} onOpenChange={setShowNewPolicy} />
+          <NewPolicyDialog />
       </div>
       </EmployeeLayout>
   );

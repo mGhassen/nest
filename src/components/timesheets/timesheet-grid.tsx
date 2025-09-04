@@ -2,10 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Eye } from "lucide-react";
 import { format, addDays } from "date-fns";
-import type { Timesheet } from "@shared/schema";
-
 interface TimesheetGridProps {
-  timesheets: Timesheet[];
+  timesheets: any[];
   selectedWeek: Date;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;

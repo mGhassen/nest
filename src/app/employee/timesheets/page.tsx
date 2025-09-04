@@ -34,13 +34,6 @@ export default function TimesheetsPage() {
 
   const { data: timesheets = [], isLoading: timesheetsLoading } = useQuery({
     queryKey: ['/api/timesheets'],
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: "Failed to load timesheets",
-        variant: "destructive",
-      });
-    },
   });
 
   const updateTimesheetMutation = useMutation({
@@ -93,9 +86,9 @@ export default function TimesheetsPage() {
 
   // Calculate statistics
   const stats = {
-    submitted: timesheets.filter((t: any) => t.status === 'SUBMITTED').length,
-    pending: timesheets.filter((t: any) => t.status === 'SUBMITTED').length,
-    approved: timesheets.filter((t: any) => t.status === 'APPROVED').length,
+    submitted: (timesheets as any[]).filter((t: any) => t.status === 'SUBMITTED').length,
+    pending: (timesheets as any[]).filter((t: any) => t.status === 'SUBMITTED').length,
+    approved: (timesheets as any[]).filter((t: any) => t.status === 'APPROVED').length,
   };
 
   if (isLoading) {
@@ -205,7 +198,7 @@ export default function TimesheetsPage() {
             </CardHeader>
             <CardContent>
               <TimesheetGrid
-                timesheets={timesheets}
+                timesheets={timesheets as any[]}
                 selectedWeek={selectedWeek}
                 onApprove={handleApprove}
                 onReject={handleReject}

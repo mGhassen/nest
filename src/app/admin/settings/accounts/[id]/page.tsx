@@ -154,14 +154,14 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
   };
 
   const getRoleBadge = (account: any) => {
-    if (account.is_superuser) {
+    if (false) { // Superuser check removed
       return (
         <Badge variant="default" className="bg-purple-100 text-purple-800">
           <Shield className="w-3 h-3 mr-1" />
           Superuser
         </Badge>
       );
-    } else if (account.current_company_role?.is_admin) {
+    } else if (account.role === 'ADMIN') {
       return (
         <Badge variant="default">
           <Shield className="w-3 h-3 mr-1" />
@@ -463,20 +463,20 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Current Company</span>
                       <span className="text-sm font-medium">
-                        {account.current_company_role?.companies?.name || 'Not Set'}
+                        {account.employee?.id ? 'Employee Record Exists' : 'Not Set'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Company Role</span>
-                      <Badge variant={account.current_company_role?.is_admin ? "default" : "secondary"}>
-                        {account.current_company_role?.is_admin ? "Admin" : "Employee"}
+                      <span className="text-sm text-muted-foreground">Account Role</span>
+                      <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                        {account.role}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Joined Company</span>
+                      <span className="text-sm text-muted-foreground">Account Created</span>
                       <span className="text-sm font-medium">
-                        {account.current_company_role?.joined_at 
-                          ? formatDistanceToNow(new Date(account.current_company_role.joined_at), { addSuffix: true })
+                        {account.created_at 
+                          ? formatDistanceToNow(new Date(account.created_at), { addSuffix: true })
                           : "Unknown"
                         }
                       </span>
@@ -484,7 +484,7 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Total Companies</span>
                       <span className="text-sm font-medium">
-                        {account.all_company_roles?.length || 0}
+                        {account.employee?.id ? 1 : 0}
                       </span>
                     </div>
                   </div>
@@ -587,12 +587,12 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {account.failed_login_attempts > 0 && (
+                    {(account.failed_login_attempts || 0) > 0 && (
                       <div className="flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg">
                         <AlertCircle className="h-4 w-4 text-yellow-600" />
                         <div>
                           <p className="text-sm font-medium text-yellow-800">
-                            {account.failed_login_attempts} failed login attempts
+                            {account.failed_login_attempts || 0} failed login attempts
                           </p>
                           <p className="text-xs text-yellow-600">
                             Consider resetting password or investigating
@@ -682,14 +682,14 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Superuser</span>
-                        <Badge variant={account.is_superuser ? "default" : "secondary"}>
-                          {account.is_superuser ? "Yes" : "No"}
+                        <Badge variant="secondary">
+                          No
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Admin in Current Company</span>
-                        <Badge variant={account.current_company_role?.is_admin ? "default" : "secondary"}>
-                          {account.current_company_role?.is_admin ? "Yes" : "No"}
+                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                          {account.role === 'ADMIN' ? "Yes" : "No"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
@@ -745,34 +745,29 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {account.all_company_roles && account.all_company_roles.length > 0 ? (
+                  {account.employee ? (
                     <div className="space-y-3">
-                      {account.all_company_roles.map((role: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="space-y-1">
-                            <div className="font-medium">{role.companies?.name || 'Unknown Company'}</div>
-                            <div className="text-sm text-muted-foreground">
-                              Joined: {formatDistanceToNow(new Date(role.joined_at), { addSuffix: true })}
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={role.is_admin ? "default" : "secondary"}>
-                              {role.is_admin ? "Admin" : "Employee"}
-                            </Badge>
-                            <Badge variant={role.is_active ? "default" : "destructive"}>
-                              {role.is_active ? "Active" : "Inactive"}
-                            </Badge>
-                            {role.company_id === account.current_company_id && (
-                              <Badge variant="outline">Current</Badge>
-                            )}
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-1">
+                          <div className="font-medium">Employee Record</div>
+                          <div className="text-sm text-muted-foreground">
+                            Position: {account.employee.position_title}
                           </div>
                         </div>
-                      ))}
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                            {account.role}
+                          </Badge>
+                          <Badge variant={account.is_active ? "default" : "destructive"}>
+                            {account.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No company relationships found</p>
+                      <p>No employee record found</p>
                     </div>
                   )}
                 </div>
@@ -797,20 +792,20 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">View Accounts</span>
-                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
-                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Create Accounts</span>
-                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
-                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Manage Account Status</span>
-                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
-                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                     </div>
@@ -821,20 +816,20 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">View Employees</span>
-                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
-                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Create Employees</span>
-                        <Badge variant={account.current_company_role?.is_admin || account.is_superuser ? "default" : "secondary"}>
-                          {account.current_company_role?.is_admin || account.is_superuser ? "Allowed" : "Denied"}
+                        <Badge variant={account.role === 'ADMIN' ? "default" : "secondary"}>
+                          {account.role === 'ADMIN' ? "Allowed" : "Denied"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Manage Companies</span>
-                        <Badge variant={account.is_superuser ? "default" : "secondary"}>
-                          {account.is_superuser ? "Allowed" : "Denied"}
+                        <Badge variant="secondary">
+                          Denied
                         </Badge>
                       </div>
                     </div>

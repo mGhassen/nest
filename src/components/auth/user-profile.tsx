@@ -35,7 +35,7 @@ export function UserProfile() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.profile_image_url} alt={user.email || ''} />
+            <AvatarImage src="" alt={user.email || ''} />
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>
           {user.role === 'SUPERUSER' && (

@@ -32,7 +32,7 @@ export default function DebugPage() {
       // Test profile lookup
       if (data.user) {
         setStatus("Looking up profile...")
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabase()
           .from('accounts')
           .select('*')
           .eq('auth_user_id', data.user.id)

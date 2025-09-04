@@ -9,10 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Calendar, Clock, User } from "lucide-react";
-import type { LeaveRequest } from "@shared/schema";
-
 interface LeaveRequestsTableProps {
-  requests: LeaveRequest[];
+  requests: any[];
   isLoading?: boolean;
 }
 

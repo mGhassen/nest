@@ -27,10 +27,10 @@ export default function PendingActions() {
 
   // Filter for pending items
   const pendingLeaveRequests = leaveRequests.filter(request => 
-    request.status === 'PENDING' || request.status === 'SUBMITTED'
+    request.status === 'SUBMITTED'
   );
   const pendingTimesheets = timesheets.filter(timesheet => 
-    timesheet.status === 'PENDING' || timesheet.status === 'SUBMITTED'
+    timesheet.status === 'SUBMITTED'
   );
 
   const totalPendingActions = pendingLeaveRequests.length + pendingTimesheets.length;
@@ -92,7 +92,7 @@ export default function PendingActions() {
                 <div key={request.id} className="flex items-center justify-between text-sm">
                   <div className="flex-1">
                     <span className="text-orange-900 dark:text-orange-100">
-                      Employee leave request for {format(new Date(request.startDate), 'MMM dd')} - {format(new Date(request.endDate), 'MMM dd')}
+                      Employee leave request for {format(new Date(request.start_date), 'MMM dd')} - {format(new Date(request.end_date), 'MMM dd')}
                     </span>
                   </div>
                   <div className="flex space-x-2 ml-4">
@@ -133,7 +133,7 @@ export default function PendingActions() {
               </Link>
             </div>
             <div className="space-y-2">
-              {pendingTimesheets.slice(0, 3).map((timesheet: Timesheet) => (
+              {pendingTimesheets.slice(0, 3).map((timesheet: any) => (
                 <div key={timesheet.id} className="flex items-center justify-between text-sm">
                   <div className="flex-1">
                     <span className="text-blue-900 dark:text-blue-100">

@@ -50,20 +50,12 @@ export default function CompanySelectionPage() {
   if (user.companies && user.companies.length === 1) {
     const company = user.companies[0];
     const isAdmin = company.is_admin || false;
-    const hasEmployeeAccess = company.hasEmployeeAccess || false;
-    
-    if (isAdmin && hasEmployeeAccess) {
-      // Both admin and employee access - show portal selection
-      redirect("/portal-selection");
-    } else if (isAdmin && !hasEmployeeAccess) {
-      // Admin only - go to admin portal
+    if (isAdmin) {
+      // Admin access - go to admin portal
       redirect("/admin/dashboard");
-    } else if (!isAdmin && hasEmployeeAccess) {
-      // Employee only - go to employee portal
-      redirect("/employee/dashboard");
     } else {
-      // No access - redirect to unauthorized page
-      redirect("/unauthorized");
+      // Employee access - go to employee portal
+      redirect("/employee/dashboard");
     }
   }
 
@@ -115,7 +107,7 @@ export default function CompanySelectionPage() {
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {user.companies?.map((company) => {
-              const IconComponent = getCompanyIcon(company.icon_name);
+              const IconComponent = getCompanyIcon('Building2');
               const isCurrentCompany = company.company_id === user.currentCompany?.company_id;
               
               return (
