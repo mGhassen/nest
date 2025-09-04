@@ -57,8 +57,16 @@ export async function getCurrentUserRole(accountId: string): Promise<UserRole | 
 
 /**
  * Check if the current user is an admin in their current company
+ * SUPERUSERs are also considered admins for all companies
  */
 export async function isCurrentUserAdmin(accountId: string): Promise<boolean> {
+  // Check if user is a superuser first
+  const isSuperuser = await isCurrentUserSuperuser(accountId);
+  if (isSuperuser) {
+    return true;
+  }
+  
+  // Otherwise check if they have admin role in current company
   const role = await getCurrentUserRole(accountId);
   return role === 'ADMIN';
 }
