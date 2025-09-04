@@ -50,6 +50,12 @@ export const accountApi = {
     return data.data || [];
   },
 
+  // Get a single account by ID
+  async getAccount(accountId: string): Promise<Account> {
+    const data = await apiFetch<{ success: boolean; data: Account }>(`/api/admin/accounts/${accountId}`);
+    return data.data;
+  },
+
   // Create a new account
   async createAccount(accountData: {
     email: string;

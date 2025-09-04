@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { useAccountsList, useAccountCreate, useAccountPasswordReset, useAccountStatusUpdate } from "@/hooks/use-accounts";
-import AdminLayout from "@/components/layout/admin-layout";
+;
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -415,8 +415,7 @@ export default function AccountManagementPage() {
   const hasNewFields = accounts && accounts.length > 0 && accounts[0].hasOwnProperty('account_status');
 
   return (
-    <AdminLayout>
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Account Management</h2>
@@ -763,20 +762,23 @@ export default function AccountManagementPage() {
                             </div>
                             <div className="ml-2 min-w-0 flex-1">
                               <div className="flex items-center space-x-1">
-                                {account.employee ? (
+                                <Link 
+                                  href={`/admin/settings/accounts/${account.id}`}
+                                  className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                >
+                                  {account.first_name} {account.last_name}
+                                </Link>
+                                {account.employee && (
                                   <Link 
                                     href={`/admin/people/${account.employee.id}`}
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                    className="text-xs text-green-600 hover:text-green-800 hover:underline ml-2"
+                                    title="View Employee"
                                   >
-                                    {account.first_name} {account.last_name}
+                                    (Employee)
                                   </Link>
-                                ) : (
-                                  <div className="flex items-center space-x-1">
-                                    <span className="text-sm font-medium text-gray-600 truncate">
-                                      {account.first_name} {account.last_name}
-                                    </span>
-                                    <UserX className="w-3 h-3 text-gray-400" />
-                                  </div>
+                                )}
+                                {!account.employee && (
+                                  <UserX className="w-3 h-3 text-gray-400 ml-2" />
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
@@ -920,6 +922,5 @@ export default function AccountManagementPage() {
           )}
         </div>
       </div>
-    </AdminLayout>
   );
 }

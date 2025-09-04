@@ -22,6 +22,26 @@ export function useAccountsList() {
   });
 }
 
+// Hook for fetching a single account
+export function useAccount(accountId: string) {
+  const { user, isAuthenticated } = useAuth();
+  
+  return useQuery<Account>({
+    queryKey: ['account', accountId],
+    queryFn: () => accountApi.getAccount(accountId),
+    enabled: isAuthenticated && !!user && !!accountId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401/403/404 errors
+      if (error?.status === 401 || error?.status === 403 || error?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+}
+
 // Hook for creating a new account
 export function useAccountCreate() {
   const queryClient = useQueryClient();
