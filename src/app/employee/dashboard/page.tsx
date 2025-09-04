@@ -14,7 +14,8 @@ export default function EmployeeDashboardPage() {
     if (isLoading) return;
     if (!user) {
       router.replace("/auth/login");
-    } else if (user.isAdmin) {
+    } else if (user.currentCompany?.is_admin && !user.currentCompany?.hasEmployeeAccess) {
+      // Only redirect to admin if user is admin but has no employee access
       router.replace("/admin/dashboard");
     }
   }, [user, isLoading, router]);
@@ -23,7 +24,7 @@ export default function EmployeeDashboardPage() {
     return <LoadingPage />;
   }
 
-  if (!user || user.isAdmin) return null;
+  if (!user || (user.currentCompany?.is_admin && !user.currentCompany?.hasEmployeeAccess)) return null;
 
   return (
     <EmployeeLayout>
