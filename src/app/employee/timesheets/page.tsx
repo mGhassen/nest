@@ -1,25 +1,38 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import TimesheetGrid from "@/components/timesheets/timesheet-grid";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfWeek, addWeeks, subWeeks } from "date-fns";
-import AuthGuard from "@/components/auth/auth-guard";
 import EmployeeLayout from "@/components/layout/employee-layout";
+import { LoadingPage } from "@/components/ui/loading-spinner";
 
 export default function TimesheetsPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [selectedWeek, setSelectedWeek] = useState(startOfWeek(new Date()));
   const [timeframe, setTimeframe] = useState("current");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: timesheets = [], isLoading } = useQuery({
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (!user.currentCompany?.hasEmployeeAccess) {
+      router.replace("/unauthorized");
+    }
+  }, [user, isLoading, router]);
+
+  const { data: timesheets = [], isLoading: timesheetsLoading } = useQuery({
     queryKey: ['/api/timesheets'],
     onError: (error: Error) => {
       toast({
@@ -86,20 +99,15 @@ export default function TimesheetsPage() {
   };
 
   if (isLoading) {
-    return (
-      <AuthGuard requireEmployee={true}>
-        <EmployeeLayout>
-          <div className="flex items-center justify-center min-h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        </EmployeeLayout>
-      </AuthGuard>
-    );
+    return <LoadingPage />;
+  }
+
+  if (!user || !user.currentCompany?.hasEmployeeAccess) {
+    return null;
   }
 
   return (
-    <AuthGuard requireEmployee={true}>
-      <EmployeeLayout>
+    <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           {/* Header */}
           <div className="mb-6">
@@ -207,6 +215,5 @@ export default function TimesheetsPage() {
           </Card>
         </div>
       </EmployeeLayout>
-    </AuthGuard>
   );
 }

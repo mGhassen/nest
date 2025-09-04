@@ -1,17 +1,37 @@
 "use client"
 
-import { useState } from "react"
-import AuthGuard from "@/components/auth/auth-guard"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/use-auth"
 import AdminLayout from "@/components/layout/admin-layout"
 import { Button } from "@/components/ui/button"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const { user, isLoading } = useAuth()
   const [companyName, setCompanyName] = useState("Nest HR Solutions")
   const [industry, setIndustry] = useState("Technology")
 
+  useEffect(() => {
+    if (isLoading) return
+    if (!user) {
+      router.replace("/auth/login")
+    } else if (!user.currentCompany?.is_admin) {
+      router.replace("/unauthorized")
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading) {
+    return <LoadingPage />
+  }
+
+  if (!user || !user.currentCompany?.is_admin) {
+    return null
+  }
+
   return (
-    <AuthGuard requireAdmin={true}>
-      <AdminLayout>
+    <AdminLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
@@ -65,7 +85,6 @@ export default function SettingsPage() {
         </div>
       </div>
       </AdminLayout>
-    </AuthGuard>
   )
 }
 

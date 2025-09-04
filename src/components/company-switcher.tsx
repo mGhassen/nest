@@ -88,19 +88,9 @@ export function CompanySwitcher() {
         
         console.log('Company switch - permissions:', { isAdmin, hasEmployeeAccess, companyId });
         
-        if (isAdmin && hasEmployeeAccess) {
-          // Both admin and employee access - go to admin portal (can switch)
-          window.location.href = '/admin/dashboard';
-        } else if (isAdmin && !hasEmployeeAccess) {
-          // Admin only - go to admin portal
-          window.location.href = '/admin/dashboard';
-        } else if (!isAdmin && hasEmployeeAccess) {
-          // Employee only - go to employee portal
-          window.location.href = '/employee/dashboard';
-        } else {
-          // No access - redirect to unauthorized page
-          window.location.href = '/unauthorized';
-        }
+        // Always show portal selection page when switching companies
+        // The portal selection page will handle the appropriate redirects
+        window.location.href = '/portal-selection';
       },
       onError: (error) => {
         console.error('Failed to switch company:', error);

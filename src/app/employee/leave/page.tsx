@@ -1,8 +1,10 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,10 +48,12 @@ import {
 } from "lucide-react";
 import NewPolicyDialog from "@/components/leave/new-policy-dialog";
 import { format, differenceInDays, isBefore } from "date-fns";
-import AuthGuard from "@/components/auth/auth-guard";
 import EmployeeLayout from "@/components/layout/employee-layout";
+import { LoadingPage } from "@/components/ui/loading-spinner";
 
 export default function LeavePage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -58,8 +62,17 @@ export default function LeavePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (!user.currentCompany?.hasEmployeeAccess) {
+      router.replace("/unauthorized");
+    }
+  }, [user, isLoading, router]);
+
   // Get leave requests
-  const { data: leaveRequests = [], isLoading, isError, error } = useQuery({
+  const { data: leaveRequests = [], isLoading: leaveLoading, isError, error } = useQuery({
     queryKey: ['/api/leave-requests'],
     retry: false,
   });
@@ -136,20 +149,15 @@ export default function LeavePage() {
   };
 
   if (isLoading) {
-    return (
-      <AuthGuard requireEmployee={true}>
-        <EmployeeLayout>
-          <div className="flex items-center justify-center min-h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        </EmployeeLayout>
-      </AuthGuard>
-    );
+    return <LoadingPage />;
+  }
+
+  if (!user || !user.currentCompany?.hasEmployeeAccess) {
+    return null;
   }
 
   return (
-    <AuthGuard requireEmployee={true}>
-      <EmployeeLayout>
+    <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Leave Management</h2>
@@ -312,6 +320,5 @@ export default function LeavePage() {
           <NewPolicyDialog open={showNewPolicy} onOpenChange={setShowNewPolicy} />
       </div>
       </EmployeeLayout>
-    </AuthGuard>
   );
 }

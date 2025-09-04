@@ -231,8 +231,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 const hasEmployeeAccess = data.user.currentCompany?.hasEmployeeAccess || false;
                 
                 if (isAdmin && hasEmployeeAccess) {
-                  // Both admin and employee access - go to admin portal (can switch)
-                  window.location.href = '/admin/dashboard';
+                  // Both admin and employee access - show portal selection page
+                  window.location.href = '/portal-selection';
                 } else if (isAdmin && !hasEmployeeAccess) {
                   // Admin only - go to admin portal
                   window.location.href = '/admin/dashboard';

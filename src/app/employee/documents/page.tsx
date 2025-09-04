@@ -1,14 +1,28 @@
 "use client"
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Upload, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import AuthGuard from "@/components/auth/auth-guard";
 import EmployeeLayout from "@/components/layout/employee-layout";
+import { LoadingPage } from "@/components/ui/loading-spinner";
 
 export default function DocumentsPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (!user.currentCompany?.hasEmployeeAccess) {
+      router.replace("/unauthorized");
+    }
+  }, [user, isLoading, router]);
 
   const handleUploadDocument = () => {
     toast({
@@ -24,9 +38,16 @@ export default function DocumentsPage() {
     });
   };
 
+  if (isLoading) {
+    return <LoadingPage />;
+  }
+
+  if (!user || !user.currentCompany?.hasEmployeeAccess) {
+    return null;
+  }
+
   return (
-    <AuthGuard requireEmployee={true}>
-      <EmployeeLayout>
+    <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="mb-6">
             <div className="flex items-center justify-between">
@@ -155,6 +176,5 @@ export default function DocumentsPage() {
           </Card>
         </div>
       </EmployeeLayout>
-    </AuthGuard>
   );
 }

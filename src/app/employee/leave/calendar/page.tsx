@@ -1,13 +1,34 @@
 "use client"
 
-import AuthGuard from "@/components/auth/auth-guard"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/use-auth"
 import EmployeeLayout from "@/components/layout/employee-layout"
+import { LoadingPage } from "@/components/ui/loading-spinner"
 
 export default function LeaveCalendarPage() {
+  const router = useRouter()
+  const { user, isLoading } = useAuth()
+
+  useEffect(() => {
+    if (isLoading) return
+    if (!user) {
+      router.replace("/auth/login")
+    } else if (!user.currentCompany?.hasEmployeeAccess) {
+      router.replace("/unauthorized")
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading) {
+    return <LoadingPage />
+  }
+
+  if (!user || !user.currentCompany?.hasEmployeeAccess) {
+    return null
+  }
 
   return (
-    <AuthGuard requireEmployee={true}>
-      <EmployeeLayout>
+    <EmployeeLayout>
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Leave Calendar</h2>
@@ -33,6 +54,5 @@ export default function LeaveCalendarPage() {
         </div>
       </div>
       </EmployeeLayout>
-    </AuthGuard>
   )
 }
