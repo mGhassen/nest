@@ -58,7 +58,6 @@ export default function LoginClient({ searchParams }: { searchParams: Record<str
       });
       // Note: The actual redirection is handled in the useAuth hook after successful login
     } catch (err: unknown) {
-      console.error('Login error:', err);
       let errorMessage = 'An error occurred during login';
       if (err instanceof Error) {
         if (err.message.includes('Invalid login credentials')) {

@@ -99,7 +99,7 @@ export default function SessionDebug() {
             <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
             <div>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</div>
             <div>User: {user ? user.email : 'None'}</div>
-            <div>Role: {user ? (user.isAdmin ? 'Admin' : 'Employee') : 'None'}</div>
+            <div>Role: {user ? user.role : 'None'}</div>
             <div>Name: {user ? `${user.firstName} ${user.lastName}` : 'None'}</div>
             <div>Auth Error: {authError || 'None'}</div>
             <div>Access Token: {accessTokenStatus}</div>

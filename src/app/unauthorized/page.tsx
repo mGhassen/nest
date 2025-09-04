@@ -14,7 +14,7 @@ export default function UnauthorizedPage() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      redirect("/auth/signin")
+      redirect("/auth/login")
     }
   }, [user, isLoading])
 
@@ -54,7 +54,7 @@ export default function UnauthorizedPage() {
             </Button>
             
             <Button variant="outline" asChild className="w-full">
-              <Link href="/auth/signin">
+              <Link href="/auth/login">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Sign In
               </Link>

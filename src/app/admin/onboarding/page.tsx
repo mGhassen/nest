@@ -19,11 +19,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import RouteGuard from "@/components/auth/route-guard";
 
 export default function SuperuserOnboardingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   const features = [
     {
@@ -66,12 +65,34 @@ export default function SuperuserOnboardingPage() {
     }
   ];
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  // Check if user is admin or superuser
+  if (!user.isAdmin && user.role !== 'SUPERUSER') {
+    return null;
+  }
+
+  // Superuser with companies should not be on onboarding
+  if (user.role === 'SUPERUSER' && user.companies && user.companies.length > 0) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin/dashboard';
+      return null;
+    }
+  }
+
   return (
-    <RouteGuard 
-      requireAuth={true}
-      requireSuperuser={true}
-      requireCompany={false}
-    >
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
       <div className="border-b bg-background/80 backdrop-blur-sm">
@@ -266,6 +287,5 @@ export default function SuperuserOnboardingPage() {
         </div>
       </div>
       </div>
-    </RouteGuard>
   );
 }

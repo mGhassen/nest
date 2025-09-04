@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
     if (isLoading) return;
     if (!user) {
       router.replace("/auth/login");
-    } else if (!user.isAdmin) {
+    } else if (user.role !== 'SUPERUSER' && user.role !== 'ADMIN') {
       router.replace("/unauthorized");
     }
   }, [user, isLoading, router]);
@@ -29,7 +29,7 @@ export default function AdminDashboardPage() {
     return <LoadingPage />;
   }
 
-  if (!user || !user.isAdmin) {
+  if (!user || (user.role !== 'SUPERUSER' && user.role !== 'ADMIN')) {
     return null;
   }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from 'next/navigation';
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,7 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
-import RouteGuard from "@/components/auth/route-guard";
+import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 
 interface EmployeeLayoutProps {
@@ -34,7 +33,7 @@ interface EmployeeLayoutProps {
 
 export default function EmployeeLayout({ children }: EmployeeLayoutProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -84,12 +83,26 @@ export default function EmployeeLayout({ children }: EmployeeLayoutProps) {
     setMobileMenuOpen(false);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  // Check if user has companies
+  if (!user.companies || user.companies.length === 0) {
+    return null;
+  }
+
   return (
-    <RouteGuard 
-      requireAuth={true}
-      requireCompany={true}
-      allowedRoles={['EMPLOYEE']}
-    >
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm shadow-sm border-b border-border sticky top-0 z-50">
@@ -291,6 +304,5 @@ export default function EmployeeLayout({ children }: EmployeeLayoutProps) {
         {children}
       </main>
       </div>
-    </RouteGuard>
   );
 }

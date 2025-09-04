@@ -37,7 +37,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
-  authError: string | null; // <-- Added
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -59,14 +59,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<Error | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null); // NEW
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
 
   // Fetch user session
   const fetchSession = async (token: string) => {
     try {
-      console.log('Fetching session with token:', token ? 'present' : 'missing');
-      
       const response = await fetch('/api/auth/session', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,58 +74,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         credentials: 'include'
       });
 
-      console.log('Session API response status:', response.status);
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('Session API error response:', errorData);
-        
-        // Handle specific status codes
-        if (response.status === 403) {
-          // User is archived, suspended, or pending
-          if (errorData.status === 'archived') {
-            // Redirect to waiting approval page
-            router.push('/auth/waiting-approval');
-            setAuthError(errorData.error || 'Account pending approval');
-            return null;
-          }
-          setAuthError(errorData.error || 'Account access denied');
-          return null;
-        }
-        
         if (response.status === 401) {
-          console.log('401 error - clearing tokens and redirecting to login');
-          // Clear invalid token
           setAuthToken(null);
           localStorage.removeItem('refresh_token');
           setUser(null);
-          router.push('/auth/login');
-          setAuthError('Your session has expired or is invalid. Please log in again.');
           return null;
         }
-        
-        setAuthError(errorData.error || 'Failed to fetch session');
         return null;
       }
 
       const data = await response.json();
-      console.log('Session API success response:', data);
       
       if (data.success && data.user) {
-        console.log('Setting user data from session API:', data.user);
-        console.log('User role from session API:', data.user.role);
         setUser(data.user);
-        setAuthError(null); // Clear any previous errors
+        setAuthError(null);
         return data.user;
       }
       return null;
     } catch (error) {
       console.error('Session fetch error:', error);
-      setAuthError(
-        error instanceof Error && error.message.includes('expired')
-          ? 'Your session has expired. Please log in again.'
-          : 'An unexpected authentication error occurred. Please try again.'
-      );
+      setAuthError('Authentication error occurred');
       return null;
     }
   };
@@ -141,27 +108,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Ensure the token is available to apiFetch
       setAuthToken(token);
-
-      try {
-        const user = await fetchSession(token);
-        if (!user) {
-          // Session was invalid, tokens already cleared in fetchSession
-          console.log('Session check failed - no user returned');
-        }
-      } catch (error) {
-        console.error('Session check failed:', error);
-        // Fallback cleanup in case fetchSession didn't handle it
-        setAuthToken(null);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
+      const user = await fetchSession(token);
+      setIsLoading(false);
     };
 
     checkAuth();
-  }, [router]);
+  }, []);
 
   // Refresh the current session
   const refreshSession = async () => {
@@ -171,10 +124,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const login = async (email: string, password: string) => {
+    if (isLoggingIn) return;
+    
     setIsLoggingIn(true);
     setLoginError(null);
+    setAuthError(null);
+
     try {
-      // 1. Login request
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 
@@ -187,41 +143,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const data = await response.json();
       
-      console.log('Login API response:', data);
-      console.log('Session object:', data.session);
-      
       if (!response.ok || !data.success) {
-        // Handle specific status codes
         if (response.status === 403) {
           if (data.error && data.error.toLowerCase().includes('archived')) {
-            // User is archived (pending admin approval)
             localStorage.setItem('account_status_email', email);
             router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
             return;
           }
           if (data.error && data.error.toLowerCase().includes('pending')) {
-            // User is pending (needs to confirm invitation)
             localStorage.setItem('account_status_email', email);
             router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
             return;
           }
           if (data.error && data.error.toLowerCase().includes('suspended')) {
-            // User is suspended
             localStorage.setItem('account_status_email', email);
             router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
             return;
           }
-                  const errorMsg = data.error || 'Account access denied';
-        setLoginError(new Error(errorMsg));
-        setAuthError(errorMsg);
-        return;
+          const errorMsg = data.error || 'Account access denied';
+          setLoginError(new Error(errorMsg));
+          setAuthError(errorMsg);
+          return;
         }
         
-        // Handle 401 errors (invalid credentials or user not found)
         if (response.status === 401) {
-          // Check if it's a status-related error that should redirect
           if (data.error && (data.error.toLowerCase().includes('pending') || data.error.toLowerCase().includes('archived'))) {
-            // This shouldn't happen with 401, but handle it gracefully
             if (data.error.toLowerCase().includes('archived')) {
               localStorage.setItem('account_status_email', email);
               router.push(`/auth/account-status?email=${encodeURIComponent(email)}`);
@@ -246,14 +192,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       if (!data.session || !data.session.access_token) {
-        console.log('Session structure:', JSON.stringify(data.session, null, 2));
         const errorMsg = 'No access token received';
         setLoginError(new Error(errorMsg));
         setAuthError(errorMsg);
         return;
       }
 
-      // 2. Store tokens using the utility function
+      // Store tokens
       setAuthToken(data.session.access_token);
       if (data.session.refresh_token) {
         localStorage.setItem('refresh_token', data.session.refresh_token);
@@ -264,39 +209,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('pending_approval_email');
       localStorage.removeItem('account_status_email');
 
-      // 3. Set user data from response
+      // Set user data
       if (!data.user) {
         setLoginError(new Error('Failed to load user profile'));
         return;
       }
-      console.log('Setting user data from login API:', data.user);
-      console.log('User role from login API:', data.user.role);
-      setUser(data.user);
-      setLoginError(null); // Clear any previous errors
-      setAuthError(null); // Clear any previous auth errors
 
-      // Redirect based on user role and company access
-      console.log('Login successful, redirecting user:', data.user);
-      console.log('User isAdmin value:', data.user.isAdmin);
-      console.log('User role value:', data.user.role);
-      console.log('User companies:', data.user.companies);
+      setUser(data.user);
+      setLoginError(null);
+      setAuthError(null);
+
+      // Redirect based on user role
+      const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
       
-      // Small delay to ensure state is updated
-      setTimeout(() => {
-        // Check if superuser has no companies (should see onboarding)
-        const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
-        
-        if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
-          console.log('Superuser with no companies, redirecting to onboarding');
-          router.push('/admin/onboarding');
-        } else if (data.user.isAdmin) {
-          console.log('Redirecting admin to /admin/dashboard');
-          router.push('/admin/dashboard');
-        } else {
-          console.log('Redirecting employee to /employee/dashboard');
-          router.push('/employee/dashboard');
-        }
-      }, 100);
+      if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
+        window.location.href = '/admin/onboarding';
+      } else if (data.user.role === 'SUPERUSER' || data.user.role === 'ADMIN') {
+        window.location.href = '/admin/dashboard';
+      } else {
+        window.location.href = '/employee/dashboard';
+      }
     } catch (error) {
       console.error('Login error:', error);
       localStorage.removeItem('access_token');
@@ -329,14 +261,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear all auth-related data regardless of API call success
       setAuthToken(null);
       localStorage.removeItem('refresh_token');
-      
-      // Clear user state immediately
       setUser(null);
-      
-      // Redirect to login page
       router.push('/auth/login');
     }
   };
@@ -350,7 +277,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     refreshSession,
-    authError, // <-- Added
+    authError,
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);
