@@ -220,30 +220,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoginError(null);
       setAuthError(null);
 
-      // Redirect based on user role
-                    const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
-              
-              if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
-                window.location.href = '/admin/onboarding';
-              } else {
-                // Determine portal based on user permissions
-                const isAdmin = data.user.currentCompany?.is_admin || false;
-                const hasEmployeeAccess = data.user.currentCompany?.hasEmployeeAccess || false;
-                
-                if (isAdmin && hasEmployeeAccess) {
-                  // Both admin and employee access - show portal selection page
-                  window.location.href = '/portal-selection';
-                } else if (isAdmin && !hasEmployeeAccess) {
-                  // Admin only - go to admin portal
-                  window.location.href = '/admin/dashboard';
-                } else if (!isAdmin && hasEmployeeAccess) {
-                  // Employee only - go to employee portal
-                  window.location.href = '/employee/dashboard';
-                } else {
-                  // No access - redirect to unauthorized page
-                  window.location.href = '/unauthorized';
-                }
-              }
+      // Redirect based on user role and company access
+      const hasNoCompanies = !data.user.companies || data.user.companies.length === 0;
+      
+      if (data.user.role === 'SUPERUSER' && hasNoCompanies) {
+        // Superuser with no companies - go to onboarding
+        window.location.href = '/admin/onboarding';
+      } else if (data.user.companies && data.user.companies.length > 1) {
+        // Multiple companies - show company selection
+        window.location.href = '/company-selection';
+      } else {
+        // Single company - determine portal based on permissions
+        const isAdmin = data.user.currentCompany?.is_admin || false;
+        const hasEmployeeAccess = data.user.currentCompany?.hasEmployeeAccess || false;
+        
+        if (isAdmin && hasEmployeeAccess) {
+          // Both admin and employee access - show portal selection page
+          window.location.href = '/portal-selection';
+        } else if (isAdmin && !hasEmployeeAccess) {
+          // Admin only - go to admin portal
+          window.location.href = '/admin/dashboard';
+        } else if (!isAdmin && hasEmployeeAccess) {
+          // Employee only - go to employee portal
+          window.location.href = '/employee/dashboard';
+        } else {
+          // No access - redirect to unauthorized page
+          window.location.href = '/unauthorized';
+        }
+      }
     } catch (error) {
       console.error('Login error:', error);
       localStorage.removeItem('access_token');

@@ -3,13 +3,15 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Users, Building2 } from "lucide-react";
+import { Shield, Users, Building2, ArrowLeft } from "lucide-react";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 
 export default function PortalSelectionPage() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -103,13 +105,24 @@ export default function PortalSelectionPage() {
             )}
           </div>
 
-          {isAdmin && hasEmployeeAccess && (
-            <div className="text-center text-sm text-muted-foreground">
-              <p>
+          <div className="text-center space-y-4">
+            {isAdmin && hasEmployeeAccess && (
+              <p className="text-sm text-muted-foreground">
                 You can switch between portals at any time using the portal switcher in the top navigation.
               </p>
-            </div>
-          )}
+            )}
+            
+            {user.companies && user.companies.length > 1 && (
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/company-selection')}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Switch Company
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
