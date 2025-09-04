@@ -5,7 +5,7 @@ import { ChevronsUpDown, Plus,
   Building2, Users, Lightbulb, Briefcase, 
   Heart, Star, Zap, Shield, Globe, 
   Target, Rocket, Coffee, Home, 
-  Car, Plane, Ship, Truck } from "lucide-react";
+  Car, Plane, Ship, Truck, X, Circle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useUserCompanies, useCurrentCompany, useSwitchCompany } from "@/hooks/use-companies";
 import { useAuth } from "@/hooks/use-auth";
@@ -192,22 +192,22 @@ export function CompanySwitcher() {
               let accessText = '';
               
               if (isSuperuser) {
-                accessIcons = [<Shield className="size-3 text-purple-500" />];
+                accessIcons = [<Shield className="size-2.5 text-purple-500" />];
                 accessText = 'Superuser';
               } else if (isAdmin && hasEmployeeAccess) {
                 accessIcons = [
-                  <Shield className="size-3 text-blue-500" />,
-                  <Users className="size-3 text-green-500" />
+                  <Shield className="size-2.5 text-blue-500" />,
+                  <Users className="size-2.5 text-green-500" />
                 ];
                 accessText = 'Admin & Employee';
               } else if (isAdmin && !hasEmployeeAccess) {
-                accessIcons = [<Shield className="size-3 text-blue-500" />];
+                accessIcons = [<Shield className="size-2.5 text-blue-500" />];
                 accessText = 'Admin Only';
               } else if (!isAdmin && hasEmployeeAccess) {
-                accessIcons = [<Users className="size-3 text-green-500" />];
+                accessIcons = [<Users className="size-2.5 text-green-500" />];
                 accessText = 'Employee Only';
               } else {
-                accessIcons = [<Building2 className="size-3 text-gray-400" />];
+                accessIcons = [<X className="size-2.5 text-red-400" />];
                 accessText = 'No Access';
               }
               
@@ -222,18 +222,15 @@ export function CompanySwitcher() {
                   </div>
                   <div className="flex flex-col">
                     <span className="font-medium">{company.company_name}</span>
-                    <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-1">
-                        {accessIcons.map((icon, iconIndex) => (
-                          <span key={iconIndex}>{icon}</span>
-                        ))}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {accessText}
-                      </span>
-                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {accessText}
+                    </span>
                   </div>
-                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                  <div className="flex items-center justify-end gap-1 ml-auto">
+                    {accessIcons.map((icon, iconIndex) => (
+                      <span key={iconIndex}>{icon}</span>
+                    ))}
+                  </div>
                 </DropdownMenuItem>
               );
             })}
