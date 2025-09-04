@@ -6,6 +6,7 @@ import { ChevronsUpDown, Plus,
   Heart, Star, Zap, Shield, Globe, 
   Target, Rocket, Coffee, Home, 
   Car, Plane, Ship, Truck } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useUserCompanies, useCurrentCompany, useSwitchCompany } from "@/hooks/use-companies";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -47,9 +48,13 @@ export function CompanySwitcher() {
   const switchCompany = useSwitchCompany();
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const pathname = usePathname();
   
   // Check if current user is a superuser
   const isSuperuser = user?.role === 'SUPERUSER';
+  
+  // Determine current portal
+  const currentPortal = pathname.startsWith('/admin') ? 'admin' : 'employee';
   
   // Force re-render when user changes
   console.log('CompanySwitcher render - user role:', user?.role, 'isSuperuser:', isSuperuser);
@@ -156,10 +161,17 @@ export function CompanySwitcher() {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{currentCompany.company_name}</span>
-                <span className="truncate text-xs">
-                  {isSuperuser ? 'Superuser' : 
-                   currentCompany.is_admin ? 'Administrator' : 'Employee'}
-                </span>
+                <div className="flex items-center gap-1">
+                  {currentPortal === 'admin' ? (
+                    <Shield className="size-3 text-blue-500" />
+                  ) : (
+                    <Users className="size-3 text-green-500" />
+                  )}
+                  <span className="truncate text-xs text-muted-foreground">
+                    {isSuperuser ? 'Superuser' : 
+                     currentPortal === 'admin' ? 'Admin Portal' : 'Employee Portal'}
+                  </span>
+                </div>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -186,10 +198,17 @@ export function CompanySwitcher() {
                   </div>
                   <div className="flex flex-col">
                     <span className="font-medium">{company.company_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isSuperuser ? 'Superuser' : 
-                       company.is_admin ? 'Administrator' : 'Employee'}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {company.is_admin ? (
+                        <Shield className="size-3 text-blue-500" />
+                      ) : (
+                        <Users className="size-3 text-green-500" />
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {isSuperuser ? 'Superuser' : 
+                         company.is_admin ? 'Admin Access' : 'Employee Access'}
+                      </span>
+                    </div>
                   </div>
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
