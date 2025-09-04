@@ -121,7 +121,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {
               title: "Account Management",
               url: "/admin/settings/accounts",
-              requireSuperuser: true,
+              requireAdmin: true,
             },
           ],
         },

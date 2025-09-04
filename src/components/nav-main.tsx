@@ -42,6 +42,7 @@ export function NavMain({
       title: string
       url: string
       requireSuperuser?: boolean
+      requireAdmin?: boolean
     }[]
   }[]
 }) {
@@ -85,6 +86,11 @@ export function NavMain({
                         {item.items?.map((subItem) => {
                           // Filter out superuser-only items if user is not superuser
                           if (subItem.requireSuperuser && user?.role !== 'SUPERUSER') {
+                            return null
+                          }
+                          
+                          // Filter out admin-only items if user is not admin or superuser
+                          if (subItem.requireAdmin && !user?.currentCompany?.is_admin && user?.role !== 'SUPERUSER') {
                             return null
                           }
                           

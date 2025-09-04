@@ -6,12 +6,13 @@ import { useState } from "react";
 import { 
   Building2, 
   Plus, 
-  Search,
-  Filter,
+  Search, 
+  Filter, 
   X,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Eye
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,12 +29,21 @@ import {
 import { useUserCompanies } from "@/hooks/use-companies";
 import { useAuth } from "@/hooks/use-auth";
 import AdminLayout from "@/components/layout/admin-layout";
-import CompanyTable from "@/components/companies/company-table";
 
 export default function CompaniesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { data: companies, isLoading, error } = useUserCompanies();
+
+  // Check if user is authenticated and is a superuser
+  React.useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (user.role !== 'SUPERUSER') {
+      router.replace("/unauthorized");
+    }
+  }, [user, authLoading, router]);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
@@ -55,7 +65,7 @@ export default function CompaniesPage() {
     
     let filtered = companies.filter(company => {
       const matchesSearch = company.company_name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRole = !roleFilter || company.role === roleFilter;
+      const matchesRole = !roleFilter || (roleFilter === 'ADMIN' ? company.is_admin : !company.is_admin);
       return matchesSearch && matchesRole;
     });
 
@@ -63,6 +73,11 @@ export default function CompaniesPage() {
       filtered.sort((a, b) => {
         const aValue = a[sortField as keyof typeof a];
         const bValue = b[sortField as keyof typeof b];
+        
+        // Handle undefined values
+        if (aValue === undefined && bValue === undefined) return 0;
+        if (aValue === undefined) return sortDirection === "asc" ? -1 : 1;
+        if (bValue === undefined) return sortDirection === "asc" ? 1 : -1;
         
         if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
         if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
@@ -72,6 +87,34 @@ export default function CompaniesPage() {
 
     return filtered;
   }, [companies, searchQuery, roleFilter, sortField, sortDirection]);
+
+  // Loading and authentication checks
+  if (authLoading || isLoading) {
+    return (
+      <AdminLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Loading Companies...</h3>
+            <p className="text-muted-foreground">Please wait while we load your companies.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // Don't render if user is not authenticated or not a superuser
+  if (!user || user.role !== 'SUPERUSER') {
+    return (
+      <AdminLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-destructive mb-2">Access Denied</h3>
+            <p className="text-muted-foreground">You need superuser privileges to access this page.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   // Pagination
   const totalPages = Math.ceil(filteredCompanies.length / pageSize);
@@ -262,22 +305,121 @@ export default function CompaniesPage() {
             </Button>
           </div>
         ) : (
-          <CompanyTable
-            companies={paginatedCompanies}
-            onSort={handleSort}
-            getSortIcon={getSortIcon}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredCompanies.length}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            selectedCompanies={selectedCompanies}
-            selectAll={selectAll}
-            onSelectAll={handleSelectAll}
-            onSelectCompany={handleSelectCompany}
-          />
+          <div className="bg-white rounded-lg border">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <Checkbox
+                        checked={selectAll}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <button
+                        className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                        onClick={() => handleSort('company_name')}
+                      >
+                        <span>Company Name</span>
+                        {getSortIcon('company_name')}
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <button
+                        className="flex items-center space-x-1 hover:text-foreground transition-colors"
+                        onClick={() => handleSort('is_admin')}
+                      >
+                        <span>Role</span>
+                        {getSortIcon('is_admin')}
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginatedCompanies.map((company) => (
+                    <tr key={company.company_id} className="hover:bg-muted/50">
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={selectedCompanies.has(company.company_id)}
+                          onCheckedChange={(checked) => handleSelectCompany(company.company_id, checked as boolean)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Building2 className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{company.company_name}</div>
+                            <div className="text-xs text-muted-foreground">ID: {company.company_id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <Badge variant={company.is_admin ? 'default' : 'secondary'}>
+                          {company.is_admin ? 'Admin' : 'Employee'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/admin/settings/companies/${company.company_id}`)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-4 py-3 border-t bg-muted/25 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredCompanies.length)} of {filteredCompanies.length} companies
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Bulk Actions */}

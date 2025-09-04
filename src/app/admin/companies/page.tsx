@@ -35,6 +35,16 @@ export default function CompaniesPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { data: companies, isLoading: companiesLoading, error } = useUserCompanies();
+
+  // Check if user is authenticated and is a superuser
+  React.useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login");
+    } else if (user.role !== 'SUPERUSER') {
+      router.replace("/unauthorized");
+    }
+  }, [user, isLoading, router]);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
@@ -163,6 +173,11 @@ export default function CompaniesPage() {
   };
 
   if (isLoading || companiesLoading) {
+    return <LoadingPage />;
+  }
+
+  // Don't render if user is not authenticated or not a superuser
+  if (!user || user.role !== 'SUPERUSER') {
     return <LoadingPage />;
   }
 
