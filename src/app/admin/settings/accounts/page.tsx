@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { useAccountsList, useAccountCreate, useAccountPasswordReset, useAccountStatusUpdate } from "@/hooks/use-accounts";
+import AdminLayout from "@/components/layout/admin-layout";
 ;
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -415,7 +416,8 @@ export default function AccountManagementPage() {
   const hasNewFields = accounts && accounts.length > 0 && accounts[0].hasOwnProperty('account_status');
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <AdminLayout>
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Account Management</h2>
@@ -922,5 +924,6 @@ export default function AccountManagementPage() {
           )}
         </div>
       </div>
+    </AdminLayout>
   );
 }
